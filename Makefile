@@ -54,6 +54,9 @@ postgresql:
 			docker container exec -it $@ sh
 .PHONY:		postgresql
 
+db:
+	docker start postgresql
+
 # Building rules #
 build:
 			echo -n "Building '$(NAME)' images...\n"

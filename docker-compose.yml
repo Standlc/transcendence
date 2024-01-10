@@ -7,7 +7,7 @@ services:
     environment:
       - POSTGRES_USER=$DB_USER
       - POSTGRES_PASSWORD=$DB_PASSWORD
-      - POSTGRES_DB=$POSTGRES_DB
+      - POSTGRES_DB=$DB_NAME
     ports:
       - 5432:5432
     volumes:
@@ -16,6 +16,13 @@ services:
 
   api:
     container_name: backend
+    environment:
+      - PGHOST=postgresql
+      - PGPORT=$DB_PORT
+      - PGUSER=$DB_USER
+      - PGPASSWORD=$DB_PASSWORD
+      - PGDATABASE=$DB_NAME
+      - DATABASE_URL=$DATABASE_URL
     depends_on:
       - db
     build: ./api
@@ -25,16 +32,20 @@ services:
     ports:
       - 5000:5000
     restart: always
+    stop_grace_period: 1s
 
   client:
     container_name: frontend
     build: ./client
+    environment:
+      - REACT_APP_API_HOST
     volumes:
       - ./client/:/app
       - /app/node_modules
     ports:
       - 3000:3000
     restart: always
+    stop_grace_period: 1s
 
 volumes:
   postgres:

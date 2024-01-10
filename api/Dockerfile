@@ -4,6 +4,6 @@ WORKDIR /app
 
 COPY    package*.json ./
 
-RUN     npm i
+# RUN     npm i
 
-CMD     npm run start:dev
+CMD     npm i && npm run migrate && npm run start:dev
