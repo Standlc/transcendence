@@ -7,6 +7,6 @@ export class AppService {
   async getHello(): Promise<any> {
     const { rows }: any = await sql`SELECT NOW()`.execute(db);
     return rows[0].now;
-    return 'Hello World!';
+    // return 'Hello World!';
   }
 }

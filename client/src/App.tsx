@@ -3,9 +3,25 @@ import { useEffect, useState } from "react";
 import "./App.css";
 import axios from "axios";
 import { DateTime } from "luxon";
+import {
+  Route,
+  RouterProvider,
+  createBrowserRouter,
+  createRoutesFromElements,
+} from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import PrivateLayout from "./components/PrivateLayout";
+import PublicLayout from "./components/PublicLayout";
+import PongGame from "./pages/PongGame";
+
+const getUser = async () => {
+  const res = await axios.get<any>("/api");
+  return res.data;
+};
 
 function App() {
-  const [count, setCount] = useState(0);
+  const [user, setUser] = useState<any | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(true);
   const [now, setNow] = useState("");
 
   useEffect(() => {
@@ -17,19 +33,52 @@ function App() {
     testApi();
   }, []);
 
+  const { isPending, data } = useQuery({
+    queryKey: ["user"],
+    retry: false,
+    refetchOnWindowFocus: false,
+    queryFn: getUser,
+  });
+
+  useEffect(() => {
+    if (data) {
+      setUser(data);
+    }
+    setIsLoading(isPending);
+  }, [data, isPending]);
+
+  if (isLoading) {
+    return "Loading...";
+  }
+
   return (
-    <div className="flex flex-col items-center gap-4">
-      <h1>Transcendence</h1>
-      <button onClick={() => setCount((count) => count + 1)}>
-        count is {count}
-      </button>
-      <div className="h-[20px]">
-        <h2>{now}</h2>
-      </div>
-      <p className="read-the-docs text-red-500">
-        <RocketLaunchIcon fontSize="large" />
-      </p>
-    </div>
+    <RouterProvider
+      router={createBrowserRouter(
+        createRoutesFromElements(
+          <>
+            <Route element={<PrivateLayout />}>
+              <Route
+                element={
+                  <>
+                    <RocketLaunchIcon />
+                    <h2 className="font-extrabold">Current time is: {now}</h2>
+                  </>
+                }
+                index={true}
+              />
+              <Route path="/play" element={<PongGame />} />
+            </Route>
+
+            <Route element={<PublicLayout />}>
+              <Route
+                element={<h2 className="font-extrabold">{now}</h2>}
+                index
+              />
+            </Route>
+          </>
+        )
+      )}
+    />
   );
 }
 
