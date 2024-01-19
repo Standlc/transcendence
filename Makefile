@@ -24,6 +24,11 @@ up:
 			docker compose -f $(DOCKER_COMPOSE) up -d
 .PHONY:		up
 
+attach:
+			echo -n "Attaching '$(NAME)' containers...\n"
+			docker compose -f $(DOCKER_COMPOSE) up
+.PHONY:		attach
+
 stop:
 			echo -n "Stopping '$(NAME)' containers...\n"
 			docker compose -f $(DOCKER_COMPOSE) stop
@@ -87,3 +92,20 @@ fclean:		clean
 				echo -n "Abord.\n"; \
 			fi
 .PHONY:		fclean
+
+purge:	clean
+			echo -n "Warning ! You are going to delete every docker container and image on your pc, are you sure to continue ? [y/N]\n"
+			read choice; \
+			if [ "$$choice" = "y" ]; then \
+				docker volume rm $(VOLUME) 2>/dev/null; \
+				echo -n "🗑️  '$(VOLUME)' has been deleted.\n"; \
+				docker builder prune -a -f; \
+				echo -n "🗑️  'Builder cache' has been deleted.\n"; \
+				docker buildx prune -a -f; \
+				echo -n "🗑️  'Buildx cache' has been deleted.\n"; \
+				docker rmi -f $$(docker images -a -q) 2>/dev/null; \
+				echo -n "🗑️  'Docker images' has been deleted.\n"; \
+			else \
+				echo -n "Abord.\n"; \
+			fi
+.PHONY:		purge
