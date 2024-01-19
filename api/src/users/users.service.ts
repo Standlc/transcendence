@@ -1,19 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import { InsertResult } from 'kysely';
+import { InsertResult, Selectable } from 'kysely';
 import { db } from 'src/database';
 import { CreateUsersDto } from './dto/create-users.dto';
 import * as bcrypt from 'bcrypt';
 import { UserList } from './dto/user-list.dto';
 import { UserProfileDto } from './dto/user-profile.dto';
+import { User } from 'src/types/schema';
 
 @Injectable()
 export class UsersService {
-  async createUser(createUsersDto: CreateUsersDto): Promise<boolean> {
+  async createUser(createUsersDto: CreateUsersDto): Promise<string> {
     try {
       const hashedPassword = await bcrypt.hash(createUsersDto.password, 10);
       if (createUsersDto.username == "")
         throw "Empty username";
-      const result = await db
+      await db
       .insertInto('user')
       .values({
         username: createUsersDto.username,
@@ -22,14 +23,13 @@ export class UsersService {
         lastname: createUsersDto.lastname
       })
       .executeTakeFirstOrThrow();
-      return true;
+      return 'success';
     } catch (error) {
-      console.log(error);
-      return false;
+      return 'error';
     }
   }
 
-  async findUserById(userId: number): Promise<UserProfileDto | null> {
+  async getUserById(userId: number): Promise<UserProfileDto | null> {
     try {
       //? Fetch the databse and search for a user with userId
       //? Crete a DTO object containing only the needed properties for showing a user profile.
@@ -41,7 +41,6 @@ export class UsersService {
 
       return user;
     } catch (error) {
-      console.log(error);
       return null;
     }
   }
@@ -57,6 +56,15 @@ export class UsersService {
     return user;
   }
 
+  async getUserByName(username: string): Promise<Selectable<User> | undefined> {
+    const user: Selectable<User> = await db
+    .selectFrom('user')
+    .selectAll()
+    .where('username', '=', username)
+    .executeTakeFirst();
+    return user;
+  }
+
   async getUserList(): Promise<UserList[] | null> {
     try {
       let userList: UserList[] = await db
@@ -65,7 +73,6 @@ export class UsersService {
       .execute();
       return userList;
     } catch (error) {
-      console.log(error);
       return null;
     }
   }

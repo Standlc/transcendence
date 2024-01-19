@@ -1,7 +1,7 @@
 import { BadRequestException, Body, Controller, Get, NotFoundException, Param, Post, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UserProfileDto } from './dto/user-profile.dto';
-import { ApiBadRequestResponse, ApiNotFoundResponse, ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBadRequestResponse, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { UserList } from './dto/user-list.dto';
 import { Selectable } from 'kysely';
 import { CreateUsersDto } from './dto/create-users.dto';
@@ -18,10 +18,11 @@ export class UsersController {
   /**
    * ? Create a new user in the database.
    * @param body
-   * @returns true if the user register, otherwise false is returned.
+   * @returns 'success' if the user register, otherwise 'error' is returned.
    */
+  @ApiCreatedResponse({type: 'success'})
   @Post('register')
-  async createUser(@Body() body: CreateUsersDto): Promise<boolean> {
+  async createUser(@Body() body: CreateUsersDto): Promise<string> {
     return await this.usersService.createUser(body);
   }
 
@@ -55,7 +56,7 @@ export class UsersController {
   @ApiNotFoundResponse()
   @Get(':id/profile')
   async getUserProfile(@Param('id') userId: number): Promise<UserProfileDto> {
-    const result = await this.usersService.findUserById(userId);
+    const result = await this.usersService.getUserById(userId);
 
     if (!result)
       throw new NotFoundException();
