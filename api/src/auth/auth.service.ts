@@ -1,12 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
 import * as bcrypt from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
+import { ConnectUsersDto } from 'src/users/dto/connect-user.dto';
 
 @Injectable()
 export class AuthService {
-  constructor(private usersService: UsersService) {}
+  constructor(private usersService: UsersService, private jwtService: JwtService) {}
 
-  async validateUser(username: string, password: string): Promise<any> {
+  /**
+   * Validate if the user we receive exist and if the password match.
+   * @param username
+   * @param password
+   * @returns ConnectUsersDto or null
+   */
+  async validateUser(username: string, password: string): Promise<ConnectUsersDto | undefined> {
     const user = await this.usersService.getUserByName(username);
 
     if (user) {
@@ -15,10 +23,29 @@ export class AuthService {
         if (!result)
           return null;
       });
-      const { password, username, ...rest} = user;
+      const rest: ConnectUsersDto = {
+        firstname: user.firstname,
+        lastname: user.lastname,
+        avatarUrl: user.avatarUrl,
+        email: user.email,
+        id: user.id
+      };
 
       return rest;
     }
     return null;
+  }
+
+  /**
+   * Create a JWT using a payload and signing it.
+   * @param user
+   * @returns jwt
+   */
+  async login(user: any) {
+    const payload = {id: user.id};
+
+    return {
+      access_token: this.jwtService.sign(payload)
+    };
   }
 }
