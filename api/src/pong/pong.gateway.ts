@@ -66,7 +66,7 @@ export class PongGateway {
 
   handleConnection(client: Socket) {
     const userId = this.extractUserId(client);
-    console.log('connecting:', userId, client.id);
+    // console.log('connecting:', userId, client.id);
     // console.log(client.handshake.headers.cookie);
     if (isNaN(userId)) {
       client.disconnect(true);
