@@ -12,16 +12,11 @@ export class AuthController {
 
   @UseGuards(LocalAuthGuard)
   @Post('login')
-  login(@Request() req): any {
-    req.user_token = this.authService.login(req.user);
-    console.log(req.user_token);
-    return this.authService.login(req.user);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('test')
-  test() {
-    return "yep";
+  async login(@Request() req, @Response({ passthrough: true }) res) {
+    const token: string = await this.authService.login(req.user);
+    let date = new Date();
+    date.setDate(date.getDate() + 7);
+    res.cookie('token', token, {expires: date});
   }
 
   @Get('logout')
