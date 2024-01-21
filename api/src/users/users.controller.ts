@@ -1,13 +1,11 @@
-import { BadRequestException, Body, Controller, Get, NotFoundException, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UserProfileDto } from './dto/user-profile.dto';
-import { ApiBadRequestResponse, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiQuery, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { UserList } from './dto/user-list.dto';
-import { Selectable } from 'kysely';
 import { CreateUsersDto } from './dto/create-users.dto';
-import { User } from 'src/types/schema';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
-//TODO: Add guards to protect API endpoint
 @ApiTags('users')
 @Controller('users')
 export class UsersController {
@@ -38,6 +36,8 @@ export class UsersController {
   @ApiOkResponse({type: UserProfileDto, isArray: true})
   @ApiQuery({name: 'name', required: true})
   @ApiNotFoundResponse()
+  @ApiUnauthorizedResponse()
+  @UseGuards(JwtAuthGuard)
   @Get()
   async getUsers(@Query('name') name: string): Promise<UserProfileDto[]> {
     const result = await this.usersService.findUsersByName(name);
@@ -54,6 +54,8 @@ export class UsersController {
    */
   @ApiOkResponse({type: UserProfileDto, isArray: false})
   @ApiNotFoundResponse()
+  @ApiUnauthorizedResponse()
+  @UseGuards(JwtAuthGuard)
   @Get(':id/profile')
   async getUserProfile(@Param('id') userId: number): Promise<UserProfileDto> {
     const result = await this.usersService.getUserById(userId);
@@ -68,6 +70,8 @@ export class UsersController {
    * @returns UserList[] | null
    */
   @ApiOkResponse({type: UserList, isArray: true})
+  @ApiUnauthorizedResponse()
+  @UseGuards(JwtAuthGuard)
   @Get('list')
   async getUserList(): Promise<UserList[] | null> {
     return await this.usersService.getUserList();
