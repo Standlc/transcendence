@@ -1,51 +1,27 @@
-import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import { useEffect, useState } from "react";
-import "./App.css";
-import axios from "axios";
-import { DateTime } from "luxon";
 import {
   Route,
   RouterProvider,
   createBrowserRouter,
   createRoutesFromElements,
 } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import PrivateLayout from "./components/PrivateLayout";
 import PublicLayout from "./components/PublicLayout";
-import PongGame from "./pages/PongGame";
-
-const getUser = async () => {
-  const res = await axios.get<any>("/api");
-  return res.data;
-};
+import PlayPage from "./pages/PlayPage";
+import GamePage from "./pages/GamePage";
+import { AppUser } from "./ContextsProviders/UserContext";
 
 function App() {
-  const [user, setUser] = useState<any | undefined>(undefined);
+  const [user, setUser] = useState<AppUser>();
   const [isLoading, setIsLoading] = useState(true);
-  const [now, setNow] = useState("");
 
   useEffect(() => {
-    const testApi = async () => {
-      const res: { data: string } = await axios.get("/api");
-      console.log(res.data);
-      setNow(DateTime.fromISO(res.data).toFormat("HH':' mm: ss"));
-    };
-    testApi();
-  }, []);
-
-  const { isPending, data } = useQuery({
-    queryKey: ["user"],
-    retry: false,
-    refetchOnWindowFocus: false,
-    queryFn: getUser,
-  });
-
-  useEffect(() => {
-    if (data) {
-      setUser(data);
+    const storedUser = sessionStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+      setIsLoading(false);
     }
-    setIsLoading(isPending);
-  }, [data, isPending]);
+  }, []);
 
   if (isLoading) {
     return "Loading...";
@@ -56,25 +32,21 @@ function App() {
       router={createBrowserRouter(
         createRoutesFromElements(
           <>
-            <Route element={<PrivateLayout />}>
+            {user ? (
               <Route
-                element={
-                  <>
-                    <RocketLaunchIcon />
-                    <h2 className="font-extrabold">Current time is: {now}</h2>
-                  </>
-                }
-                index={true}
-              />
-              <Route path="/play" element={<PongGame />} />
-            </Route>
-
-            <Route element={<PublicLayout />}>
+                element={<PrivateLayout user={user} setUser={setUser} />}
+                errorElement={<div>\(o_o)/</div>}
+              >
+                <Route index element={<div>home</div>}></Route>
+                <Route path="/play" element={<PlayPage />} />
+                <Route path="/play/:gameId" element={<GamePage />} />
+              </Route>
+            ) : (
               <Route
-                element={<h2 className="font-extrabold">{now}</h2>}
-                index
-              />
-            </Route>
+                element={<PublicLayout />}
+                errorElement={<div>\(o_o)/</div>}
+              ></Route>
+            )}
           </>
         )
       )}
