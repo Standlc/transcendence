@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectUsersDto } from 'src/users/dto/connect-user.dto';
 import { LoginUserDto } from 'src/users/dto/login-user.dto';
+import { AppUser } from 'src/types/clientSchema';
 
 @Injectable()
 export class AuthService {
@@ -14,25 +15,18 @@ export class AuthService {
    * @param loginUserDto
    * @returns ConnectUsersDto or null
    */
-  async validateUser(loginUserDto: LoginUserDto): Promise<ConnectUsersDto | undefined> {
+  async validateUser(loginUserDto: LoginUserDto): Promise<AppUser | undefined> {
     const user = await this.usersService.getUserByName(loginUserDto.username);
 
     if (user) {
-      (async () => {
-        const result = await bcrypt.compare(loginUserDto.password, user.password);
-        if (!result)
-          return null;
-      });
-      const rest: ConnectUsersDto = {
-        firstname: user.firstname,
-        lastname: user.lastname,
-        avatarUrl: user.avatarUrl,
-        email: user.email,
-        id: user.id
-      };
-      return rest;
+      const result = await bcrypt.compare(loginUserDto.password, user.password);
+      if (!result) {
+        return;
+      }
+
+      const {password, ...appUser} = user;
+      return appUser;
     }
-    return null;
   }
 
   /**

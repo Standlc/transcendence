@@ -29,11 +29,11 @@ export class UsersService {
     }
   }
 
-  async getUserById(userId: number): Promise<UserProfileDto | null> {
+  async getUserById(userId: number): Promise<UserProfileDto | undefined> {
     try {
       //? Fetch the databse and search for a user with userId
       //? Crete a DTO object containing only the needed properties for showing a user profile.
-      const user: UserProfileDto = await db
+      const user = await db
       .selectFrom('user')
       .select(['username', 'bio', 'avatarUrl', 'firstname', 'lastname'])
       .where('id', '=', userId)
@@ -41,7 +41,7 @@ export class UsersService {
 
       return user;
     } catch (error) {
-      return null;
+      return undefined;
     }
   }
 
@@ -57,7 +57,7 @@ export class UsersService {
   }
 
   async getUserByName(username: string): Promise<Selectable<User> | undefined> {
-    const user: Selectable<User> = await db
+    const user = await db
     .selectFrom('user')
     .selectAll()
     .where('username', '=', username)
