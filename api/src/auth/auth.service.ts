@@ -1,8 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
-import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { ConnectUsersDto } from 'src/users/dto/connect-user.dto';
 import { LoginUserDto } from 'src/users/dto/login-user.dto';
 import { AppUser } from 'src/types/clientSchema';
 
@@ -16,17 +14,7 @@ export class AuthService {
    * @returns ConnectUsersDto or null
    */
   async validateUser(loginUserDto: LoginUserDto): Promise<AppUser | undefined> {
-    const user = await this.usersService.getUserByName(loginUserDto.username);
-
-    if (user) {
-      const result = await bcrypt.compare(loginUserDto.password, user.password);
-      if (!result) {
-        return;
-      }
-
-      const {password, ...appUser} = user;
-      return appUser;
-    }
+    return await this.usersService.validateUser(loginUserDto);
   }
 
   /**
