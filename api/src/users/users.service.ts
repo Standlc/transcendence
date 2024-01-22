@@ -1,10 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { InsertResult, Selectable } from 'kysely';
 import { db } from 'src/database';
 import { CreateUsersDto } from './dto/create-users.dto';
 import * as bcrypt from 'bcrypt';
-import { UserList } from './dto/user-list.dto';
-import { AppUser } from 'src/types/clientSchema';
+import { AppUser, ListUsers } from 'src/types/clientSchema';
 import { LoginUserDto } from './dto/login-user.dto';
 
 @Injectable()
@@ -88,9 +86,9 @@ export class UsersService {
     }
   }
 
-  async getUserList(): Promise<UserList[] | null> {
+  async getUserList(): Promise<ListUsers[] | null> {
     try {
-      let userList: UserList[] = await db
+      let userList: ListUsers[] = await db
       .selectFrom('user')
       .select(['id', 'username', 'avatarUrl'])
       .execute();

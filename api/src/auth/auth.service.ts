@@ -11,7 +11,7 @@ export class AuthService {
   /**
    * Validate if the user we receive exist and if the password match.
    * @param loginUserDto
-   * @returns ConnectUsersDto or null
+   * @returns AppUser or null
    */
   async validateUser(loginUserDto: LoginUserDto): Promise<AppUser | undefined> {
     return await this.usersService.validateUser(loginUserDto);
