@@ -36,7 +36,7 @@ services:
 
   client:
     container_name: frontend
-    build: ./client
+    build: ./
     environment:
       - REACT_APP_API_HOST
     volumes:

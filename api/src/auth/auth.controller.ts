@@ -4,6 +4,7 @@ import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { LocalAuthGuard } from './local-auth.guard';
 import { Response as ResponseType } from 'express';
 import { ConnectUsersDto } from 'src/users/dto/connect-user.dto';
+import { AppUser } from 'src/types/clientSchema';
 
 @ApiTags('authentification')
 @Controller('auth')
@@ -13,7 +14,7 @@ export class AuthController {
   @UseGuards(LocalAuthGuard)
   @ApiOkResponse({type: ConnectUsersDto, isArray: false})
   @Post('login')
-  async login(@Request() req, @Response({ passthrough: true }) res: ResponseType): Promise<ConnectUsersDto> {
+  async login(@Request() req, @Response({ passthrough: true }) res: ResponseType): Promise<AppUser> {
     const token: string = await this.authService.login(req.user.id);
     let date = new Date();
     date.setDate(date.getDate() + 7);
