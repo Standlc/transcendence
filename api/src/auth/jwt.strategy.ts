@@ -32,7 +32,11 @@ export class jwtStrategy extends PassportStrategy(Strategy) {
    * @param payload
    * @returns UserProfileDto
    */
-  async validate(payload: any): Promise<UserProfileDto | undefined> {
-    return await this.usersService.getUserById(payload.id);
+  async validate(payload: {id:number}): Promise<{id: number} | undefined> {
+    const user = await this.usersService.getUserById(payload.id);
+    if (!user) {
+      return undefined;
+    }
+    return payload;
   }
 }
