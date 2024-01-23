@@ -14,6 +14,7 @@ import PrivateLayout from "./components/PrivateLayout";
 import PublicLayout from "./components/PublicLayout";
 import PongGame from "./pages/PongGame";
 import { AppUser } from "../../api/src/types/clientSchema";
+import ChatComponent from "./pages/ChatComponent";
 
 const getUser = async () => {
   const res = await axios.get<any>("/api");
@@ -81,6 +82,8 @@ function App() {
                 index
               />
             </Route>
+
+            <Route path="/chat/:id/messages/:channelId" element={<ChatComponent />} />
           </>
         )
       )}

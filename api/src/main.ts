@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -15,6 +16,7 @@ async function bootstrap() {
   SwaggerModule.setup('/docs', app, document);
   app.use(cookieParser());
   app.enableCors();
+  app.useWebSocketAdapter(new IoAdapter(app));
   app.setGlobalPrefix('api');
   await app.listen(5000);
 }
