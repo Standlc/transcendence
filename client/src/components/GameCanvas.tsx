@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   GameStateType,
   ObjectType,
@@ -10,8 +10,8 @@ import {
   CRYSTAL,
   POWER_UP_COLORS,
 } from "../utils/game/sprites";
-import { UserContext } from "../ContextsProviders/UserContext";
-import { GameSocketContext } from "../ContextsProviders/GameSocketContext";
+import { UserContext } from "../contextsProviders/UserContext";
+import { GameSocketContext } from "../contextsProviders/GameSocketContext";
 import { useGamePlayers } from "../utils/game/useGetGamePlayers";
 
 const MOVE_MAP: Record<string, "up" | "down"> = {
@@ -26,9 +26,17 @@ interface props {
 export default function GameCanvas({ game }: props) {
   const socket = useContext(GameSocketContext);
   const { user } = useContext(UserContext);
-  const { playerLeft, playerRight } = useGamePlayers(game);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currMove, setCurrMove] = useState<null | "up" | "down">(null);
+  const playerOfUser = useMemo(() => {
+    if (game.playerLeft.id === user.id) {
+      return game.playerLeft;
+    }
+    if (game.playerRight.id === user.id) {
+      return game.playerRight.id;
+    }
+    return undefined;
+  }, [user.id, game.playerLeft.id, game.playerRight.id]);
 
   const drawRect = (
     ctx: CanvasRenderingContext2D,
@@ -119,23 +127,19 @@ export default function GameCanvas({ game }: props) {
     };
   }, [canvasRef.current, game]);
 
-  const playerMovePayload = (move: "up" | "down" | "stop") => {
-    return { userId: user.id, gameId: game.id, move };
-  };
-
   /**
    * CONTROLS
    */
   useEffect(() => {
-    if (playerLeft.userId !== user.id) {
+    if (!playerOfUser) {
       return;
     }
 
-    socket.emit("playerMove", playerMovePayload(currMove ?? "stop"));
-  }, [currMove, socket, user, game]);
+    socket.emit("playerMove", { gameId: game.id, move: currMove ?? "stop" });
+  }, [currMove, socket, playerOfUser, game.id]);
 
   useEffect(() => {
-    if (playerLeft.userId !== user.id) {
+    if (!playerOfUser) {
       return;
     }
 
@@ -160,7 +164,7 @@ export default function GameCanvas({ game }: props) {
       removeEventListener("keydown", handleKeyDown);
       removeEventListener("keyup", handleKeyUp);
     };
-  }, [currMove, playerLeft.userId]);
+  }, [currMove, playerOfUser]);
 
   return (
     <canvas

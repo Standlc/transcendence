@@ -1,9 +1,13 @@
 import { ArrowDropDownRounded, ArrowDropUpRounded } from "@mui/icons-material";
 import { GamePreferencesType, GameStylesType } from "../types/game";
-import { useContext, useState } from "react";
-import { GameSocketContext } from "../ContextsProviders/GameSocketContext";
+import { useContext, useEffect, useState } from "react";
+import { GameSocketContext } from "../contextsProviders/GameSocketContext";
 import { GAME_STYLES } from "../utils/game/gameBackgrounds";
-import { PublicGameRequestDto } from "../../../api/src/types/game";
+import { GameRequestDto } from "../../../api/src/types/game";
+import { GameRequestResponseDto } from "../../../api/src/types/games/gameRequests";
+import { useMutation } from "@tanstack/react-query";
+import axios from "axios";
+import { ResumeCurrentGameContext } from "../contextsProviders/ResumeCurrentGameContext";
 
 export default function GamePreferences({
   preferences,
@@ -14,15 +18,31 @@ export default function GamePreferences({
   setPreferences: React.Dispatch<React.SetStateAction<GamePreferencesType>>;
   setIsSearchingGame: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
+  const { setUserCurrentGame } = useContext(ResumeCurrentGameContext);
   const socket = useContext(GameSocketContext);
 
-  const findGame = () => {
-    setIsSearchingGame(true);
-    socket.emit("publicGameRequest", {
-      powerUps: preferences.powerUps,
-      nbPoints: preferences.points,
-    } satisfies PublicGameRequestDto);
-  };
+  const findGame = useMutation({
+    mutationKey: ["findMatch", preferences],
+    mutationFn: async () => {
+      console.log("finding game");
+      setIsSearchingGame(true);
+
+      const res = await axios.post<GameRequestResponseDto | undefined>(
+        "/api/game-requests",
+        {
+          nbPoints: preferences.points,
+          powerUps: preferences.powerUps,
+        } satisfies GameRequestDto
+      );
+
+      if (res.data?.currentGame) {
+        setUserCurrentGame(res.data?.currentGame);
+        setIsSearchingGame(false);
+        return;
+      }
+      console.log(res.data);
+    },
+  });
 
   const updatePreferences = (field: keyof GamePreferencesType, value: any) => {
     preferences[field] = value as never;
@@ -36,14 +56,14 @@ export default function GamePreferences({
   return (
     <div className="flex flex-col gap-5 p-5 flex-1 h-min rounded-lg bg-zinc-900 shadow-card-xl">
       <button
-        onClick={findGame}
+        onClick={() => findGame.mutate()}
         className="hover:-translate-y-[1px] active:translate-y-0 py-2 px-5 rounded-md bg-indigo-600 font-title font-[900] text-2xl shadow-button"
       >
         Play
       </button>
 
       <div className="font-title flex flex-col gap-3">
-        <DropDownOptions title="Points">
+        <DropDownOptions title="Gameplay">
           <div
             aria-selected={preferences.powerUps}
             onClick={() => updatePreferences("powerUps", !preferences.powerUps)}

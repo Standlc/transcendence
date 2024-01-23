@@ -1,3 +1,6 @@
+import { AppGameRequest } from './games/gameRequests';
+import { AppGame } from './games/games';
+
 export const CANVAS_H = 800;
 export const CANVAS_W = 1000;
 export const BALL_SIZE = 20;
@@ -8,27 +11,44 @@ export const BALL_VELOCITY_Y = 15;
 export const BALL_VELOCITY_X_FIRST_THROW = 7;
 export const BALL_VELOCITY_Y_FIRST_THROW = 7;
 export const PADDLE_VELOCITY_Y = 18;
-export const GAME_POINTS = 100;
 export const POWER_UP_TIMEOUT = 4000;
 export const DISCONNECTION_PAUSE_TIMEOUT = 1000;
-export const DISCONNECTION_END_GAME_TIMEMOUT = 30;
+export const DISCONNECTION_END_GAME_TIMEMOUT = 10;
 export const THROW_BALL_TIMEMOUT = 1000;
 export const FPP = 60;
+export const LIVE_STATS_INTERVAL = 5000;
+
+export type EmitPayloadType<T extends string> = T extends 'updateGameState'
+  ? GameStateType
+  : T extends 'playerDisconnection'
+    ? PlayerDisconnectionDto
+    : T extends 'gameEnd'
+      ? AppGame
+      : T extends 'viewersCount'
+        ? number
+        : T extends 'gameStart'
+          ? string
+          : T extends 'privateGameInvitation'
+            ? AppGameRequest
+            : T extends 'liveGames'
+              ? LiveGamesDto
+              : never;
 
 export interface GameType {
   game: GameStateType;
-  roomId: string;
   intervalId: any;
-  userIdBeingDisconnected?: number;
-  disconnectionIntervalId: any;
+  points: number;
   isPublic: boolean;
   hasPowerUps: boolean;
   isPaused: boolean;
   lastPlayerToHitTheBall: number;
+  userIdBeingDisconnected?: number;
+  disconnectionIntervalId: any;
+  liveStatsIntervalId?: any;
 }
 
 export interface GameStateType {
-  id: number;
+  id: string;
   ball: ObjectType;
   playerLeft: PlayerType;
   playerRight: PlayerType;
@@ -42,13 +62,13 @@ export type PowerUpType = ObjectType & {
 };
 
 export type PlayerType = ObjectType & {
-  userId: number;
+  id: number;
   score: number;
   isConnected: boolean;
   powerUp?: number;
 };
 
-export type GameRequestType = PublicGameRequestDto & {
+export type GameRequestType = GameRequestDto & {
   userId: number;
   targetId?: number;
   nbPoints: number;
@@ -94,37 +114,81 @@ export const GAME_ERRORS = {
   USER_NOT_ALLOWED: 5,
 };
 
+export const GAME_REQUEST_STATUS = {
+  TARGET_USER_NOT_CONNECTED: 1,
+  TARGET_USER_ALREADY_IN_GAME: 2,
+  USER_ALREADY_IN_GAME: 3,
+};
+
 /**
  *
  * DTOs
  */
 
-export interface GameLiveStatsType {
-  usersOnline: number;
-  games: number;
+export interface LiveGamesDto {
+  games: GameStateType[];
 }
 
-export interface PublicGameRequestDto {
+// export interface PublicGameRequestDto {
+//   powerUps: boolean;
+//   nbPoints: number;
+// }
+
+export interface GameRequestDto {
+  targetId?: number;
   powerUps: boolean;
   nbPoints: number;
 }
 
-export interface PrivateGameRequestDto {
-  targetId: number;
-  powerUps: boolean;
-  nbPoints: number;
-}
+// export interface PrivateGameRequestDto {
+//   targetId: number;
+//   powerUps: boolean;
+//   nbPoints: number;
+// }
 
 export interface PlayerMoveDto {
-  gameId: number;
+  gameId: string;
   move: 'up' | 'down' | 'stop';
 }
 
-export interface PrivateGameRequestResponseDto {
-  userInvitingId: number;
+export interface gameInviteResponseDto {
+  fromId: number;
   isAccepted: boolean;
 }
 
 export interface JoinGameRoomDto {
-  roomId: number;
+  roomId: string;
+}
+
+export interface LeaveGameDto {
+  gameId: string;
+}
+
+/**
+ *
+ * Return Types
+ */
+
+export interface PlayerDisconnectionDto {
+  userId: number;
+  secondsUntilEnd: number;
+}
+
+export interface LiveGameDto {
+  id: string;
+  players: {
+    id: number;
+    username: string;
+    avatarUrl: string | null;
+    rating: number;
+    score: number;
+  }[];
+}
+
+export interface LiveGameType {
+  id: string;
+  players: {
+    id: number;
+    score: number;
+  }[];
 }

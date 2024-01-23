@@ -94,6 +94,9 @@ export interface PrivateGameRequest {
 
 export interface PublicGameRequest {
   createdAt: Generated<Timestamp>;
+  points: number;
+  powerUps: boolean;
+  targetId: number | null;
   userId: number;
 }
 

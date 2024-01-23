@@ -1,23 +1,30 @@
 import {
-  Body,
   Controller,
   Get,
-  HttpException,
-  HttpStatus,
-  Param,
-  Post,
-  Put,
+  Inject,
+  NotFoundException,
+  UseGuards,
+  forwardRef,
 } from '@nestjs/common';
 import { GamesService } from './games.service';
-import { db } from 'src/database';
+import { PongGateway } from 'src/pong/pong.gateway';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { LiveGameDto } from 'src/types/game';
 
+@UseGuards(JwtAuthGuard)
 @Controller('games')
 export class GamesController {
-  constructor(private readonly gameService: GamesService) {}
+  constructor(
+    private readonly gameService: GamesService,
+    private gameServer: PongGateway,
+  ) {}
 
   @Get('/public')
-  getUserPublicGames() {
-    //
+  async getAllPublicGames() {
+    const games = this.gameServer.getAllPublicGames();
+    console.log("GAMES", games);
+    const gamesWithPlayersInfos = this.gameService.completeGamesInfos(games);
+    return gamesWithPlayersInfos;
   }
 
   //   @Put('')

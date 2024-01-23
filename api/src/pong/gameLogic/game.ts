@@ -5,7 +5,6 @@ import {
   BALL_VELOCITY_Y_FIRST_THROW,
   CANVAS_H,
   CANVAS_W,
-  GAME_POINTS,
   PADDLE_H,
   PADDLE_VELOCITY_Y,
   PADDLE_W,
@@ -18,7 +17,7 @@ import {
   THROW_BALL_TIMEMOUT,
   FPP,
   GameStateType,
-  BALL_VELOCITY_Y,
+  GameRequestDto,
 } from '../../types/game';
 import { isTouchingLeftPaddle, isTouchingRightPaddle } from './collisions';
 import { Injectable } from '@nestjs/common';
@@ -92,8 +91,8 @@ export class GameEngineService {
 
   checkIsWinner = (game: GameType) => {
     if (
-      game.game.playerLeft.score === GAME_POINTS ||
-      game.game.playerRight.score === GAME_POINTS
+      game.game.playerLeft.score === game.points ||
+      game.game.playerRight.score === game.points
     ) {
       return true;
     }
@@ -261,35 +260,34 @@ export class GameEngineService {
   }
 
   initialize(props: {
-    id: number;
-    playerJoinedId: number;
-    playerJoiningId: number;
-    isPublic: boolean;
-    hasPowerUps: boolean;
+    id: string;
+    playerLeftId: number;
+    playerRightId: number;
+    gameReq: GameRequestDto;
   }): GameType {
     return {
-      hasPowerUps: props.hasPowerUps,
-      isPublic: props.isPublic,
-      roomId: props.id.toString(),
+      points: props.gameReq.nbPoints,
+      hasPowerUps: props.gameReq.powerUps,
+      isPublic: !props.gameReq.targetId,
       intervalId: undefined,
       disconnectionIntervalId: undefined,
       lastPlayerToHitTheBall: 0,
       isPaused: false,
       game: GameEngineService.createGamePositions({
         id: props.id,
-        playerJoinedId: props.playerJoinedId,
-        playerJoiningId: props.playerJoiningId,
+        playerLeftId: props.playerLeftId,
+        playerRightId: props.playerRightId,
       }),
     };
   }
 
   static createGamePositions(props?: {
-    id: number;
-    playerJoinedId: number;
-    playerJoiningId: number;
+    id: string;
+    playerLeftId: number;
+    playerRightId: number;
   }) {
     return {
-      id: props?.id ?? 0,
+      id: props?.id ?? '',
       ball: {
         h: BALL_SIZE,
         w: BALL_SIZE,
@@ -305,7 +303,7 @@ export class GameEngineService {
         vX: 0,
         x: 20,
         y: CANVAS_H / 2 - PADDLE_H / 2,
-        userId: props?.playerJoinedId ?? 0,
+        id: props?.playerLeftId ?? 0,
         score: 0,
         isConnected: true,
       },
@@ -316,7 +314,7 @@ export class GameEngineService {
         vX: 0,
         x: CANVAS_W - 20 - PADDLE_W,
         y: CANVAS_H / 2 - PADDLE_H / 2,
-        userId: props?.playerJoiningId ?? 0,
+        id: props?.playerRightId ?? 0,
         score: 0,
         isConnected: true,
       },

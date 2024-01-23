@@ -15,6 +15,15 @@ export async function up(db: Kysely<any>): Promise<void> {
     .alterTable('user')
     .addColumn('rating', 'integer', (col) => col.defaultTo(500).notNull())
     .execute();
+
+  await db.schema
+    .alterTable('publicGameRequest')
+    .addColumn('targetId', 'integer', (col) =>
+      col.references('user.id').onDelete('cascade'),
+    )
+    .addColumn('powerUps', 'boolean', (col) => col.notNull())
+    .addColumn('points', 'integer', (col) => col.notNull())
+    .execute();
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
@@ -29,4 +38,11 @@ export async function down(db: Kysely<any>): Promise<void> {
     .execute();
 
   await db.schema.alterTable('user').dropColumn('rating').execute();
+
+  await db.schema
+    .alterTable('publicGameRequest')
+    .dropColumn('targetId')
+    .dropColumn('powerUps')
+    .dropColumn('points')
+    .execute();
 }

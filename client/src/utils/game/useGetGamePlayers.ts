@@ -1,26 +1,31 @@
 import { useContext, useMemo } from "react";
 import { GameStateType } from "../../../../api/src/types/game";
-import { UserContext } from "../../ContextsProviders/UserContext";
+import { UserContext } from "../../contextsProviders/UserContext";
 
-export const getGamePlayers = (game: GameStateType, userId: number) => {
-  if (game.playerLeft.userId === userId || game.playerRight.userId !== userId) {
+export const getGamePlayers = (
+  game: GameStateType | undefined,
+  userId: number
+) => {
+  if (!game) return undefined;
+
+  if (game.playerLeft.id === userId || game.playerRight.id !== userId) {
     return {
-      playerLeft: game.playerLeft,
-      playerRight: game.playerRight,
+      left: game.playerLeft,
+      right: game.playerRight,
     };
   }
   return {
-    playerLeft: game.playerRight,
-    playerRight: game.playerLeft,
+    left: game.playerRight,
+    right: game.playerLeft,
   };
 };
 
-export const useGamePlayers = (game: GameStateType) => {
+export const useGamePlayers = (game: GameStateType | undefined) => {
   const { user } = useContext(UserContext);
 
   const players = useMemo(
     () => getGamePlayers(game, user.id),
-    [game.playerLeft, game.playerRight, user.id]
+    [game?.playerLeft, game?.playerRight, user.id]
   );
 
   return players;

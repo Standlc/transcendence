@@ -12,10 +12,9 @@ import {
   GameStateType,
   PlayerType,
 } from "../../../api/src/types/game";
-import { UserContext } from "../ContextsProviders/UserContext";
-import { GameSocketContext } from "../ContextsProviders/GameSocketContext";
+import { UserContext } from "../contextsProviders/UserContext";
+import { GameSocketContext } from "../contextsProviders/GameSocketContext";
 import GameLayout from "../components/GameLayout";
-import { GameEngineService } from "../../../api/src/pong/gameLogic/game";
 import { useGamePreferences } from "../utils/useGamePreferences";
 import { Avatar } from "../UIKit/Avatar";
 import { useGamePlayers } from "../utils/game/useGetGamePlayers";
@@ -23,57 +22,51 @@ import { useGamePlayers } from "../utils/game/useGetGamePlayers";
 export default function GamePage() {
   const socket = useContext(GameSocketContext);
   const { user } = useContext(UserContext);
-  const [preferences, setPreferences] = useGamePreferences();
-  const [game, setGame] = useState<GameStateType>(
-    GameEngineService.createGamePositions({
-      id: 0,
-      playerJoinedId: user.id,
-      playerJoiningId: 0,
-    })
-  );
-  const { playerLeft, playerRight } = useGamePlayers(game);
+  const [preferences] = useGamePreferences();
+  const [game, setGame] = useState<GameStateType>();
+  const players = useGamePlayers(game);
   const [gameRecord, setGameRecord] = useState<any>();
   const { gameId } = useParams();
   const [disconnectionCountDown, setDisconnectionCountDown] =
-    useState<number>();
+  useState<number>();
   const [error, setError] = useState<GameErrorType>();
+  // const [viewersCount, setViewersCount] = useState<number>();
 
   useEffect(() => {
-    return () => {
-      socket.emit("leaveGame");
-    };
-  }, [user]);
-
-  useEffect(() => {
-    socket.on("updateGameState", (data: GameStateType) => {
+    const handleGameUpadte = (data: GameStateType) => {
       setGame(data);
       setDisconnectionCountDown(undefined);
-    });
+    };
 
-    socket.on("gameEnd", (data: any) => {
+    // const handleViewersCountUpdate = (count: number) => {
+    //   setViewersCount(count);
+    // };
+
+    const handleGameEnd = (data: any) => {
       console.log("game over!");
       setGameRecord(data);
-    });
+    };
 
-    socket.on("error", (data: string) => {
-      console.log(data);
-    });
-
-    socket.emit(
-      "joinRoom",
-      { roomId: Number(gameId) },
-      (res: GameErrorType) => {
-        console.log(res);
-        setError(res);
-      }
-    );
-
-    socket.on("playerDisconnection", (data: { secondsUntilEnd: number }) => {
+    const handleOpponentDisconnection = (data: { secondsUntilEnd: number }) => {
       setDisconnectionCountDown(data.secondsUntilEnd);
+    };
+
+    socket.emit("joinRoom", { roomId: gameId }, (res: GameErrorType) => {
+      console.log(res);
+      setError(res);
     });
 
+    socket.on("updateGameState", handleGameUpadte);
+    socket.on("gameEnd", handleGameEnd);
+    socket.on("playerDisconnection", handleOpponentDisconnection);
+    // socket.on("viewersCount", handleViewersCountUpdate);
+    
     return () => {
-      socket.removeAllListeners();
+      socket.off("updateGameState", handleGameUpadte);
+      socket.off("gameEnd", handleGameEnd);
+      socket.off("playerDisconnection", handleOpponentDisconnection);
+      socket.emit("leaveGame", { gameId: gameId });
+      // socket.off("viewersCount", handleViewersCountUpdate);
     };
   }, [socket, gameId]);
 
@@ -102,7 +95,7 @@ export default function GamePage() {
           />
         )}
 
-        <PlayersInfos playerLeft={playerLeft} playerRight={playerRight} />
+        {players && <PlayersInfos players={players} />}
         <GameLayout game={game} preferences={preferences} />
       </div>
     </div>
@@ -110,11 +103,9 @@ export default function GamePage() {
 }
 
 function PlayersInfos({
-  playerLeft,
-  playerRight,
+  players,
 }: {
-  playerLeft: PlayerType;
-  playerRight: PlayerType;
+  players: { left: PlayerType; right: PlayerType };
 }) {
   const wrapper = useRef<HTMLDivElement>(null);
   const wrapperElement = wrapper.current;
@@ -140,7 +131,7 @@ function PlayersInfos({
     <div ref={wrapper} className="w-full flex justify-between relative">
       <div className="py-2 px-2 bg-zinc-900 rounded-lg flex items-start gap-2 shadow-card">
         <div>
-          <Avatar size="md" imgUrl={undefined} userId={playerRight.userId} />
+          <Avatar size="md" imgUrl={undefined} userId={players.right.id} />
         </div>
 
         <div className="flex items-center flex-wrap gap-x-2">
@@ -165,7 +156,7 @@ function PlayersInfos({
         </div>
 
         <div>
-          <Avatar size="md" imgUrl={undefined} userId={playerLeft.userId} />
+          <Avatar size="md" imgUrl={undefined} userId={players.left.id} />
         </div>
       </div>
     </div>

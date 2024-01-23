@@ -6,7 +6,7 @@ export interface AppUser {
 
 export type UserContextType = {
   user: AppUser;
-  setUser: Dispatch<SetStateAction<AppUser | undefined>>;
+  // setUser: Dispatch<SetStateAction<AppUser | undefined>>;
 };
 
 export const UserContext = createContext<UserContextType>(

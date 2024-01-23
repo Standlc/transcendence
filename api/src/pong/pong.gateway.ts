@@ -6,21 +6,26 @@ import {
 import { Server, Socket } from 'socket.io';
 import {
   DISCONNECTION_END_GAME_TIMEMOUT,
+  EmitPayloadType,
   GAME_ERRORS,
   GameErrorType,
-  GameLiveStatsType,
-  GameRequestType,
+  GameRequestDto,
+  GameStateType,
   GameType,
   JoinGameRoomDto,
+  LeaveGameDto,
+  LiveGameType,
   PlayerMoveDto,
   PlayerType,
-  PrivateGameRequestDto,
-  PrivateGameRequestResponseDto,
-  PublicGameRequestDto,
 } from 'src/types/game';
 import { GameEngineService } from './gameLogic/game';
 import { GamesService } from 'src/games/games.service';
 import { DefaultEventsMap } from '@socket.io/component-emitter';
+import { v4 as uid } from 'uuid';
+import { GameRequestsService } from 'src/gameRequests/GameRequests.service';
+import { Inject, UseGuards, forwardRef } from '@nestjs/common';
+import { WsAuthGuard } from 'src/auth/ws-auth.guard';
+import { AppGameRequest } from 'src/types/games/gameRequests';
 
 const getPlayer = (
   gameState: GameType,
@@ -49,60 +54,65 @@ const getPlayer = (
     origin: '*',
   },
 })
+@UseGuards(WsAuthGuard)
 export class PongGateway {
   @WebSocketServer()
   private server: Server<any, any>;
-  private games = new Map<number, GameType>();
-  private gameRequests: GameRequestType[] = [];
+  private games = new Map<string, GameType>();
 
   constructor(
+    @Inject(forwardRef(() => GamesService))
     private readonly gamesService: GamesService,
+    @Inject(forwardRef(() => GameRequestsService))
+    private readonly gameRequestsService: GameRequestsService,
     private readonly gameEngineService: GameEngineService,
+    private readonly wsGuard: WsAuthGuard,
   ) {}
 
   afterInit(client: Socket) {
-    // console.log('Initialized');
+    client.use((client, next) => {
+      try {
+        const payload: { id: number } = this.wsGuard.validateToken(
+          client as any,
+        );
+        (client as any as Socket).data = payload;
+        next();
+      } catch (error) {
+        next(new Error('not authorized'));
+      }
+    });
   }
 
   handleConnection(client: Socket) {
-    const userId = this.extractUserId(client);
-    // console.log('connecting:', userId, client.id);
-    // console.log(client.handshake.headers.cookie);
-    if (isNaN(userId)) {
-      client.disconnect(true);
-      return;
-    }
-    client.data.userId = userId;
+    console.log(this.server.sockets.sockets.size);
+    this.server.sockets.sockets.forEach((socket) => {
+      console.log('socket', socket.id, 'with userId', socket.data.id);
+    });
   }
 
   handleDisconnect(client: Socket) {
     const userId = this.extractUserId(client);
-    this.deleteUserGameRequest(userId);
-    this.handleDisconnectionEvent(client);
-  }
-
-  deleteUserGameRequest(userId: number) {
-    this.gameRequests = this.gameRequests.filter(
-      (req) => req.userId !== userId,
-    );
+    this.gameRequestsService.delete(userId);
   }
 
   @SubscribeMessage('leaveGame')
-  handleDisconnectionEvent(client: Socket) {
+  handleDisconnectionEvent(client: Socket, data: LeaveGameDto) {
     const userId = this.extractUserId(client);
 
-    // console.log('disconnecting', userId, client.id);
+    console.log('disconnecting', userId, client.id);
 
-    const userGame = this.findUserGame(userId);
-    if (userGame) {
-      const { player, otherPlayer } = getPlayer(userGame, 'userId', userId);
+    const game = this.findGame((g) => g.game.id === data.gameId);
+    if (game) {
+      const { player, otherPlayer } = getPlayer(game, 'id', userId);
       if (!player || !player.isConnected) {
+        // game.viewers -= 1;
         return;
       }
 
+      console.log('DISCONNECTING', userId);
       player.isConnected = false;
       if (otherPlayer.isConnected) {
-        this.handlePlayerDisconnection(player, userGame);
+        this.handlePlayerDisconnection(player, game);
       }
     }
   }
@@ -110,27 +120,30 @@ export class PongGateway {
   handlePlayerDisconnection(player: PlayerType, gameState: GameType) {
     let secondsUntilEnd = DISCONNECTION_END_GAME_TIMEMOUT;
 
-    gameState.userIdBeingDisconnected = player.userId;
+    gameState.userIdBeingDisconnected = player.id;
     clearInterval(gameState.disconnectionIntervalId);
     gameState.disconnectionIntervalId = setInterval(async () => {
       gameState.isPaused = true;
 
       if (!secondsUntilEnd) {
-        this.clearAllDisconnectionTimeouts(gameState);
-        await this.updateGameRecordAndEmit(gameState);
-        this.games.delete(gameState.game.id);
+        await this.handleGameEnd(gameState);
         return;
       }
 
-      this.server
-        .to(gameState.roomId)
-        .emit('playerDisconnection', { secondsUntilEnd });
+      const payload = {
+        secondsUntilEnd,
+        userId: player.id,
+      };
+      this.sendTo(gameState.game.id, 'playerDisconnection', payload);
       secondsUntilEnd -= 1;
     }, 1000);
   }
 
   async updateGameRecordAndEmit(gameState: GameType) {
     const updatedGameRecord = await this.gamesService.finishGame(gameState);
+    if (!updatedGameRecord) {
+      return;
+    }
     // const playerLeft = gameState.game.playerLeft;
     // const playerRight = gameState.game.playerRight;
     // const totalScore = playerLeft.score + playerRight.score;
@@ -141,7 +154,7 @@ export class PongGateway {
     //   })
     //   .where('user.id', '=', playerLeft.userId)
     //   .execute();
-    this.server.to(gameState.roomId).emit('gameEnd', updatedGameRecord);
+    this.sendTo(gameState.game.id, 'gameEnd', updatedGameRecord);
   }
 
   @SubscribeMessage('joinRoom')
@@ -157,11 +170,11 @@ export class PongGateway {
       };
     }
 
-    const { player, otherPlayer } = getPlayer(gameState, 'userId', userId);
+    const { player, otherPlayer } = getPlayer(gameState, 'id', userId);
     if (player) {
-      if (player.userId === gameState.userIdBeingDisconnected) {
+      if (player.id === gameState.userIdBeingDisconnected) {
         gameState.userIdBeingDisconnected = undefined;
-        this.clearAllDisconnectionTimeouts(gameState);
+        this.clearAllGameIntervals(gameState);
       }
 
       player.isConnected = true;
@@ -174,8 +187,12 @@ export class PongGateway {
     }
 
     if (gameState.isPublic || player) {
-      client.join(data.roomId.toString());
-      this.server.to(client.id).emit('updateGameState', gameState.game);
+      // if (!player) {
+      //   gameState.viewers += 1;
+      // }
+      client.join(data.roomId);
+      this.sendTo(client.id, 'updateGameState', gameState.game);
+      // this.sendTo(client.id, 'viewersCount', gameState.viewers);
     } else {
       return {
         errorCode: GAME_ERRORS.USER_NOT_ALLOWED,
@@ -183,159 +200,105 @@ export class PongGateway {
     }
   }
 
-  clearAllDisconnectionTimeouts(gameState: GameType) {
+  clearAllGameIntervals(gameState: GameType) {
     clearInterval(gameState.disconnectionIntervalId);
+    clearInterval(gameState.liveStatsIntervalId);
   }
 
-  @SubscribeMessage('privateGameRequest')
-  createPrivateGameRequest(
-    client: Socket,
-    data: PrivateGameRequestDto,
-  ): GameErrorType | undefined {
-    const userId = this.extractUserId(client);
-    // -> check users are friends
-    const userCurrGame = this.findUserGame(userId);
-    if (userCurrGame) {
-      return {
-        errorCode: GAME_ERRORS.USER_ALREADY_IN_GAME,
-        currentGameId: userCurrGame.game.id,
-      };
-    }
-
-    const targetSockets = this.findAllSocketsByUserId(data.targetId);
-    const isTargetUserConnected = targetSockets !== undefined;
-    if (!isTargetUserConnected) {
-      return {
-        errorCode: GAME_ERRORS.TARGET_USER_NOT_CONNECTED,
-      };
-    }
-
-    const targetCurrGame = this.findUserGame(data.targetId);
-    if (targetCurrGame) {
-      return {
-        errorCode: GAME_ERRORS.TARGET_USER_ALREADY_IN_GAME,
-      };
-    }
-
-    this.addToGameQueue({ userId, ...data });
-    this.gameRequests.push();
-    this.emitToAll(targetSockets, 'privateGameInvitation', { userId });
-  }
-
-  @SubscribeMessage('acceptPrivateGameRequest')
-  acceptPrivateGame(client: Socket, data: PrivateGameRequestResponseDto) {
-    const userId = this.extractUserId(client);
-    const invitation = this.gameRequests.find(
-      (req) => req.userId === data.userInvitingId && req.targetId === userId,
-    );
-    if (!invitation) {
-      this.emitError(client, 'This user did not invite you to play.');
+  sendPrivateGameInvite(invite: AppGameRequest) {
+    if (!invite.targetId) return;
+    const userSockets = this.findAllSocketsByUserId(invite.targetId);
+    if (!userSockets) {
+      // -> handle no target sockets
       return;
     }
-
-    this.deleteUserGameRequest(data.userInvitingId);
-    this.startGame(client, invitation, false);
+    for (const socket of userSockets) {
+      this.sendTo(socket.id, 'privateGameInvitation', invite);
+    }
   }
 
-  async startGame(
-    client: Socket,
-    invitation: GameRequestType,
-    isPublic: boolean,
-  ) {
-    const gameRecord = await this.gamesService.new({
-      player1_id: invitation.userId,
-      player2_id: client.data.userId,
-      isPublic,
+  async startGame(gameReq: GameRequestDto, userIds: number[]) {
+    const gameId = uid();
+    const gameState = this.gameEngineService.initialize({
+      id: gameId,
+      playerLeftId: userIds[0],
+      playerRightId: userIds[1],
+      gameReq,
     });
+    this.games.set(gameId, gameState);
+    this.joinUsersToGameRoom(gameId, userIds);
+    this.runGame(gameState);
+  }
 
-    const gameState: GameType = this.gameEngineService.initialize({
-      id: gameRecord.id,
-      playerJoinedId: invitation.userId,
-      playerJoiningId: client.data.userId,
-      isPublic,
-      hasPowerUps: invitation.powerUps,
+  joinUsersToGameRoom(roomId: string, userIds: number[]) {
+    userIds.forEach((userId) => {
+      const userSockets = this.findAllSocketsByUserId(userId);
+      if (!userSockets) return;
+      userSockets.forEach((socket) => {
+        this.sendTo(socket.id, 'gameStart', roomId);
+        socket.join(roomId);
+      });
     });
-
-    this.games.set(gameRecord.id, gameState);
-    this.runGame(gameState, client, invitation.userId);
   }
 
-  @SubscribeMessage('liveStats')
-  returnStats(client: Socket): GameLiveStatsType {
-    return {
-      usersOnline: this.server.sockets.sockets.size,
-      games: this.games.size,
-    };
-  }
+  // @SubscribeMessage('liveGames')
+  // returnStats(client: Socket): LiveGamesDto {
+  //   return {
+  //     games: this.getAllPublicGames(),
+  //   };
+  // }
 
-  @SubscribeMessage('cancelRequest')
   cancelGameRequest(client: Socket) {
     const userId = this.extractUserId(client);
-    this.deleteUserGameRequest(userId);
+    this.gameRequestsService.delete(userId);
   }
 
-  @SubscribeMessage('publicGameRequest')
-  handlePublicGameRequest(
-    client: Socket,
-    data: PublicGameRequestDto,
-  ): GameErrorType | undefined {
-    const userId = this.extractUserId(client);
-    const currUserGame = this.findUserGame(userId);
-    if (currUserGame) {
-      return {
-        errorCode: GAME_ERRORS.USER_ALREADY_IN_GAME,
-        currentGameId: currUserGame.game.id,
-      };
-    }
-
-    this.deleteUserGameRequest(userId);
-    const match = this.findGameMatch(data);
-
-    if (match) {
-      this.gameRequests = this.gameRequests.filter(
-        (req) => req.userId !== match.userId,
-      );
-      this.startGame(client, match, true);
-    } else {
-      this.addToGameQueue({ ...data, userId });
-    }
-  }
-
-  findGameMatch(data: PublicGameRequestDto) {
-    const match = this.gameRequests.find((req) => {
-      if (req.targetId !== undefined) {
-        return;
-      }
-      if (req.nbPoints === data.nbPoints && req.powerUps === data.powerUps) {
-        return req;
-      }
-    });
-    return match;
-  }
-
-  runGame(gameState: GameType, client: Socket, playerJoinedId: number) {
-    const playerJoinedSocket = this.findSocketByUserId(playerJoinedId);
-    if (!playerJoinedSocket) {
-      this.server.to(gameState.roomId).emit('error', 'User is not connected');
-      return;
-    }
-
-    playerJoinedSocket.join(gameState.roomId);
-    client.join(gameState.roomId);
-
-    this.server.to(gameState.roomId).emit('gameStart', gameState.game);
+  runGame(gameState: GameType) {
+    this.sendAllOngoingGames();
     this.gameEngineService.startGameInterval(gameState, async (isGameEnd) => {
-      this.server.to(gameState.roomId).emit('updateGameState', gameState.game);
+      this.sendTo(gameState.game.id, 'updateGameState', gameState.game);
       if (isGameEnd) {
-        this.clearAllDisconnectionTimeouts(gameState);
-        await this.updateGameRecordAndEmit(gameState);
-        this.games.delete(gameState.game.id);
+        await this.handleGameEnd(gameState);
       }
     });
   }
 
-  addToGameQueue(request: GameRequestType) {
-    this.gameRequests.push(request);
+  sendAllOngoingGames() {
+    const liveGames: GameStateType[] = [];
+    this.games.forEach((game) => {
+      liveGames.push(game.game);
+    });
+    this.sendToAll('liveGames', {
+      games: liveGames,
+    });
+  }
+
+  getAllPublicGames() {
+    const liveGames: LiveGameType[] = [];
+    this.games.forEach((game) => {
+      if (game.isPublic) {
+        liveGames.push({
+          id: game.game.id,
+          players: [
+            {
+              id: game.game.playerLeft.id,
+              score: game.game.playerLeft.score,
+            },
+            {
+              id: game.game.playerRight.id,
+              score: game.game.playerRight.score,
+            },
+          ],
+        });
+      }
+    });
+    return liveGames;
+  }
+
+  async handleGameEnd(game: GameType) {
+    this.clearAllGameIntervals(game);
+    await this.updateGameRecordAndEmit(game);
+    this.games.delete(game.game.id);
   }
 
   getSocketClient(socketId: string) {
@@ -354,7 +317,7 @@ export class PongGateway {
       return;
     }
 
-    const { player } = getPlayer(game, 'userId', userId);
+    const { player } = getPlayer(game, 'id', userId);
     if (!player) {
       // console.log('user is not a player');
       return;
@@ -363,15 +326,11 @@ export class PongGateway {
     this.gameEngineService.movePlayerPaddle(player, data.move);
   }
 
-  findUserRequests(userId: number) {
-    return this.gameRequests.find((req) => req.userId === userId);
-  }
-
   findUserGame(userId: number) {
     return this.findGame(
       (gameState) =>
-        gameState.game.playerLeft.userId === userId ||
-        gameState.game.playerRight.userId === userId,
+        gameState.game.playerLeft.id === userId ||
+        gameState.game.playerRight.id === userId,
     );
   }
 
@@ -418,15 +377,23 @@ export class PongGateway {
 
   findAllSocketsByUserId(userId: number) {
     const sockets: Socket<any, any, DefaultEventsMap, any>[] = [];
-    for (const [key, value] of this.server.sockets.sockets) {
-      if (value.data.userId === userId) {
+    for (const [_, value] of this.server.sockets.sockets) {
+      if (value.data.id === userId) {
         sockets.push(value);
       }
     }
     return sockets.length ? sockets : undefined;
   }
 
+  sendTo<T extends string>(roomId: string, ev: T, payload: EmitPayloadType<T>) {
+    this.server.to(roomId).emit(ev, payload);
+  }
+
+  sendToAll<T extends string>(ev: T, payload: EmitPayloadType<T>) {
+    this.server.emit(ev as string, payload);
+  }
+
   extractUserId(client: Socket) {
-    return Number(client.handshake.query.userId);
+    return client.data.id;
   }
 }

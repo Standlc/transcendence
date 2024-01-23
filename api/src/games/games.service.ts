@@ -1,11 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { db } from 'src/database';
-import { Updateable } from 'kysely';
+import { Insertable, Updateable } from 'kysely';
 import { Game } from '../types/schema';
-import { GameType, PlayerType } from 'src/types/game';
+import { GameType, LiveGameDto, LiveGameType } from 'src/types/game';
+import { AppGame } from 'src/types/games/games';
 
 @Injectable()
 export class GamesService {
+  constructor() {}
+
   async new(game: {
     player1_id: number;
     player2_id: number;
@@ -25,36 +28,66 @@ export class GamesService {
     return createdGame;
   }
 
-  async getFirstWithId(gameId: number) {
-    const game = await db
-      .selectFrom('game')
-      .where('id', '=', gameId)
-      .selectAll()
-      .executeTakeFirstOrThrow();
-    return game;
-  }
-
-  async finishGame(gameState: GameType) {
-    const { playerLeft, playerRight, id } = gameState.game;
-    const updatedGame = await this.updateGame(
-      {
-        winnerId: this.getWinnerId(gameState),
-        player1_score: playerLeft.score,
-        player2_score: playerRight.score,
-      },
-      id,
-    );
+  async finishGame(gameState: GameType): Promise<AppGame | undefined> {
+    const { playerLeft, playerRight } = gameState.game;
+    const updatedGame = await this.saveGame({
+      winnerId: this.getWinnerId(gameState),
+      player1_score: playerLeft.score,
+      player2_score: playerRight.score,
+      player1_id: gameState.game.playerLeft.id,
+      player2_id: gameState.game.playerRight.id,
+      isPublic: gameState.isPublic,
+    });
     return updatedGame;
   }
 
-  async updateGame(game: Updateable<Game>, gameId: number) {
+  async saveGame(game: Insertable<Game>) {
     const updatedGame = await db
-      .updateTable('game')
-      .set(game)
-      .where('game.id', '=', gameId)
+      .insertInto('game')
+      .values(game)
       .returningAll()
-      .execute();
+      .executeTakeFirst();
     return updatedGame;
+  }
+
+  async completeGamesInfos(games: LiveGameType[]) {
+    const gameIds = games.map((game) => game.players.map((p) => p.id)).flat();
+
+    console.log('game ids', gameIds);
+    const playersInfos = await this.getPlayersInfos(gameIds);
+    console.log('player infos', playersInfos);
+
+    return games.map((game) => {
+      const gameWithInfo: LiveGameDto = {
+        players: [],
+        id: game.id,
+      };
+
+      game.players.forEach((player) => {
+        const playerInfo = playersInfos.find((p) => p.id === player.id);
+        if (playerInfo) {
+          gameWithInfo['players'].push({
+            ...playerInfo,
+            score: player.score,
+          });
+        }
+      });
+      return gameWithInfo;
+    });
+  }
+
+  async getPlayersInfos(playersIds: number[]) {
+    if (!playersIds.length) {
+      return [];
+    }
+
+    const playersInfos = await db
+      .selectFrom('user')
+      .where('id', 'in', playersIds)
+      .select(['rating', 'id', 'avatarUrl', 'username'])
+      .execute();
+
+    return playersInfos;
   }
 
   private getWinnerId(gameState: GameType) {
@@ -65,8 +98,8 @@ export class GamesService {
     }
 
     if (playerLeft.score > playerRight.score) {
-      return playerLeft.userId;
+      return playerLeft.id;
     }
-    return playerRight.userId;
+    return playerRight.id;
   }
 }

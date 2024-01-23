@@ -2,7 +2,12 @@ import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server } from 'engine.io';
 import { Socket } from 'socket.io';
 
-@WebSocketGateway()
+@WebSocketGateway(5050, {
+  namespace: 'online',
+  cors: {
+    origin: '*',
+  },
+})
 export class OnlineGateway {
   @WebSocketServer() server: Server;
   private onlineUsers = new Set<number>();
@@ -10,17 +15,11 @@ export class OnlineGateway {
   handleConnection(client: Socket) {
     const userId = this.extractUserId(client);
     this.onlineUsers.add(userId);
-    this.notifyFriends(userId, true);
   }
 
   handleDisconnect(client: Socket) {
     const userId = this.extractUserId(client);
     this.onlineUsers.delete(userId);
-    this.notifyFriends(userId, false);
-  }
-
-  private extractUserId(client: Socket): number {
-    return Number(client.handshake.query.userId);
   }
 
   async notifyFriends(userId: number, isOnline: boolean) {
@@ -38,5 +37,9 @@ export class OnlineGateway {
 
   isOnline(userId: number) {
     return this.onlineUsers.has(userId);
+  }
+
+  private extractUserId(client: Socket): number {
+    return Number(client.handshake.query.userId);
   }
 }
