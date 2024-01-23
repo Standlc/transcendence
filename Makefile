@@ -94,7 +94,7 @@ fclean:		clean
 .PHONY:		fclean
 
 purge:		clean
-			echo -n "Warning ! You are going to delete $(VOLUME), are you sure to continue ? [y/N]\n"
+			echo -n "Warning ! You are going to delete every docker container and image on your pc, are you sure to continue ? [y/N]\n"
 			read choice; \
 			if [ "$$choice" = "y" ]; then \
 				docker stop $(docker ps -a -q) 2>/dev/null; \
