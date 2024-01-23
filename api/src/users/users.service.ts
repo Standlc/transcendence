@@ -1,11 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { InsertResult, Selectable } from 'kysely';
 import { db } from 'src/database';
 import { CreateUsersDto } from './dto/create-users.dto';
 import * as bcrypt from 'bcrypt';
-import { UserList } from './dto/user-list.dto';
-import { UserProfileDto } from './dto/user-profile.dto';
-import { User } from 'src/types/schema';
+import { AppUser, ListUsers } from 'src/types/clientSchema';
+import { LoginUserDto } from './dto/login-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -29,45 +27,68 @@ export class UsersService {
     }
   }
 
-  async getUserById(userId: number): Promise<UserProfileDto | null> {
+  async getUserById(userId: number): Promise<AppUser | undefined> {
     try {
       //? Fetch the databse and search for a user with userId
-      //? Crete a DTO object containing only the needed properties for showing a user profile.
-      const user: UserProfileDto = await db
+      const user = await db
       .selectFrom('user')
-      .select(['username', 'bio', 'avatarUrl', 'firstname', 'lastname'])
+      .selectAll()
       .where('id', '=', userId)
       .executeTakeFirstOrThrow();
 
-      return user;
+      //? Create a AppUser containing every field, except password.
+      const {password, ...appUser} = user;
+      return appUser;
     } catch (error) {
-      return null;
+      return undefined;
     }
   }
 
-  async findUsersByName(substring: string): Promise<UserProfileDto[] | null> {
+  async findUsersByName(substring: string): Promise<AppUser[] | null> {
     //? Fetch the database and search for any user containing a substring in the username field.
-    //? Create an array of DTO object or a single DTO object containing the UserProfileDto of any user that matches the substring.
-    const user: UserProfileDto[] | null = await db
+    //? Create an array of AppUser containing every field except password of any user that matches the substring.
+    const user: AppUser[] | null = await db
     .selectFrom('user')
-    .select(['username', 'bio', 'avatarUrl', 'firstname', 'lastname'])
+    .select(['username', 'bio', 'avatarUrl', 'firstname', 'lastname', 'createdAt', 'email', 'id'])
     .where('username', 'like', '%' + substring + '%')
     .execute();
     return user;
   }
 
-  async getUserByName(username: string): Promise<Selectable<User> | undefined> {
-    const user: Selectable<User> = await db
+  async getUserByName(username: string): Promise<AppUser | undefined> {
+    const user = await db
     .selectFrom('user')
     .selectAll()
     .where('username', '=', username)
     .executeTakeFirst();
-    return user;
+    if (user) {
+      const {password, ...appUser} = user;
+      return appUser;
+    }
   }
 
-  async getUserList(): Promise<UserList[] | null> {
+  async validateUser(loginUserDto: LoginUserDto): Promise<AppUser | undefined> {
     try {
-      let userList: UserList[] = await db
+      const user = await db
+      .selectFrom('user')
+      .selectAll()
+      .where('username', '=', loginUserDto.username)
+      .executeTakeFirstOrThrow();
+
+      const result = await bcrypt.compare(loginUserDto.password, user.password);
+      if (!result)
+        return ;
+
+      const {password, ...appUser} = user;
+      return appUser;
+    } catch (error) {
+      return ;
+    }
+  }
+
+  async getUserList(): Promise<ListUsers[] | null> {
+    try {
+      let userList: ListUsers[] = await db
       .selectFrom('user')
       .select(['id', 'username', 'avatarUrl'])
       .execute();

@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { Request } from "express";
 import { Strategy } from "passport-jwt";
-import { UserProfileDto } from "src/users/dto/user-profile.dto";
+import { AppUser } from "src/types/clientSchema";
 import { UsersService } from "src/users/users.service";
 
 @Injectable()
@@ -24,16 +24,18 @@ export class jwtStrategy extends PassportStrategy(Strategy) {
     if (req && req.cookies && 'token' in req.cookies && req.cookies.token.length > 0) {
       return req.cookies.token;
     }
-    return null;
   }
 
   /**
    * This function acutally doesnt validate anything as jwt handle the
    * validation of the extracted token.
    * @param payload
-   * @returns UserProfileDto
+   * @returns AppUser
    */
-  async validate(payload: any): Promise<UserProfileDto | undefined> {
-    return await this.usersService.getUserById(payload.id);
+  async validate(payload: {id: number}): Promise<{id: number} | undefined> {
+    const user = await this.usersService.getUserById(payload.id);
+    if (!user)
+      return undefined;
+    return payload;
   }
 }

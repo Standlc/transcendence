@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
-import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { ConnectUsersDto } from 'src/users/dto/connect-user.dto';
 import { LoginUserDto } from 'src/users/dto/login-user.dto';
+import { AppUser } from 'src/types/clientSchema';
 
 @Injectable()
 export class AuthService {
@@ -12,27 +11,10 @@ export class AuthService {
   /**
    * Validate if the user we receive exist and if the password match.
    * @param loginUserDto
-   * @returns ConnectUsersDto or null
+   * @returns AppUser or null
    */
-  async validateUser(loginUserDto: LoginUserDto): Promise<ConnectUsersDto | undefined> {
-    const user = await this.usersService.getUserByName(loginUserDto.username);
-
-    if (user) {
-      (async () => {
-        const result = await bcrypt.compare(loginUserDto.password, user.password);
-        if (!result)
-          return null;
-      });
-      const rest: ConnectUsersDto = {
-        firstname: user.firstname,
-        lastname: user.lastname,
-        avatarUrl: user.avatarUrl,
-        email: user.email,
-        id: user.id
-      };
-      return rest;
-    }
-    return null;
+  async validateUser(loginUserDto: LoginUserDto): Promise<AppUser | undefined> {
+    return await this.usersService.validateUser(loginUserDto);
   }
 
   /**
