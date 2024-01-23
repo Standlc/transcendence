@@ -93,19 +93,19 @@ fclean:		clean
 			fi
 .PHONY:		fclean
 
-fclean:		clean
-			echo -n "Warning ! You are going to delete $(VOLUME), are you sure to continue ? [y/N]\n"
+purge:	clean
+			echo -n "Warning ! You are going to delete every docker container and image on your pc, are you sure to continue ? [y/N]\n"
 			read choice; \
 			if [ "$$choice" = "y" ]; then \
-				docker stop $(docker ps -a -q); \
-				docker rm $(docker ps -a -q); \
-				docker rmi $(docker images -q); \
-				docker volume rm $(docker volume ls); \
-				docker network rm $(docker network ls); \
-				docker system prune -a --volumes; \
+				docker volume rm $(VOLUME) 2>/dev/null; \
 				echo -n "🗑️  '$(VOLUME)' has been deleted.\n"; \
+				docker builder prune -a -f; \
+				echo -n "🗑️  'Builder cache' has been deleted.\n"; \
+				docker buildx prune -a -f; \
+				echo -n "🗑️  'Buildx cache' has been deleted.\n"; \
+				docker rmi -f $$(docker images -a -q) 2>/dev/null; \
+				echo -n "🗑️  'Docker images' has been deleted.\n"; \
 			else \
 				echo -n "Abord.\n"; \
 			fi
-.PHONY:		fclean
-
+.PHONY:		purge

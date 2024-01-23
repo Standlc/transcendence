@@ -4,10 +4,9 @@ import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { PongGateway } from './pong/pong.gateway';
 import { AuthModule } from './auth/auth.module';
-import { ChatModule } from './chat/chat.module';
 
 @Module({
-  imports: [UsersModule, AuthModule, ChatModule],
+  imports: [UsersModule, AuthModule],
   controllers: [AppController],
   providers: [AppService, PongGateway],
 })

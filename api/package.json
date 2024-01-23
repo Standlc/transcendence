@@ -9,7 +9,6 @@
     "codegen": "kysely-codegen --out-file ./src/types/schema.ts --dialect postgres",
     "migrate": "ts-node src/migrations/runMigration.ts",
     "seed": "ts-node src/migrations/seed.ts",
-    "seedchannel": "ts-node src/migrations/seedchannel.ts",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
@@ -70,7 +69,7 @@
     "supertest": "^6.3.3",
     "ts-jest": "^29.1.0",
     "ts-loader": "^9.4.3",
-    "ts-node": "^10.9.2",
+    "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.1.3"
   },
