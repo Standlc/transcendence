@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { Request } from "express";
 import { Strategy } from "passport-jwt";
-import { UserProfileDto } from "src/users/dto/user-profile.dto";
+import { AppUser } from "src/types/clientSchema";
 import { UsersService } from "src/users/users.service";
 
 @Injectable()
@@ -30,13 +30,12 @@ export class jwtStrategy extends PassportStrategy(Strategy) {
    * This function acutally doesnt validate anything as jwt handle the
    * validation of the extracted token.
    * @param payload
-   * @returns UserProfileDto
+   * @returns AppUser
    */
-  async validate(payload: {id:number}): Promise<{id: number} | undefined> {
+  async validate(payload: {id: number}): Promise<{id: number} | undefined> {
     const user = await this.usersService.getUserById(payload.id);
-    if (!user) {
+    if (!user)
       return undefined;
-    }
     return payload;
   }
 }
