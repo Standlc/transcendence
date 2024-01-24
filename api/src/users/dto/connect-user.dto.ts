@@ -1,4 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
+import { IsEmail, IsNumber } from "class-validator";
 
 export class ConnectUsersDto {
   @ApiProperty({required: false})
@@ -10,9 +11,11 @@ export class ConnectUsersDto {
   @ApiProperty()
   avatarUrl: string | null;
 
+  @IsEmail()
   @ApiProperty({required: false})
   email: string | null;
 
+  @IsNumber()
   @ApiProperty()
   id: number;
 }
