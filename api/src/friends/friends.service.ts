@@ -4,6 +4,7 @@ import { UpdateFriendDto } from './dto/update-friend.dto';
 import { db } from 'src/database';
 import { FriendRequest } from 'src/types/schema';
 import { Selectable } from 'kysely';
+import { first } from 'rxjs';
 
 @Injectable()
 export class FriendsService {
@@ -25,8 +26,10 @@ export class FriendsService {
     const request = await db
     .selectFrom('friendRequest')
     .selectAll()
-    .where('sourceId', '=', sourceId)
-    .where('targetId', '=', targetId)
+    .where(({ eb, and}) => and([
+      eb('sourceId', '=', sourceId),
+      eb('targetId', '=', targetId)
+    ]))
     .executeTakeFirst();
     if (!request)
       return false
@@ -50,8 +53,10 @@ export class FriendsService {
       // ? After adding the new friendship, we delete the friend request.
       await db
       .deleteFrom('friendRequest')
-      .where('sourceId', '=', sourceId)
-      .where('targetId', '=', targetId)
+      .where(({ eb, and}) => and([
+        eb('sourceId', '=', sourceId),
+        eb('targetId', '=', targetId)
+      ]))
       .execute();
 
       return true;
@@ -73,8 +78,10 @@ export class FriendsService {
     const isAlreadyFriend = await db
     .selectFrom('friend')
     .selectAll()
-    .where('userId', '=', sourceId)
-    .where('friendId', '=', targetId)
+    .where(({ eb, and}) => and([
+      eb('userId', '=', sourceId),
+      eb('friendId', '=', targetId)
+    ]))
     .executeTakeFirst();
     if (isAlreadyFriend)
       return false;
@@ -128,6 +135,21 @@ export class FriendsService {
     .executeTakeFirst();
 
     if (result.numDeletedRows > 0n)
+      return true;
+    return false;
+  }
+
+  async isFriend(selfId: number, friendId: number): Promise<boolean> {
+    const result = await db
+    .selectFrom('friend')
+    .selectAll()
+    .where(({ eb, and}) => and([
+      eb('userId', '=', selfId),
+      eb('friendId', '=', friendId)
+    ]))
+    .executeTakeFirst()
+
+    if (result)
       return true;
     return false;
   }
