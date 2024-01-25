@@ -13,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import PrivateLayout from "./components/PrivateLayout";
 import PublicLayout from "./components/PublicLayout";
 import PongGame from "./pages/PongGame";
+import { Login } from "./pages/Login";
 
 const getUser = async () => {
   const res = await axios.get<any>("/api");
@@ -57,29 +58,20 @@ function App() {
         createRoutesFromElements(
           <>
             <Route element={<PrivateLayout />}>
-              <Route
-                element={
-                  <>
-                    <RocketLaunchIcon />
-                    <h2 className="font-extrabold">Current time is: {now}</h2>
-                  </>
-                }
-                index={true}
-              />
+              <Route index element={<Login />} />
+              <Route path="/dashboard" element={
+                <>
+                  <RocketLaunchIcon />
+                  <h2 className="font-extrabold">Current time is: {now}</h2>
+                </>
+              } />
               <Route path="/play" element={<PongGame />} />
-            </Route>
-
-            <Route element={<PublicLayout />}>
-              <Route
-                element={<h2 className="font-extrabold">{now}</h2>}
-                index
-              />
-            </Route>
+            </Route>  
           </>
         )
       )}
     />
   );
 }
-
+  
 export default App;

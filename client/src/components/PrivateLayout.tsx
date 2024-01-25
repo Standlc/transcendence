@@ -1,13 +1,16 @@
-// import { Navigate } from "react-router-dom";
+// PrivateLayout.js or PrivateLayout.tsx
 
-import { Outlet } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 
 export default function PrivateLayout() {
-  // recuperer le user depuis un context
-  //   if (false) {
-  //     return <Navigate to={"/login"} />;
-  //   }
+  // const user = /* logic to get user data */;
 
+  // if (!user) {
+  //   // If the user is not logged in, redirect to the login page
+  //   return <Navigate to="/" />;
+  // }
+
+  // If the user is logged in, render the Outlet which will render child routes
   return (
     <div>
       <Outlet />
