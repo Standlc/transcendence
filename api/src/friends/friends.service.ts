@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateFriendDto } from './dto/create-friend.dto';
 import { UpdateFriendDto } from './dto/update-friend.dto';
 import { db } from 'src/database';
-import { FriendRequest } from 'src/types/schema';
+import { Friend, FriendRequest } from 'src/types/schema';
 import { Selectable } from 'kysely';
 import { first } from 'rxjs';
 
@@ -81,7 +81,7 @@ export class FriendsService {
 
     try {
       // ? Insert a new request from sourceId to targetId.
-      const result = await db
+      await db
       .insertInto('friendRequest')
       .values(
         {
@@ -147,15 +147,37 @@ export class FriendsService {
     return false;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} friend`;
+  async findAllFriends(id: number): Promise<Selectable<Friend>[] | undefined> {
+    const result = await db
+    .selectFrom('friend')
+    .selectAll()
+    .where('userId', '=', id)
+    .execute();
+
+    return result;
   }
 
-  update(id: number, updateFriendDto: UpdateFriendDto) {
-    return `This action updates a #${id} friend`;
-  }
+  // update(id: number, updateFriendDto: UpdateFriendDto) {
+  //   return `This action updates a #${id} friend`;
+  // }
 
-  remove(id: number) {
-    return `This action removes a #${id} friend`;
+  async remove(selfId: number, friendId: number): Promise<boolean> {
+    const result = await db
+    .deleteFrom('friend')
+    .where(({ eb, or, and }) => or([
+      and([
+        eb('userId', '=', selfId),
+        eb('friendId', '=', friendId),
+      ]),
+      and([
+        eb('friendId', '=', selfId),
+        eb('userId', '=', friendId),
+      ])
+    ]))
+    .execute();
+
+    if (result[0].numDeletedRows > 0n)
+      return true;
+    return false;
   }
 }
