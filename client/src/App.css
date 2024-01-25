@@ -49,3 +49,50 @@ input:focus {
 .login-container {
   width: 400px;
 }
+
+.navbar {
+  height: 100vh;
+  display: 'flex';
+  position: sticky;
+  flex-direction: column;
+  width: 80px;
+}
+
+.result-page {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+}
+
+.chan-button {
+  border-radius: 100%;
+}
+
+.chan-column {
+  height: 100vh;
+  display: flex;
+  position: sticky;
+  flex-direction: column;
+  width: 14%;
+}
+
+.user-chancolumn {
+  display: flex;
+  position :absolute;
+  bottom : 0vh;
+  height: 7vh;
+  width: 100%;
+}
+
+.avatar {
+  height: 40px;
+  width: 40px;
+  border-radius: 100%;
+  margin: 10px;
+}
+
+.cell-chan {
+  padding-top: 10px;
+  height: 50px;
+  width: 95%;
+}

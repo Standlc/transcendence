@@ -15,12 +15,11 @@ export const Login = () => {
 	// On success:
 	navigate('/home'); // Redirect to the home route or dashboard
   };
-
   return (
 	<div className="bg-discord-bg-login min-h-screen w-full flex items-center justify-center">
 	<div className="flex bg-discord-light-grey p-8 rounded-l">
 		<form onSubmit={handleSubmit}>
-			<div className='text-white text-xl font-bold'>Welcome back!</div>
+			<div className='text-white text-2xl font-bold'>Welcome back!</div>
 			<div className='mb-4 text-greyple'>We're so excited to see you again !</div>
 		  	<div className="mb-6">
 			<label htmlFor="email" className="text-left block mb-2 text-sm font-bold text-white">

@@ -14,6 +14,7 @@ import PrivateLayout from "./components/PrivateLayout";
 import PublicLayout from "./components/PublicLayout";
 import PongGame from "./pages/PongGame";
 import { Login } from "./pages/Login";
+import { Dashboard } from "./pages/Dashboard";
 
 const getUser = async () => {
   const res = await axios.get<any>("/api");
@@ -57,16 +58,12 @@ function App() {
       router={createBrowserRouter(
         createRoutesFromElements(
           <>
-            <Route element={<PrivateLayout />}>
-              <Route index element={<Login />} />
-              <Route path="/dashboard" element={
-                <>
-                  <RocketLaunchIcon />
-                  <h2 className="font-extrabold">Current time is: {now}</h2>
-                </>
-              } />
-              <Route path="/play" element={<PongGame />} />
-            </Route>  
+<Route element={<PrivateLayout />}>
+                            <Route index element={<Login />} />
+                            {/* <Route path="/home" element={<Home now={now} user={user} />} /> */}
+                            <Route path="/home" element={<Dashboard now={now}/>} />
+                            <Route path="/play" element={<PongGame />} />
+                        </Route>  
           </>
         )
       )}
