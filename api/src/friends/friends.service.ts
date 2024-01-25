@@ -75,14 +75,7 @@ export class FriendsService {
   async requestAFriend(sourceId: number, targetId: number): Promise<boolean> {
     // ? Check if both user arent already friend, exit function if they were
     // ? already friend.
-    const isAlreadyFriend = await db
-    .selectFrom('friend')
-    .selectAll()
-    .where(({ eb, and}) => and([
-      eb('userId', '=', sourceId),
-      eb('friendId', '=', targetId)
-    ]))
-    .executeTakeFirst();
+    const isAlreadyFriend = await this.isFriend(sourceId, targetId);
     if (isAlreadyFriend)
       return false;
 
