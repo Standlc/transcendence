@@ -1,10 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { CreateFriendDto } from './dto/create-friend.dto';
-import { UpdateFriendDto } from './dto/update-friend.dto';
+import { Injectable, InternalServerErrorException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { db } from 'src/database';
 import { Friend, FriendRequest } from 'src/types/schema';
 import { Selectable } from 'kysely';
-import { first } from 'rxjs';
 
 @Injectable()
 export class FriendsService {
@@ -14,15 +11,13 @@ export class FriendsService {
    * sourceId and targetId.
    * @param sourceId userId of who create a friend request
    * @param targetId userId of who accept a friend request
-   * @returns true if both sourceId and targetId is now friend, otherwise false
-   * is returned.
+   * @returns 'Friend added' if both sourceId and targetId is now friend,
+   * otherwise an exception is throw.
+   * @throws NotFound, InternalServerError.
    */
-  async acceptRequest(sourceId: number, targetId: number): Promise<boolean> {
-    // ? User can't be friend with itself.
-    if (sourceId == targetId)
-      return false;
-
-    // ? Check if a friendRequest exist. Exit function if we didnt find any row.
+  async acceptRequest(sourceId: number, targetId: number): Promise<string> {
+    // ? Check if a friendRequest exist with sourceId and targetId, if no
+    // ? request found, throwing NotFoundException.
     const request = await db
     .selectFrom('friendRequest')
     .selectAll()
@@ -31,8 +26,10 @@ export class FriendsService {
       eb('targetId', '=', targetId)
     ]))
     .executeTakeFirst();
-    if (!request)
-      return false
+    if (!request) {
+      console.log('Tried to accept an inexistant friend request.');
+      throw new NotFoundException();
+    }
 
     try {
       // ? Add new friendship to the database.
@@ -59,9 +56,11 @@ export class FriendsService {
       ]))
       .execute();
 
-      return true;
+      console.log(targetId, ' accept friend request from ', sourceId);
+      return 'Friend added';
     } catch (error) {
-      return false;
+      console.log(error);
+      throw new InternalServerErrorException();
     }
   }
 
@@ -70,14 +69,24 @@ export class FriendsService {
    * Create a new friend request from sourceId to targetId
    * @param sourceId user who issue the request
    * @param targetId user who will receive the request
-   * @returns true if the request is create, otherwise false is returned.
+   * @returns 'Request sent' if the request is create, otherwise an exception is
+   * throw.
+   * @throws UnprocessableEntity, InternalServerError
    */
-  async requestAFriend(sourceId: number, targetId: number): Promise<boolean> {
+  async requestAFriend(sourceId: number, targetId: number): Promise<string> {
+    // ? User can't be friend with itself.
+    if (sourceId == targetId) {
+      console.log("Tried to request itself as friend.");
+      throw new UnprocessableEntityException(targetId, "You can't be friend with yourself.");
+    }
+
     // ? Check if both user arent already friend, exit function if they were
     // ? already friend.
     const isAlreadyFriend = await this.isFriend(sourceId, targetId);
-    if (isAlreadyFriend)
-      return false;
+    if (isAlreadyFriend) {
+      console.log("Tried to send a friend request to a user who is already friend with.");
+      throw new UnprocessableEntityException(targetId, "You are already friend with this user.");
+    }
 
     try {
       // ? Insert a new request from sourceId to targetId.
@@ -91,9 +100,11 @@ export class FriendsService {
       )
       .executeTakeFirstOrThrow();
 
-      return true;
+      console.log(sourceId, " sent a friend request to ", targetId);
+      return "Request sent";
     } catch (error) {
-      return false;
+      console.log(error);
+      throw new InternalServerErrorException();
     }
   }
 
