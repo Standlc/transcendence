@@ -1,98 +1,112 @@
 #root {
-  /* max-width: 1280px; */
-  width: 100%;
-  margin: 0 auto;
-  /* padding: 2rem; */
-  text-align: center;
+    /* max-width: 1280px; */
+    width: 100%;
+    margin: 0 auto;
+    /* padding: 2rem; */
+    text-align: center;
 }
 
 input:focus {
-  outline: none;
+    outline: none;
 }
 
 .logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+    height: 6em;
+    padding: 1.5em;
+    will-change: filter;
+    transition: filter 300ms;
 }
 .logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+    filter: drop-shadow(0 0 2em #646cffaa);
 }
 .logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+    filter: drop-shadow(0 0 2em #61dafbaa);
 }
 
 @keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+    a:nth-of-type(2) .logo {
+        animation: logo-spin infinite 20s linear;
+    }
 }
 
 .card {
-  padding: 2em;
+    padding: 2em;
 }
 
 .read-the-docs {
-  color: #888;
+    color: #888;
 }
 
 .login-container {
-  width: 400px;
+    width: 400px;
 }
 
 .navbar {
-  height: 100vh;
-  display: 'flex';
-  position: sticky;
-  flex-direction: column;
-  width: 80px;
+    height: 100vh;
+
+    flex-direction: column;
+    width: 80px;
+    min-width: 80px;
 }
 
 .result-page {
-  display: flex;
-  flex-direction: row;
-  height: 100vh;
+    display: flex;
+    width: 100%;
+    /* flex-direction: row; */
+    height: 100vh;
 }
 
 .chan-button {
-  border-radius: 100%;
+    border-radius: 100%;
 }
 
 .chan-column {
-  height: 100vh;
-  display: flex;
-  position: sticky;
-  flex-direction: column;
-  width: 14%;
+    height: 100%;
+    display: flex;
+    position: sticky;
+    flex-direction: column;
+    top: 0;
+    width: 265px;
+    min-width: 265px;
+    max-width: 265px;
 }
 
 .user-chancolumn {
-  display: flex;
-  position :absolute;
-  bottom : 0vh;
-  height: 7vh;
-  width: 100%;
+    display: flex;
+    position: absolute;
+    bottom: 0vh;
+    height: 7vh;
+    width: 100%;
 }
 
 .avatar {
-  height: 40px;
-  width: 40px;
-  border-radius: 100%;
-  margin: 10px;
+    height: 40px;
+    width: 40px;
+    border-radius: 100%;
+    margin: 10px;
+}
+
+.topbar-section {
+    height: 50px;
+    position: sticky;
+    width: 100%;
+    display: flex;
 }
 
 .cell-chan {
-  padding-top: 10px;
-  height: 50px;
-  width: 95%;
+    display: flex;
+    margin-top: 10px;
+    padding-top: 10px;
+    height: 50px;
+    width: 85%;
+    margin-left: 15px;
 }
