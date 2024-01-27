@@ -6,6 +6,8 @@ import { Selectable } from 'kysely';
 @Injectable()
 export class FriendsService {
 
+  //#region <-- Request -->
+
   /**
    * Delete friend request and insert into friend the new friendship between
    * sourceId and targetId.
@@ -127,21 +129,67 @@ export class FriendsService {
    * Delete a friend request from requestUserId.
    * @param requestUserId
    * @param userId
-   * @returns true if the request was remove, otherwise false is returned.
+   * @returns "Friend removed" if the friend was remove, otherwise an exception is thrown.
+   * @throws NotFound, InternalServerError
    */
-  async removeRequest(requestUserId: number, userId: number): Promise<boolean> {
-    const result = await db
-    .deleteFrom('friendRequest')
-    .where(({ eb, and }) => and([
-        eb('sourceId', '=', requestUserId),
-        eb('targetId', '=', userId)
-      ]))
-    .executeTakeFirst();
-
-    if (result.numDeletedRows > 0n)
-      return true;
-    return false;
+  async removeRequest(requestUserId: number, userId: number): Promise<string> {
+    try {
+      const result = await db
+      .deleteFrom('friendRequest')
+      .where(({ eb, and }) => and([
+          eb('sourceId', '=', requestUserId),
+          eb('targetId', '=', userId)
+        ]))
+      .executeTakeFirstOrThrow();
+      
+      if (result.numDeletedRows == 0n) {
+        console.log("Tried to remove an inexistant request.")
+        throw new NotFoundException(requestUserId, "Request not found");
+      }
+      return "Request denied";
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
   }
+
+  //#endregion
+
+  //#region <-- Friends -->
+
+  // async findAllFriends(id: number): Promise<Selectable<Friend>[] | undefined> {
+  //   const result = await db
+  //   .selectFrom('friend')
+  //   .selectAll()
+  //   .where('userId', '=', id)
+  //   .execute();
+
+  //   return result;
+  // }
+
+  // async remove(selfId: number, friendId: number): Promise<boolean> {
+  //   const result = await db
+  //   .deleteFrom('friend')
+  //   .where(({ eb, or, and }) => or([
+  //     and([
+  //       eb('userId', '=', selfId),
+  //       eb('friendId', '=', friendId),
+  //     ]),
+  //     and([
+  //       eb('friendId', '=', selfId),
+  //       eb('userId', '=', friendId),
+  //     ])
+  //   ]))
+  //   .execute();
+
+  //   if (result[0].numDeletedRows > 0n)
+  //     return true;
+  //   return false;
+  // }
+
+  //#endregion
+
+  //#region <-- Friend Utils -->
 
   async isFriend(selfId: number, friendId: number): Promise<boolean> {
     const result = await db
@@ -158,37 +206,6 @@ export class FriendsService {
     return false;
   }
 
-  async findAllFriends(id: number): Promise<Selectable<Friend>[] | undefined> {
-    const result = await db
-    .selectFrom('friend')
-    .selectAll()
-    .where('userId', '=', id)
-    .execute();
+  //#endregion
 
-    return result;
-  }
-
-  // update(id: number, updateFriendDto: UpdateFriendDto) {
-  //   return `This action updates a #${id} friend`;
-  // }
-
-  async remove(selfId: number, friendId: number): Promise<boolean> {
-    const result = await db
-    .deleteFrom('friend')
-    .where(({ eb, or, and }) => or([
-      and([
-        eb('userId', '=', selfId),
-        eb('friendId', '=', friendId),
-      ]),
-      and([
-        eb('friendId', '=', selfId),
-        eb('userId', '=', friendId),
-      ])
-    ]))
-    .execute();
-
-    if (result[0].numDeletedRows > 0n)
-      return true;
-    return false;
-  }
 }
