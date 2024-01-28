@@ -68,6 +68,9 @@ export class FriendsController {
     },
     isArray: true
   })
+  @ApiNotFoundResponse({
+    description: "No request found."
+  })
   @UseGuards(JwtAuthGuard)
   @Get('request')
   async findAllRequest(@Request() req): Promise<Selectable<FriendRequest>[]> {
@@ -126,28 +129,48 @@ export class FriendsController {
 
   //#region <-- Friends -->
 
-  // @UseGuards(JwtAuthGuard)
-  // @Get()
-  // async findAllFriends(@Request() req): Promise<Selectable<Friend>[] | undefined> {
-  //   return await this.friendsService.findAllFriends(req.user.id);
-  // }
+  @ApiOkResponse({
+    description: "Return an array of friend object",
+    schema: {
+      type: 'object',
+      properties: {
+        createAt: {
+          type: 'string'
+        },
+        friendId: {
+          type: 'integer'
+        },
+        userId: {
+          type: 'integer'
+        }
+      }
+    },
+    isArray: true
+  })
+  @ApiNotFoundResponse({
+    description: "No friend found."
+  })
+  @UseGuards(JwtAuthGuard)
+  @Get()
+  async findAllFriends(@Request() req): Promise<Selectable<Friend>[]> {
+    return await this.friendsService.findAllFriends(req.user.id);
+  }
 
-//   @UseGuards(JwtAuthGuard)
-//   @Get(':id')
-//   async findAllFriends(@Request() req, @Param('id') id: number) {
-//     return this.friendsService.findAllFriends();
-//   }
-
-//   @Patch(':id')
-//   update(@Param('id') id: string, @Body() updateFriendDto: UpdateFriendDto) {
-//     return this.friendsService.update(+id, updateFriendDto);
-//   }
-
-  // @UseGuards(JwtAuthGuard)
-  // @Delete(':id')
-  // async remove(@Request() req, @Param('id') id: number): Promise<boolean> {
-  //   return await this.friendsService.remove(req.user.id, id);
-  // }
+  @ApiOkResponse({
+    description: "Succesfuly remove id from friend list.",
+    schema: {
+      type: 'string',
+      example: "Friend deleted"
+    }
+  })
+  @ApiNotFoundResponse({
+    description: "You are not friend with this id"
+  })
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  async remove(@Request() req, @Param('id') id: number): Promise<string> {
+    return await this.friendsService.remove(req.user.id, id);
+  }
 
   //#endregion
 }
