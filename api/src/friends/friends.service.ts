@@ -178,6 +178,14 @@ export class FriendsService {
     return result;
   }
 
+  /**
+   * Remove from the friendship between selfId and friendId.
+   * @param selfId User id of who issue the request
+   * @param friendId User id of the friend to delete form selfId
+   * @returns 'Friend deleted' if the friend is deleted, otherwise an exception
+   * is thrown.
+   * @throws NotFound
+   */
   async remove(selfId: number, friendId: number): Promise<string> {
     const result = await db
     .deleteFrom('friend')

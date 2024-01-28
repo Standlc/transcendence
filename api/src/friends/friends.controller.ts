@@ -166,6 +166,11 @@ export class FriendsController {
   @ApiNotFoundResponse({
     description: "You are not friend with this id"
   })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    description: "The user id of the friend you wish to remove."
+  })
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   async remove(@Request() req, @Param('id') id: number): Promise<string> {
