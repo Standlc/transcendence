@@ -1,13 +1,13 @@
 import { ArrowDropDownRounded, ArrowDropUpRounded } from "@mui/icons-material";
 import { GamePreferencesType, GameStylesType } from "../types/game";
+import { PublicGameRequestDto } from "../../../api/src/types/games/gameRequestsDto";
 import { useContext, useEffect, useState } from "react";
 import { GameSocketContext } from "../contextsProviders/GameSocketContext";
 import { GAME_STYLES } from "../utils/game/gameBackgrounds";
-import { GameRequestDto } from "../../../api/src/types/game";
-import { GameRequestResponseDto } from "../../../api/src/types/games/gameRequests";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
-import { ResumeCurrentGameContext } from "../contextsProviders/ResumeCurrentGameContext";
+import { WsError } from "../../../api/src/types/games/socketPayloadTypes";
+import { ErrorContext } from "../contextsProviders/ErrorContext";
 
 export default function GamePreferences({
   preferences,
@@ -18,29 +18,19 @@ export default function GamePreferences({
   setPreferences: React.Dispatch<React.SetStateAction<GamePreferencesType>>;
   setIsSearchingGame: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
-  const { setUserCurrentGame } = useContext(ResumeCurrentGameContext);
   const socket = useContext(GameSocketContext);
+  const { setError } = useContext(ErrorContext);
 
   const findGame = useMutation({
     mutationKey: ["findMatch", preferences],
     mutationFn: async () => {
-      console.log("finding game");
       setIsSearchingGame(true);
-
-      const res = await axios.post<GameRequestResponseDto | undefined>(
-        "/api/game-requests",
-        {
-          nbPoints: preferences.points,
-          powerUps: preferences.powerUps,
-        } satisfies GameRequestDto
-      );
-
-      if (res.data?.currentGame) {
-        setUserCurrentGame(res.data?.currentGame);
-        setIsSearchingGame(false);
-        return;
-      }
-      console.log(res.data);
+      const payload: PublicGameRequestDto = {
+        points: preferences.points,
+        powerUps: preferences.powerUps,
+      };
+      const res = await axios.post<any>("/api/game-requests", payload);
+      return res.data;
     },
   });
 
@@ -52,6 +42,21 @@ export default function GamePreferences({
     console.log(preferences);
     localStorage.setItem("gamePreferences", JSON.stringify(preferences));
   };
+
+  useEffect(() => {
+    const handleSocketError = (error: WsError) => {
+      setIsSearchingGame(false);
+      setError({
+        message: "Could not join the game",
+      });
+    };
+
+    socket.on("error", handleSocketError);
+    return () => {
+      socket.off("error", handleSocketError);
+      socket.emit("cancelGameRequest");
+    };
+  }, [socket]);
 
   return (
     <div className="flex flex-col gap-5 p-5 flex-1 h-min rounded-lg bg-zinc-900 shadow-card-xl">
@@ -74,7 +79,7 @@ export default function GamePreferences({
         </DropDownOptions>
 
         <DropDownOptions title="Points">
-          {[10, 20, 30].map((value) => {
+          {[3, 20, 1000].map((value) => {
             return (
               <div
                 key={value}
@@ -95,27 +100,6 @@ export default function GamePreferences({
                 aria-selected={preferences.style === key}
                 key={i}
                 onClick={() => updatePreferences("style", key)}
-                style={{
-                  backgroundColor: GAME_STYLES[key as GameStylesType].bg,
-                }}
-                className="flex overflow-hidden cursor-pointer before:content-[''] before:w-[50%] before:bg-[rgba(0,0,0,0.2)] aspect-square rounded-lg flex-1 max-w-[40px] transition-shadow aria-selected:shadow-[inset_0_0_0_2px_rgb(79,70,229,0.5)]"
-              ></div>
-            );
-          })}
-        </DropDownOptions>
-
-        <DropDownOptions title="Ball">
-          {Object.keys(GAME_STYLES).map((key, i) => {
-            return (
-              <div
-                aria-selected={preferences.style === key}
-                key={i}
-                onClick={() =>
-                  setPreferences({
-                    ...preferences,
-                    style: key as GameStylesType,
-                  })
-                }
                 style={{
                   backgroundColor: GAME_STYLES[key as GameStylesType].bg,
                 }}

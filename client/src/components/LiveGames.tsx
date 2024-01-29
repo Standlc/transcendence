@@ -1,135 +1,151 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect } from "react";
 import { GameSocketContext } from "../contextsProviders/GameSocketContext";
-import { LiveGameDto, LiveGamesDto } from "../../../api/src/types/game";
+import { AppGame } from "../../../api/src/types/games/returnTypes";
 import { Avatar } from "../UIKit/Avatar";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import {
+  WsGameIdType,
+  WsLiveGameUpdate,
+} from "../../../api/src/types/games/socketPayloadTypes";
+import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
 
-export default function () {
+export default function LiveGames() {
   const socket = useContext(GameSocketContext);
-  const [games, setGames] = useState<LiveGameDto[]>();
+  const queryClient = useQueryClient();
 
   const liveGames = useQuery({
-    queryKey: ["getLiveGames"],
     queryFn: async () => {
-      const res = await axios.get<LiveGameDto[]>("/api/games/public");
-      console.log(res);
+      const res = await axios.get<AppGame[]>("/api/games/live");
       return res.data;
     },
+    queryKey: ["liveGames"],
+  });
+
+  const newLiveGame = useMutation({
+    mutationFn: async (gameId: number) => {
+      const res = await axios.get<AppGame>(`/api/games/${gameId}`);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["liveGames"], (prev: (typeof data)[]) =>
+        prev ? [...prev, data] : data
+      );
+    },
+    mutationKey: ["newLiveGame"],
   });
 
   useEffect(() => {
-    if (liveGames.isPending) return;
+    const handleNewLiveGame = (data: WsGameIdType) => {
+      newLiveGame.mutate(data.gameId);
+    };
 
-    setGames(liveGames.data);
-  }, [liveGames]);
+    const handleGameUpdate = (data: WsLiveGameUpdate) => {
+      queryClient.setQueryData(["liveGames"], (prev: AppGame[] | undefined) => {
+        if (!prev) return undefined;
 
-  useEffect(() => {
-    // const handleLiveGames = () => {
+        return prev.map((game) => {
+          if (game.id === data.gameId) {
+            let playerOneScore = 0;
+            let playerTwoScore = 0;
+            if (game.playerOne) {
+              const playerOne = data.players.find(
+                (p) => p.id === game.playerOne?.id
+              );
+              playerOneScore = playerOne?.score ?? 0;
+            }
+            if (game.playerTwo) {
+              const playerTwo = data.players.find(
+                (p) => p.id === game.playerTwo?.id
+              );
+              playerTwoScore = playerTwo?.score ?? 0;
+            }
+            return {
+              ...game,
+              playerOne: { ...game.playerOne, score: playerOneScore },
+              playerTwo: { ...game.playerTwo, score: playerTwoScore },
+            };
+          }
+          return game;
+        });
+      });
+    };
 
-    // };
+    const handleLiveGameEnd = (gameId: number) => {
+      queryClient.setQueryData(["liveGames"], (prev: AppGame[]) =>
+        prev ? prev.filter((game) => game.id !== gameId) : prev
+      );
+    };
 
-    // socket.emit("liveGames", undefined, (games: GameStateType) => {
-    //   console.log(games);
-    // });
-
+    socket.on("liveGame", handleNewLiveGame);
+    socket.on("liveGameUpdate", handleGameUpdate);
+    socket.on("liveGameEnd", handleLiveGameEnd);
     return () => {
-      // socket.off("liveGames", handleLiveGames);
+      socket.off("liveGame", handleNewLiveGame);
+      socket.off("liveGameUpdate", handleGameUpdate);
+      socket.off("liveGameEnd", handleLiveGameEnd);
     };
   }, [socket]);
 
   return (
     <div className="w-full flex flex-col gap-5">
-      <SectionTitle />
-
-      <div className="grid grid-cols-3 gap-5">
-        {games?.map((game, i) => {
-          return <LiveGameCard key={i} game={game} />;
+      {liveGames.data?.length === 0 && (
+        <span className="font-[700] opacity-50 text-xl">
+          No games going on right now
+        </span>
+      )}
+      <div className="flex flex-col gap-[2px]">
+        {liveGames.data?.map((game, i) => {
+          return <GameInfo key={i} game={game} />;
         })}
       </div>
-
-      <div className="self-end">
-        <button className="font-title">See More</button>
-      </div>
     </div>
   );
 }
 
-function SectionTitle() {
-  const socket = useContext(GameSocketContext);
-  const [liveStats, setLiveStats] = useState<LiveGamesDto>();
-
-  useEffect(() => {
-    socket.emit("liveStats", (data: LiveGamesDto) => {
-      console.log(data);
-      setLiveStats(data);
-    });
-  }, []);
+export const GameInfo = ({ game }: { game: AppGame }) => {
+  const { playerOne, playerTwo } = game;
+  const navigate = useNavigate();
 
   return (
-    <div className="flex gap-3 items-center">
-      <div className="relative">
-        <div className="h-[10px] w-[10px] aspect-square rounded-full bg-green-600"></div>
-        <div className="absolute top-0 animate-ping h-[10px] w-[10px] aspect-square rounded-full bg-green-600"></div>
-      </div>
-
-      <div className="flex items-center gap-3">
-        <h1 className="font-title text-3xl font-[900]">Live Games</h1>
-        {/* {liveStats && (
-          <>
-            <div className="text-sm font-title text-green-400 font-bold rounded-md px-2 py-[2px] bg-green-400 bg-opacity-10">
-              {liveStats.usersOnline} Online
-            </div>
-            <div className="text-sm text-indigo-400 font-title font-bold rounded-md px-2 py-[2px] bg-indigo-400 bg-opacity-10">
-              {liveStats.games} {liveStats.games === 1 ? "Game" : "Games"}
-            </div>
-          </>
-        )} */}
-      </div>
-    </div>
-  );
-}
-
-function LiveGameCard({ game }: { game: LiveGameDto }) {
-  return (
-    <div className="relative cursor-pointer transition hover:scale-[1.01] origin-bottom hover:shadow-card-xl ease-out shadow-card min-w-[200px] flex-1 rounded-md bg-zinc-900 py-2 px-2 flex items-center justify-center">
-      {/* <div className="flex items-center gap-1 font-title text-xs px-[7px] py-[2px] absolute right-1 top-1 rounded-full opacity-60 border-green-600 text-white-600">
-        <div className="h-[8px] w-[8px] rounded-full bg-red-600"></div>
-        <span>14 Viewers</span>
-      </div> */}
-      <div className="flex flex-col w-full justify-center">
-        <div className="flex items-start gap-3 flex-1">
-          <Avatar imgUrl={undefined} size="lg" userId={game.players[0].id} />
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-title font-bold">
-              {game.players[0].username}
-            </span>
-            <div className="text-xs font-title text-indigo-400 font-bold rounded-md px-2 py-[2px] bg-indigo-400 bg-opacity-10">
-              {game.players[0].rating}
-            </div>
+    <div
+      onClick={() => navigate(`/play/${game.id}`)}
+      className="flex items-center odd:bg-white odd:bg-opacity-5 gap-3 justify-around px-5 py-3 hover:bg-white hover:bg-opacity-10 cursor-pointer rounded-md"
+    >
+      <div className="flex items-center gap-3 flex-1">
+        <Avatar imgUrl={undefined} size="md" userId={playerOne?.id ?? 0} />
+        <div className="flex items-center gap-2">
+          <span className="text-base font-title font-bold">
+            {playerOne?.username ?? "Unkown"}
+          </span>
+          <div className="text-sm font-title text-indigo-400 font-bold rounded-md px-2 py-[2px] bg-indigo-400 bg-opacity-10">
+            {playerOne?.rating ?? "Unkown"}
           </div>
         </div>
 
-        <span className="flex items-center gap-2 absolute self-center font-gameFont">
-          <span>{game.players[0].score}</span>
-          <span className="text-xs">-</span>
-          <span>{game.players[1].score}</span>
-        </span>
-
-        <div className="flex items-end gap-3 self-end">
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-title font-bold">
-              {game.players[1].username}
-            </span>
-            <div className="text-xs font-title text-indigo-400 font-bold rounded-md px-2 py-[2px] bg-indigo-400 bg-opacity-10">
-              {game.players[1].rating}
-            </div>
-          </div>
-          <Avatar imgUrl={undefined} size="lg" userId={game.players[1].id} />
+        <div className="font-gameFont text-lg justify-self-end flex-1 flex justify-end">
+          <InfiniteSlotMachine state={playerOne?.score ?? 0} />
         </div>
       </div>
 
-      <div></div>
+      <span className="font-gameFont text-sm">-</span>
+
+      <div className="flex items-center gap-3 flex-1 justify-end">
+        <div className="font-gameFont text-lg flex-1 flex justify-start">
+          <InfiniteSlotMachine state={playerTwo?.score ?? 0} />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="text-sm font-title text-indigo-400 font-bold rounded-md px-2 py-[2px] bg-indigo-400 bg-opacity-10">
+            {playerTwo?.rating ?? "Unkown"}
+          </div>
+          <span className="text-base font-title font-bold">
+            {playerTwo?.username ?? "Unkown"}
+          </span>
+        </div>
+        <Avatar imgUrl={undefined} size="md" userId={playerTwo?.id ?? 0} />
+      </div>
     </div>
   );
-}
+};

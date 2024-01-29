@@ -1,63 +1,30 @@
-import {
-  Controller,
-  Get,
-  Inject,
-  NotFoundException,
-  UseGuards,
-  forwardRef,
-} from '@nestjs/common';
+import { Controller, Get, Param, Request, UseGuards } from '@nestjs/common';
 import { GamesService } from './games.service';
-import { PongGateway } from 'src/pong/pong.gateway';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
-import { LiveGameDto } from 'src/types/game';
+import { AppGame } from 'src/types/games/returnTypes';
+
+export class GameIdDto {
+  gameId: number;
+}
 
 @UseGuards(JwtAuthGuard)
 @Controller('games')
 export class GamesController {
-  constructor(
-    private readonly gameService: GamesService,
-    private gameServer: PongGateway,
-  ) {}
+  constructor(private readonly games: GamesService) {}
 
-  @Get('/public')
-  async getAllPublicGames() {
-    const games = this.gameServer.getAllPublicGames();
-    console.log("GAMES", games);
-    const gamesWithPlayersInfos = this.gameService.completeGamesInfos(games);
-    return gamesWithPlayersInfos;
+  @Get('/live')
+  async getAllPublicGames(): Promise<AppGame[]> {
+    const games = this.games.getOngoingPublicGames();
+    return games;
   }
 
-  //   @Put('')
-  //   async handleScoresAndWinner(
-  //     @Param() gameId: number,
-  //     @Body() body: { player1_score: number; player2_score: number },
-  //   ) {
-  //     if (body.player1_score < 0 || body.player2_score < 0) {
-  //       throw new HttpException(
-  //         'Scores cannot be negative',
-  //         HttpStatus.BAD_REQUEST,
-  //       );
-  //     }
-
-  //     const game = await this.gameService.getFirstWithId(gameId);
-
-  //     if (game.winnerId || game.player1_score || game.player2_score) {
-  //       throw new HttpException(
-  //         'Game cannot be updated as it is already completed',
-  //         HttpStatus.FORBIDDEN,
-  //       );
-  //     }
-
-  //     const updatedGame = this.gameService.finishGame(
-  //       game,
-  //       body.player1_score,
-  //       body.player2_score,
-  //     );
-  //     return updatedGame;
-  //   }
-
-  //   @Post()
-  //   handleNewGame(@Body body: ) {
-  //     this.gameService.new()
-  //   }
+  @Get('/:gameId')
+  async getGameInfo(
+    @Param() params: GameIdDto,
+    @Request() req,
+  ): Promise<AppGame> {
+    const userId: number = req.user.id;
+    const game = await this.games.getByGameId(params.gameId, userId);
+    return game;
+  }
 }

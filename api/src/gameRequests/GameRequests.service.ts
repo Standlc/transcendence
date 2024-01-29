@@ -1,24 +1,21 @@
 import { Inject, Injectable, forwardRef } from '@nestjs/common';
+import { Insertable, Selectable } from 'kysely';
 import { db } from 'src/database';
 import { GamesService } from 'src/games/games.service';
-import { OnlineGateway } from 'src/onlineGateway/online.gateway';
 import { PongGateway } from 'src/pong/pong.gateway';
+import { GameInviteResponseType } from 'src/types/games/apiInputTypes';
 import {
-  GAME_REQUEST_STATUS,
-  GameRequestDto,
-  gameInviteResponseDto,
-} from 'src/types/game';
-import {
-  AppGameRequest,
-  GameRequestResponseDto,
-} from 'src/types/games/gameRequests';
+  PrivateGameRequestDto,
+  PublicGameRequestDto,
+} from 'src/types/games/gameRequestsDto';
+import { PublicGameRequest } from 'src/types/schema';
 
 @Injectable()
 export class GameRequestsService {
   constructor(
     @Inject(forwardRef(() => PongGateway))
     private readonly gameServer: PongGateway,
-    private readonly onlineServer: OnlineGateway,
+    private readonly games: GamesService,
   ) {}
 
   async delete(userId: number) {
@@ -28,67 +25,46 @@ export class GameRequestsService {
       .execute();
   }
 
-  async handlePrivateRequest(req: GameRequestDto, userId: number) {
-    if (!req.targetId) {
-      return;
-    }
-    const isTargetUserOnline = this.onlineServer.isOnline(req.targetId);
-    if (!isTargetUserOnline) {
-      return {
-        status: GAME_REQUEST_STATUS.TARGET_USER_NOT_CONNECTED,
-      };
-    }
-    const targetUserCurrGame = this.gameServer.findUserGame(userId);
-    if (targetUserCurrGame) {
-      return {
-        status: GAME_REQUEST_STATUS.TARGET_USER_ALREADY_IN_GAME,
-      };
-    }
-    const gameInvite = await this.create(req, userId);
+  async handlePrivateRequest(req: PrivateGameRequestDto, userId: number) {
+    const gameInvite = await this.create({ ...req, userId }, userId);
     this.gameServer.sendPrivateGameInvite(gameInvite);
   }
 
-  findUserCurrentGame(userId: number): GameRequestResponseDto | undefined {
-    const currentGame = this.gameServer.findUserGame(userId);
-    if (currentGame) {
-      return {
-        currentGame: { id: currentGame.game.id },
-        status: GAME_REQUEST_STATUS.USER_ALREADY_IN_GAME,
-      };
-    }
-  }
-
-  async handleFindMatch(gameReq: GameRequestDto, userId: number) {
+  async handleFindMatch(gameReq: PublicGameRequestDto, userId: number) {
     const match = await this.findMatch(gameReq, userId);
     if (match) {
-      // console.log('STARTING GAME!');
-      this.gameServer.startGame(gameReq, [match.userId, userId]);
-      this.delete(match.userId);
-      return;
+      await this.delete(match.userId);
+      const gameRecord = await this.games.create(match, userId);
+      this.gameServer.startGame(gameRecord);
+    } else {
+      await this.create({ ...gameReq, userId }, userId);
     }
-    await this.create(gameReq, userId);
   }
 
-  async findMatch(req: GameRequestDto, userId: number) {
+  async findMatch(
+    req: PublicGameRequestDto,
+    userId: number,
+  ): Promise<Selectable<PublicGameRequest> | undefined> {
     const match = await db
       .selectFrom('publicGameRequest')
-      .where('points', '=', req.nbPoints)
+      .where('points', '=', req.points)
       .where('userId', '!=', userId)
       .where('powerUps', 'is', req.powerUps)
       .where('targetId', 'is', null)
       .selectAll()
       .executeTakeFirst();
-    // console.log(req);
-    // console.log(match);
     return match;
   }
 
-  async create(req: GameRequestDto, userId: number): Promise<AppGameRequest> {
+  async create(
+    req: Insertable<PublicGameRequest>,
+    userId: number,
+  ): Promise<Selectable<PublicGameRequest>> {
     const request = await db
       .insertInto('publicGameRequest')
       .values({
         userId: userId,
-        points: req.nbPoints,
+        points: req.points,
         powerUps: req.powerUps,
         targetId: req.targetId,
       })
@@ -97,7 +73,7 @@ export class GameRequestsService {
     return request;
   }
 
-  async findByUserId(userId: number): Promise<AppGameRequest> {
+  async findByUserId(userId: number): Promise<Selectable<PublicGameRequest>> {
     return await db
       .selectFrom('publicGameRequest')
       .where('userId', '=', userId)
@@ -106,19 +82,14 @@ export class GameRequestsService {
   }
 
   async respondToInvite(
-    inviteResponse: gameInviteResponseDto,
-    ogInvite: AppGameRequest,
-    userId: number,
+    inviteResponse: GameInviteResponseType,
+    ogInvite: Selectable<PublicGameRequest>,
+    userInvitedId: number,
   ) {
-    await this.delete(inviteResponse.fromId);
+    await this.delete(inviteResponse.fromUserId);
     if (inviteResponse.isAccepted) {
-      this.gameServer.startGame(
-        {
-          nbPoints: ogInvite.points,
-          powerUps: ogInvite.powerUps,
-        },
-        [inviteResponse.fromId, userId],
-      );
+      const gameRecord = await this.games.create(ogInvite, userInvitedId);
+      this.gameServer.startGame(gameRecord);
     }
   }
 }

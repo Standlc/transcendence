@@ -29,6 +29,8 @@ export default {
       },
       colors: {
         primary: "rgb(88,100,242)",
+        "bg-1": "#2b2d31",
+        "bg-2": "#1e1f22",
       },
       keyframes: {
         fadein: {

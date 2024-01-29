@@ -1,125 +1,165 @@
-import { useMemo, useState } from "react";
+import { useContext, useEffect } from "react";
 import { Avatar } from "../UIKit/Avatar";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
+import { LeaderbordPlayer } from "../../../api/src/types/games/games";
+import { GameSocketContext } from "../contextsProviders/GameSocketContext";
+import {
+  Tuple,
+  WsLeaderboardPlayerUpdate,
+} from "../../../api/src/types/games/socketPayloadTypes";
+import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
 
-interface PlayerType {
-  id: number;
-  username: string;
-  elo: number;
-  wins: number;
-  losses: number;
-  nbGames: number;
-}
+export default function Leaderboard({ limit }: { limit?: number }) {
+  const socket = useContext(GameSocketContext);
+  const queryClient = useQueryClient();
 
-export default function Leaderboard() {
-  const [players, setPlayers] = useState<PlayerType[]>(
-    [0, 1, 2, 3, 4, 5].map((i) => {
-      return {
-        id: 3,
-        username: "Altman",
-        elo: 2856,
-        wins: 143,
-        losses: 42,
-        nbGames: 524,
-      };
-    })
-  );
+  const leaderboard = useQuery({
+    queryFn: async () => {
+      const res = await axios.get<LeaderbordPlayer[]>(
+        `/api/players/leaderboard${limit ? `?limit=${limit}` : ""}`
+      );
+      return res.data;
+    },
+    queryKey: ["leaderboard"],
+  });
 
-  const topThree = useMemo(() => {
-    return players.slice(0, 3);
-  }, [players]);
+  const newLeaderboardPlayers = useMutation({
+    mutationFn: async (userIds: number[]) => {
+      console.log("fetching player info");
+      const res = await axios.post<LeaderbordPlayer[]>(
+        `/api/players/leaderboard`,
+        userIds
+      );
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["leaderboard"], (prev: LeaderbordPlayer[]) => {
+        console.log("api data", data);
+        if (!prev) return data;
+        const newLeaderboard = [...prev, ...data];
+        newLeaderboard.sort((a, b) => b.rating - a.rating);
+        if (limit) return newLeaderboard.splice(0, limit);
+        return newLeaderboard;
+      });
+    },
+    mutationKey: ["newLeaderboardPlayers"],
+  });
 
-  const restOfPlayers = useMemo(() => {
-    return players.slice(4, -1);
-  }, [players]);
+  useEffect(() => {
+    const handleLeaderboardUpdate = async (
+      data: Tuple<WsLeaderboardPlayerUpdate>
+    ) => {
+      queryClient.setQueryData(["leaderboard"], (prev: LeaderbordPlayer[]) => {
+        let usersToFetch = [...data];
+
+        if (!prev) {
+          newLeaderboardPlayers.mutate(data.flatMap((u) => u.userId));
+          return undefined;
+        }
+
+        const newLeaderoard = prev.map((player) => {
+          const playerUpdate = data.find((p) => p.userId === player.id);
+          if (!playerUpdate) return player;
+
+          usersToFetch = usersToFetch.filter((u) => u.userId !== player.id);
+          return {
+            ...player,
+            losses: !playerUpdate.isWinner ? player.losses + 1 : player.losses,
+            wins: playerUpdate.isWinner ? player.wins + 1 : player.wins,
+            rating: playerUpdate.rating,
+          };
+        });
+
+        usersToFetch = usersToFetch.filter(
+          (u) => u.rating > prev[prev.length - 1].rating
+        );
+        if (usersToFetch.length) {
+          console.log("usersToFetch", usersToFetch);
+          newLeaderboardPlayers.mutate(usersToFetch.flatMap((u) => u.userId));
+        }
+
+        newLeaderoard.sort((a, b) => b.rating - a.rating);
+        return newLeaderoard;
+      });
+    };
+
+    socket.on("leaderboardUpdate", handleLeaderboardUpdate);
+    return () => {
+      socket.off("leaderboardUpdate", handleLeaderboardUpdate);
+    };
+  }, []);
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="font-title text-3xl font-[900]">Leaderboard</h1>
-      <div className="flex gap-5 self-center w-full flex-wrap items-end">
-        {/* {topThree[2] && (
-          <div
-            style={{ marginTop: 120 }}
-            className="flex flex-col gap-3 text-xl bg-zinc-900 p-5 rounded-lg shadow-card flex-1"
-          >
-            <div className="flex gap-3 items-start">
-              <Avatar
-                imgUrl={undefined}
-                // size={!i ? "2xl" : "xl"}
-                size="xl"
-                userId={topThree[2].id}
-              />
-              <div className="flex items-center gap-2">
-                <span className="text-2xl font-[800]">
-                  {topThree[2].username}
-                </span>
-                <div className="text-sm font-title text-indigo-400 font-bold rounded-md px-2 py-[2px] bg-indigo-400 bg-opacity-10">
-                  {topThree[2].elo}
-                </div>
-              </div>
-            </div>
-          </div>
-        )} */}
+      {leaderboard.data && (
+        <table className="border-separate border-spacing-x-0 border-spacing-y-[2px]">
+          <thead className="">
+            <tr className="opacity-100">
+              <th className="text-left max-w-0"></th>
+              <th className="text-left px-5 py-3 max-w-0 pr-0">Rank</th>
+              <th className="text-left px-5 py-3">Player</th>
+              <th className="px-5 py-3 text-center">Rating</th>
+              <th className="text-left w-full"></th>
+              <th className="px-5 py-3 text-center">Wins</th>
+              <th className="px-5 py-3 text-center">Losses</th>
+            </tr>
+          </thead>
 
-        {topThree.map((player, i) => {
-          // if (i == 2) {
-          //   return null;
-          // }
-          return (
-            <div
-              key={i}
-              style={{ marginTop: i * 0 }}
-              className="flex-1 flex flex-col justify-end cursor-pointer gap-2"
-            >
-              <span
-                style={{
-                  fontSize: !i ? "35px" : "25px",
-                }}
-                className="font-[900] font-gameFont z-0 opacity-50 leading-none"
-              >
-                #{i + 1}
-              </span>
-              <div className="relative flex flex-1 flex-col gap-3 text-xl  bg-zinc-900 p-2 rounded-lg shadow-card">
-                <div className="flex gap-3 items-start relative">
-                  <Avatar
-                    imgUrl={undefined}
-                    size={!i ? "2xl" : "xl"}
-                    // size="xl"
-                    userId={player.id}
-                  />
-
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl font-[800]">
-                        {player.username}
-                      </span>
-
-                      <div className="text-sm font-title text-indigo-400 font-bold rounded-md px-2 py-[2px] bg-indigo-400 bg-opacity-10">
-                        {player.elo}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col text-base items-start opacity-50 font-[700]">
-                      <span>{player.nbGames} Games</span>
-                      {/* 
-                      <div className="flex items-center">
-                        <span>{player.wins} Wins</span>
-                      </div>
-
-                      <div className="flex items-center">
-                        <span>{player.losses} Losses</span>
-                      </div> */}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+          <tbody>
+            {leaderboard.data?.map((player, i) => {
+              return <LeaderboardPlayer key={i} i={i} player={player} />;
+            })}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
 
-{
-  /* <ArrowDropUpRounded sx={{ fontSize: 20 }} /> */
+export function LeaderboardPlayer({
+  i,
+  player,
+}: {
+  i: number;
+  player: LeaderbordPlayer;
+}) {
+  return (
+    <tr className="relative rounded-lg font-[800] cursor-pointer group">
+      <td className="absolute w-full h-full p-0">
+        <div className="w-full h-full group-hover:bg-[rgba(255,255,255,0.1)] group-odd:bg-[rgba(255,255,255,0.05)] rounded-md "></div>
+      </td>
+
+      <td className="font-[900] font-gameFont px-5 py-3 text-xl text-center">
+        #{i + 1}
+      </td>
+
+      <td className="px-5 py-3">
+        <div className="flex gap-3 items-center relative">
+          <Avatar imgUrl={undefined} size="md" userId={player.id} />
+          <span className="font-[800] text-base">{player.username}</span>
+        </div>
+      </td>
+
+      <td className="px-5 py-3">
+        <div className="text-indigo-400 rounded-md px-2 py-[2px] bg-indigo-400 bg-opacity-10 w-min">
+          <InfiniteSlotMachine state={player.rating} />
+        </div>
+      </td>
+
+      <td />
+
+      <td className="px-5 py-3">
+        <div className="text-green-500 flex items-center justify-center">
+          <InfiniteSlotMachine state={player.wins} />
+        </div>
+      </td>
+
+      <td className="px-5 py-3">
+        <div className="text-red-500 flex items-center justify-center">
+          <InfiniteSlotMachine state={player.losses} />
+        </div>
+      </td>
+    </tr>
+  );
 }

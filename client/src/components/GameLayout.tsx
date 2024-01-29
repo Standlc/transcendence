@@ -1,57 +1,85 @@
-import { useContext } from "react";
-import { GameStateType, PlayerType } from "../../../api/src/types/game";
+import { memo, useContext, useMemo } from "react";
 import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
-import GameCanvas from "./GameCanvas";
 import { UserContext } from "../contextsProviders/UserContext";
 import { GamePreferencesType } from "../types/game";
 import { GAME_STYLES } from "../utils/game/gameBackgrounds";
-import { useGamePlayers } from "../utils/game/useGetGamePlayers";
+import { GameStateType } from "../../../api/src/types/games/pongGameTypes";
 
 export default function GameLayout({
   game,
   preferences,
+  children,
 }: {
   game: GameStateType;
   preferences: GamePreferencesType;
+  children: any;
 }) {
   const { user } = useContext(UserContext);
-  const players = useGamePlayers(game);
+  const reverse = useMemo(
+    () => user.id === game.playerOne.id,
+    [user.id, game.playerOne.id]
+  );
 
   return (
-    <div
-      id="canvas-layout"
-      style={{
-        backgroundColor: GAME_STYLES[preferences.style].bg,
-      }}
-      className="self-center max-h-full max-w-full overflow-hidden relative bg-opacity-100 rounded-lg shadow-card-xl"
-    >
-      {players && <GameScores players={players} />}
+    <div>
       <div
-        className="relative h-full w-full flex items-center justify-center z-0"
+        id="canvas-layout"
         style={{
-          transform: game.playerRight.id !== user.id ? "scaleX(-1)" : "unset",
+          backgroundColor: GAME_STYLES[preferences.style].bg,
+          flexDirection: reverse ? "row-reverse" : "unset",
         }}
+        className="self-center max-h-full relative bg-opacity-100 border-[10px] border-[rgba(255,255,255,0.3)] rounded-md max-w-[700px]"
       >
-        <GameCanvas game={game} />
-        <div className="-z-10 absolute h-[100%] aspect-square rounded-full bg-black opacity-20 left-0 -translate-x-[80%]"></div>
-        <div className="-z-10 absolute h-[40%] aspect-square rounded-full bg-black opacity-20 "></div>
-        <div className="-z-10 absolute h-[100%] aspect-square rounded-full bg-black opacity-20 right-0 translate-x-[80%]"></div>
+        <GameScores
+          playerOneScore={game.playerOne.score}
+          playerTwoScore={game.playerTwo.score}
+        />
+        <div
+          className="relative h-full w-full flex items-center justify-center z-0"
+          style={{
+            transform: reverse ? "scaleX(-1)" : "unset",
+          }}
+        >
+          {children}
+
+          <div className="-z-10 absolute h-full w-full overflow-hidden flex items-center justify-center">
+            <div className="-z-10 absolute h-[100%] aspect-square rounded-full bg-black opacity-10 left-0 -translate-x-[80%]"></div>
+            <div className="-z-10 absolute h-[40%] aspect-square rounded-full bg-black opacity-10 "></div>
+            <div className="-z-10 absolute h-[100%] aspect-square rounded-full bg-black opacity-10 right-0 translate-x-[80%]"></div>
+          </div>
+        </div>
       </div>
+      <TableLegs />
     </div>
   );
 }
 
-function GameScores({
-  players,
-}: {
-  players: { left: PlayerType; right: PlayerType };
-}) {
+const TableLegs = memo(() => {
   return (
-    <div className="absolute h-full w-full flex">
-      <div className="absolute w-full flex justify-around mt-[10%] items-center font-gameFont text-clamp">
-        <InfiniteSlotMachine state={players.left.score} />
-        <InfiniteSlotMachine state={players.right.score} />
-      </div>
+    <div className="relative bottom-0 w-full h-[60px] flex justify-center items-center -z-10">
+      <div className="bg-[#1f1f22] h-[15px] w-full absolute top-0 left-0 rounded-bl-md rounded-br-md -translate-y-[5px]"></div>
+      <div className="bg-zinc-900 h-full w-[15px]"></div>
+      <div className="bg-zinc-900 h-[10px] w-[70%]"></div>
+      <div className="bg-zinc-900 h-full w-[15px]"></div>
     </div>
   );
-}
+});
+
+const GameScores = memo(
+  ({
+    playerOneScore,
+    playerTwoScore,
+  }: {
+    playerOneScore: number;
+    playerTwoScore: number;
+  }) => {
+    return (
+      <div className="absolute h-full w-full flex [flex-direction:inherit]">
+        <div className="absolute w-full flex justify-around mt-[10%] items-center font-gameFont text-clamp [flex-direction:inherit]">
+          <InfiniteSlotMachine state={playerOneScore} />
+          <InfiniteSlotMachine state={playerTwoScore} />
+        </div>
+      </div>
+    );
+  }
+);

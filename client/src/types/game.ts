@@ -6,6 +6,7 @@ export interface GamePreferencesType {
 
 export type GameStylesType =
   | "classic"
+  | "green"
   | "monochrome"
   | "blue"
   | "purple"

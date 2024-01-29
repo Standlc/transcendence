@@ -72,10 +72,12 @@ export interface Game {
   createdAt: Generated<Timestamp>;
   id: Generated<number>;
   isPublic: boolean;
-  player1_id: number;
-  player1_score: number;
-  player2_id: number;
-  player2_score: number;
+  playerOneId: number;
+  playerOneScore: Generated<number>;
+  playerTwoId: number;
+  playerTwoScore: Generated<number>;
+  points: number;
+  powerUps: boolean;
   winnerId: number | null;
 }
 

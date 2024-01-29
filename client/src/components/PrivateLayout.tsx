@@ -3,11 +3,8 @@ import { AppUser, UserContext } from "../contextsProviders/UserContext";
 import { useEffect, useState } from "react";
 import { GameSocketContext } from "../contextsProviders/GameSocketContext";
 import { Socket, io } from "socket.io-client";
-import {
-  ResumeCurrentGameContext,
-  UserCurrentGame,
-} from "../contextsProviders/ResumeCurrentGameContext";
-import ResumeCurrentGameModal from "./ResumeCurrentGameModal";
+import { ErrorContext, ErrorType } from "../contextsProviders/ErrorContext";
+import { ErrorModal } from "./ErrorModal";
 
 export default function PrivateLayout({
   user,
@@ -17,10 +14,10 @@ export default function PrivateLayout({
   // setUser: React.Dispatch<React.SetStateAction<AppUser | undefined>>;
 }) {
   const [gameSocket, setGameSocket] = useState<Socket>();
-  const [userCurrentGame, setUserCurrentGame] = useState<UserCurrentGame>();
+  const [error, setError] = useState<ErrorType | undefined>();
 
   useEffect(() => {
-    const connection = io();
+    const connection = io("");
     setGameSocket(connection);
     return () => {
       connection.disconnect();
@@ -53,14 +50,12 @@ export default function PrivateLayout({
   return (
     <UserContext.Provider value={{ user }}>
       <GameSocketContext.Provider value={gameSocket}>
-        <ResumeCurrentGameContext.Provider
-          value={{ userCurrentGame, setUserCurrentGame }}
-        >
-          <div>
-            {userCurrentGame && <ResumeCurrentGameModal />}
+        <ErrorContext.Provider value={{ error, setError }}>
+          <div className="min-h-[100vh] min-w-[100vw] w-full h-full">
+            <ErrorModal />
             <Outlet />
           </div>
-        </ResumeCurrentGameContext.Provider>
+        </ErrorContext.Provider>
       </GameSocketContext.Provider>
     </UserContext.Provider>
   );

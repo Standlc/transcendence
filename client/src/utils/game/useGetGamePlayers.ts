@@ -8,15 +8,15 @@ export const getGamePlayers = (
 ) => {
   if (!game) return undefined;
 
-  if (game.playerLeft.id === userId || game.playerRight.id !== userId) {
+  if (game.playerOne.id === userId || game.playerTwo.id !== userId) {
     return {
-      left: game.playerLeft,
-      right: game.playerRight,
+      left: game.playerOne,
+      right: game.playerTwo,
     };
   }
   return {
-    left: game.playerRight,
-    right: game.playerLeft,
+    left: game.playerTwo,
+    right: game.playerOne,
   };
 };
 
@@ -25,7 +25,7 @@ export const useGamePlayers = (game: GameStateType | undefined) => {
 
   const players = useMemo(
     () => getGamePlayers(game, user.id),
-    [game?.playerLeft, game?.playerRight, user.id]
+    [game?.playerOne, game?.playerTwo, user.id]
   );
 
   return players;

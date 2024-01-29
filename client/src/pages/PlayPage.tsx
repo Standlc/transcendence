@@ -1,36 +1,26 @@
-import { Socket } from "socket.io-client";
-import React, { useContext, useEffect, useLayoutEffect, useState } from "react";
-import { GameStateType } from "../../../api/src/types/game";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { UserContext } from "../contextsProviders/UserContext";
 import { GameSocketContext } from "../contextsProviders/GameSocketContext";
 import ModalLayout from "../components/ModalLayout";
-import { GameEngineService } from "../../../api/src/pong/gameLogic/game";
 import GameLayout from "../components/GameLayout";
 import GamePreferences from "../components/GamePreferences";
-import { GamePreferencesType } from "../types/game";
-import { Rocket, RocketLaunch } from "@mui/icons-material";
 import LiveGames from "../components/LiveGames";
 import Leaderboard from "../components/Leaderboard";
 import { useGamePreferences } from "../utils/useGamePreferences";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
+import { createGamePositions } from "../../../api/src/pong/gameLogic/game";
+import GameCanvas from "../components/GameCanvas";
+import { ArrowLink } from "../UIKit/ArrowLink";
 
 export default function PlayPage() {
-  const { user } = useContext(UserContext);
   const socket = useContext(GameSocketContext);
   const [preferences, setPreferences] = useGamePreferences();
   const [privateInvitation, setPrivateInvitation] = useState<{
     userId: number;
   }>();
-  const [game, setGame] = useState<GameStateType>(
-    GameEngineService.createGamePositions({
-      id: "",
-      playerLeftId: 0,
-      playerRightId: user.id,
-    })
-  );
-  const navigation = useNavigate();
+  const game = useMemo(() => createGamePositions({}), []);
+  const navigate = useNavigate();
   const [isSearchingGame, setIsSearchingGame] = useState(false);
   const [privateGameUserId, setPrivateGameUserId] = useState<string>("");
 
@@ -41,13 +31,12 @@ export default function PlayPage() {
     };
 
     const handleGameStart = (gameId: string) => {
-      navigation(`${gameId}`);
       setIsSearchingGame(false);
+      navigate(`${gameId}`);
     };
 
     socket.on("privateGameInvitation", handlePrivateGameInvite);
     socket.on("gameStart", handleGameStart);
-
     return () => {
       socket.off("privateGameInvitation", handlePrivateGameInvite);
       socket.off("gameStart", handleGameStart);
@@ -60,7 +49,8 @@ export default function PlayPage() {
     }
     socket.emit("privateGameRequest", {
       targetId: Number(privateGameUserId),
-      // powerUps: powerUps,
+      powerUps: preferences.powerUps,
+      points: preferences.points,
     });
   };
 
@@ -71,30 +61,33 @@ export default function PlayPage() {
   };
 
   const cancelGameRequest = useMutation({
-    mutationKey: ["cancelGameRequest", user.id],
+    mutationKey: ["cancelGameRequest"],
     mutationFn: async () => {
       setIsSearchingGame(false);
       const res = await axios.delete(`/api/game-requests`);
       return res.data;
     },
+    onError: () => {
+      // -> handle error
+    },
   });
 
   return (
-    <div className="flex justify-center min-h-[100vh] p-5 gap-10 w-[100vw] font-title">
+    <div className="flex justify-center min-h-[100vh] p-5 gap-10 w-[100vw]">
       <div className="flex flex-col min-h-[100vh] p-5 gap-10 max-w-[1100px]">
-        {/* <h2>{user?.id}</h2>
-      {/* <GameErrorModal /> */}
-        {isSearchingGame && (
-          <SearchingGameModal cancel={() => cancelGameRequest.mutate()} />
-        )}
+        <ModalLayout isVisible={isSearchingGame}>
+          <SearchingGameInfos cancel={() => cancelGameRequest.mutate()} />
+        </ModalLayout>
 
-        <h1 className="text-4xl font-[900] font-title">🕹️ Games</h1>
+        <h1 className="text-4xl font-[900]">🕹️ Games</h1>
 
-        <div className="flex gap-5">
-          <div className="flex-[3]">
-            <GameLayout game={game} preferences={preferences} />
+        <div className="flex gap-5 flex-wrap">
+          <div className="flex-[3] min-w-[200px]">
+            <GameLayout game={game} preferences={preferences}>
+              <GameCanvas game={game} isPaused={true} />
+            </GameLayout>
           </div>
-          <div className="flex-[2]">
+          <div className="flex-[2] min-w-[200px]">
             <GamePreferences
               preferences={preferences}
               setPreferences={setPreferences}
@@ -103,40 +96,44 @@ export default function PlayPage() {
           </div>
         </div>
 
-        <LiveGames />
-        <Leaderboard />
+        <div className="flex flex-col gap-5">
+          <div className="flex gap-3 items-center group">
+            <div className="h-[10px] w-[10px] flex aspect-square rounded-full bg-green-600 before:content-[''] before:rounded-full before:h-full before:w-full before:animate-ping before:bg-green-600"></div>
+            <ArrowLink to={"/live"}>Live Games</ArrowLink>
+          </div>
+          <LiveGames />
+        </div>
+
+        <div className="flex flex-col gap-5">
+          <div className="flex items-center justify-between">
+            <ArrowLink to={"/leaderboard"}>🥇 Leaderboard</ArrowLink>
+          </div>
+          <Leaderboard limit={3} />
+        </div>
       </div>
     </div>
   );
 }
 
-function SearchingGameModal({ cancel }: { cancel: () => void }) {
+function SearchingGameInfos({ cancel }: { cancel: () => void }) {
   return (
-    <ModalLayout>
+    <>
       <div className="flex flex-col gap-5 items-center p-5">
         <div className="flex flex-col gap-3 items-center">
           <div className="flex items-center gap-3">
-            <RocketLaunch fontSize="large" />
-            <span className="font-title font-[900] text-3xl">Buckle up!</span>
+            <span className="font-[900] text-3xl">Buckle up!</span>
           </div>
-          <span className="font-title opacity-50">Looking for a game...</span>
+          <span className="opacity-70">Looking for a game...</span>
         </div>
-
+      </div>
+      <div className="flex justify-end w-full bg-bg-2 px-5 py-3">
         <button
           onClick={cancel}
-          className="hover:-translate-y-[1px] w-full active:translate-y-0 py-2 px-5 rounded-md hover:bg-red-600 bg-white bg-opacity-10 font-title font-[600] text-xl shadow-button"
+          className="hover:text-red-600 font-[600] text-base"
         >
           Cancel
         </button>
       </div>
-    </ModalLayout>
-  );
-}
-
-function GameErrorModal() {
-  return (
-    <ModalLayout>
-      <div>hello!</div>
-    </ModalLayout>
+    </>
   );
 }

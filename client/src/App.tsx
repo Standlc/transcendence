@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Route,
   RouterProvider,
@@ -11,57 +11,44 @@ import PlayPage from "./pages/PlayPage";
 import GamePage from "./pages/GamePage";
 import { AppUser } from "./contextsProviders/UserContext";
 import axios from "axios";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { LeaderboardPage } from "./pages/LeaderboardPage";
+import { LiveGamesPage } from "./pages/LiveGamesPage";
 
 function App() {
-  // const [user, setUser] = useState<AppUser>();
+  const queryClient = useQueryClient();
   const [credentials, setCredentials] = useState({
     username: "",
     password: "",
   });
 
-  const { isError, isLoading, data, refetch } = useQuery({
-    queryKey: ["authenticateUser"],
+  const getUser = useQuery({
+    queryKey: ["user"],
     retry: false,
-    refetchOnWindowFocus: false,
     queryFn: async () => {
-      const storedUser = sessionStorage.getItem("user");
-      if (!storedUser) {
-        return null;
-      }
-      const userParsed = JSON.parse(storedUser);
-      const res = await axios.post<AppUser>("/api/auth/login", {
-        username: userParsed.username,
-        password: userParsed.password,
-      });
+      const res = await axios.get<AppUser>("/api/auth/login");
       return res.data;
     },
   });
 
-  const loginMutation = useMutation({
+  const logUser = useMutation({
     mutationKey: ["logUser", credentials],
     mutationFn: async () => {
-      const res = await axios.post("/api/auth/login", {
+      const res = await axios.post<AppUser>("/api/auth/login", {
         username: credentials.username,
         password: credentials.password,
       });
-      sessionStorage.setItem(
-        "user",
-        JSON.stringify({
-          username: credentials.username,
-          password: credentials.password,
-        })
-      );
-      await refetch();
       return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["user"], data);
+    },
+    onError: () => {
+      // -> handle login error
     },
   });
 
-  if (isError) {
-    return <>{"error"}</>;
-  }
-
-  if (isLoading) {
+  if (getUser.isLoading) {
     return null;
   }
 
@@ -70,14 +57,16 @@ function App() {
       router={createBrowserRouter(
         createRoutesFromElements(
           <>
-            {data ? (
+            {getUser.data ? (
               <Route
-                element={<PrivateLayout user={data} />}
+                element={<PrivateLayout user={getUser.data} />}
                 errorElement={<div>\(o_o)/</div>}
               >
                 <Route index element={<div>home</div>}></Route>
                 <Route path="/play" element={<PlayPage />} />
                 <Route path="/play/:gameId" element={<GamePage />} />
+                <Route path="/leaderboard" element={<LeaderboardPage />} />
+                <Route path="/live" element={<LiveGamesPage />} />
               </Route>
             ) : (
               <Route
@@ -88,8 +77,8 @@ function App() {
                   index
                   element={
                     <div className="text-black">
-                      {loginMutation.isPending && <span>Loading...</span>}
-                      {loginMutation.isError && <span>{loginMutation.error.message}</span>}
+                      {logUser.isPending && <span>Loading...</span>}
+                      {logUser.isError && <span>{logUser.error.message}</span>}
                       <input
                         placeholder="username"
                         value={credentials.username}
@@ -114,9 +103,7 @@ function App() {
                       />
                       <br />
                       <br />
-                      <button onClick={() => loginMutation.mutate()}>
-                        LOGIN
-                      </button>
+                      <button onClick={() => logUser.mutate()}>LOGIN</button>
                     </div>
                   }
                 />

@@ -6,7 +6,7 @@ const COLORS = [
   "#5765f2",
   "#FEE75C",
   "#ED4245",
-  "#fee75c",
+  "#ebcc0e",
   "#23272A",
   "#bb397f",
 ];
@@ -16,7 +16,7 @@ const avatarSizes = {
   sm: 30,
   md: 40,
   lg: 55,
-  xl: 100,
+  xl: 80,
   "2xl": 160,
 };
 

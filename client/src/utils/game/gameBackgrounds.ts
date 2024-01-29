@@ -4,6 +4,9 @@ export const GAME_STYLES: Record<GameStylesType, { bg: string }> = {
   classic: {
     bg: "rgb(79 70 229)",
   },
+  green: {
+    bg: "rgb(45 110 70)",
+  },
   blue: {
     bg: "rgb(17 24 39)",
   },

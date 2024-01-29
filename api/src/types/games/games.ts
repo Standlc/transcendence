@@ -1,4 +1,9 @@
-import { Selectable } from 'kysely';
-import { Game } from '../schema';
-
-export type AppGame = Selectable<Game>;
+export type LeaderbordPlayer = {
+  id: number;
+  rating: number;
+  username: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  losses: number;
+  wins: number;
+};

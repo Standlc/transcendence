@@ -49,7 +49,7 @@ export class UsersService {
     //? Create an array of AppUser containing every field except password of any user that matches the substring.
     const user: AppUser[] | null = await db
     .selectFrom('user')
-    .select(['username', 'bio', 'avatarUrl', 'firstname', 'lastname', 'createdAt', 'email', 'id'])
+    .select(['username', 'bio', 'avatarUrl', 'firstname', 'lastname', 'createdAt', 'email', 'id', 'rating'])
     .where('username', 'like', '%' + substring + '%')
     .execute();
     return user;
@@ -90,7 +90,7 @@ export class UsersService {
     try {
       let userList: ListUsers[] = await db
       .selectFrom('user')
-      .select(['id', 'username', 'avatarUrl'])
+      .select(['id', 'username', 'avatarUrl', 'rating'])
       .execute();
       return userList;
     } catch (error) {

@@ -1,325 +1,391 @@
+import { Selectable } from 'kysely';
 import {
-  BALL_SIZE,
-  BALL_VELOCITY_X,
-  BALL_VELOCITY_X_FIRST_THROW,
-  BALL_VELOCITY_Y_FIRST_THROW,
-  CANVAS_H,
-  CANVAS_W,
-  PADDLE_H,
-  PADDLE_VELOCITY_Y,
-  PADDLE_W,
   GameType,
   ObjectType,
   PLAYER_SIDES,
   POWER_UPS,
   PlayerType,
-  POWER_UP_TIMEOUT,
-  THROW_BALL_TIMEMOUT,
-  FPP,
   GameStateType,
-  GameRequestDto,
-} from '../../types/game';
-import { isTouchingLeftPaddle, isTouchingRightPaddle } from './collisions';
-import { Injectable } from '@nestjs/common';
+} from '../../types/games/pongGameTypes';
+import { bottom, isToTheLeft, isToTheRight, rightSide } from './collisions';
+import { Game } from 'src/types/schema';
 
-@Injectable()
-export class GameEngineService {
-  async startGameInterval(
-    game: GameType,
-    callBack: (isGameEnd: boolean) => void,
-  ) {
-    setTimeout(() => this.throwBall(game), THROW_BALL_TIMEMOUT);
-    if (game.hasPowerUps) {
-      this.placeNewPowerUp(game);
+export const CANVAS_H = 600;
+export const CANVAS_W = 800;
+export const BALL_SIZE = 20;
+export const PADDLE_H = 80;
+export const PADDLE_W = 10;
+export const BALL_VELOCITY_X = 20;
+export const BALL_VELOCITY_Y = 20;
+export const BALL_VELOCITY_X_FIRST_THROW = 20;
+export const BALL_VELOCITY_Y_FIRST_THROW = 20;
+export const PADDLE_VELOCITY_Y = 30;
+export const PADDLE_VELOCITY_POWER_UP = 45;
+export const PADDLE_WALL_OFFSET = 20;
+export const FPP = 20;
+export const POWER_UP_TIMEOUT = 4000;
+export const DISCONNECTION_PAUSE_TIMEOUT = 1000;
+export const LIVE_STATS_INTERVAL = 5000;
+export const DISCONNECTION_END_GAME_TIMEMOUT = 3;
+export const THROW_BALL_TIMEMOUT = 1000;
+
+export async function startGameInterval(
+  game: GameType,
+  gameEndHandler: (isGameEnd: boolean) => void,
+  scoreHandler: (player: PlayerType) => void,
+) {
+  if (game.hasPowerUps) {
+    placeNewPowerUp(game);
+  }
+  gameEndHandler(false);
+  setTimeout(() => {
+    throwBall(game);
+    gameEndHandler(false);
+  }, THROW_BALL_TIMEMOUT);
+
+  game.intervalId = setInterval(async () => {
+    if (game.isPaused) return;
+
+    const isEnd = checkIsWinner(game);
+    if (isEnd) {
+      clearInterval(game.intervalId);
+      gameEndHandler(true);
     }
 
-    game.intervalId = setInterval(async () => {
-      if (game.isPaused) return;
-
-      const somePlayerScored = this.checkBallIsOutAndChangeScore(game);
-      if (somePlayerScored) {
-        this.resetGamePositions(game);
-        setTimeout(() => this.throwBall(game), THROW_BALL_TIMEMOUT);
-      } else {
-        this.updateNextFrameGameState(game);
+    const playerThatScored = checkIfPlayerScored(game);
+    if (playerThatScored) {
+      resetGamePositions(game);
+      scoreHandler(playerThatScored);
+      gameEndHandler(false);
+      setTimeout(() => {
+        throwBall(game);
+        gameEndHandler(false);
+      }, THROW_BALL_TIMEMOUT);
+    } else {
+      if (updateNextFrameGameState(game)) {
       }
+    }
+    gameEndHandler(false);
+  }, 1000 / FPP);
+}
 
-      const isEnd = this.checkIsWinner(game);
-      if (isEnd) {
-        clearInterval(game.intervalId);
-      }
-      callBack(isEnd);
-    }, 1000 / FPP);
+function placeNewPowerUp(gameSate: GameType) {
+  const randomPowerUp = (Math.floor(Math.random() * 3) + 1) as any;
+  gameSate.game.powerUp = {
+    h: 40,
+    w: 40,
+    vX: 0,
+    vY: 0,
+    x: CANVAS_W / 4 + (Math.random() * CANVAS_W) / 2,
+    y: CANVAS_H / 4 + (Math.random() * CANVAS_H) / 2,
+    type: randomPowerUp,
+  };
+}
+
+function resetGamePositions(game: GameType) {
+  game.game.ball = {
+    ...game.game.ball,
+    vX: 0,
+    vY: 0,
+    x: CANVAS_W / 2 - BALL_SIZE / 2,
+    y: CANVAS_H / 2 - BALL_SIZE / 2,
+  };
+}
+
+function throwBall(gameState: GameType) {
+  const pointsSum =
+    gameState.game.playerOne.score + gameState.game.playerTwo.score;
+  const side = (pointsSum % 2) * -2 + 1;
+  const ballVelocityX = side * BALL_VELOCITY_X_FIRST_THROW;
+  const ballVelocityY =
+    (Math.round(Math.random()) * 2 - 1) * BALL_VELOCITY_Y_FIRST_THROW;
+
+  gameState.game.ball.vX = ballVelocityX;
+  gameState.game.ball.vY = ballVelocityY;
+  gameState.lastPlayerToHitTheBall = 0;
+}
+
+function checkIsWinner(game: GameType) {
+  return (
+    game.game.playerOne.score === game.points ||
+    game.game.playerTwo.score === game.points
+  );
+}
+
+function checkIfPlayerScored(game: GameType) {
+  const { ball, playerTwo, playerOne } = game.game;
+
+  if (ball.x + ball.w <= 0) {
+    return playerTwo;
+  } else if (ball.x >= CANVAS_W) {
+    return playerOne;
   }
+}
 
-  placeNewPowerUp(gameSate: GameType) {
-    const randomPowerUp = (Math.floor(Math.random() * 3) + 1) as any;
-    console.log(randomPowerUp);
-    gameSate.game.powerUps = {
-      h: 40,
-      w: 40,
-      vX: 0,
-      vY: 0,
-      x: CANVAS_W / 4 + (Math.random() * CANVAS_W) / 2,
-      y: CANVAS_H / 4 + (Math.random() * CANVAS_H) / 2,
-      type: randomPowerUp,
-    };
+function updateNextFrameGameState(game: GameType) {
+  movePaddle(game.game.playerOne);
+  movePaddle(game.game.playerTwo);
+  moveObject(game.game.ball);
+  return bounceBall(game);
+  // if (checkPowerUpCollision(game)) {
+  //   handleHitPowerUp(game);
+  // }
+}
+
+function checkPowerUpCollision(gameState: GameType) {
+  if (!gameState.lastPlayerToHitTheBall || !gameState.game.powerUp) return;
+
+  const { ball, powerUp } = gameState.game;
+  if (ball.x + ball.w < powerUp.x || ball.x > powerUp.x + powerUp.w) {
+    return false;
   }
+  if (ball.y + ball.h < powerUp.y || ball.y > powerUp.y + powerUp.h) {
+    return false;
+  }
+  return true;
+}
 
-  resetGamePositions = (game: GameType) => {
-    game.game.ball = {
-      ...game.game.ball,
+function handleHitPowerUp(gameState: GameType) {
+  const { playerOne, playerTwo } = gameState.game;
+
+  let playerThatHit = playerOne;
+  if (gameState.lastPlayerToHitTheBall === PLAYER_SIDES.RIGHT) {
+    playerThatHit = playerTwo;
+  }
+  enablePowerUp(gameState.game, playerThatHit);
+  gameState.game.powerUp = undefined;
+  setTimeout(() => {
+    placeNewPowerUp(gameState);
+    disablePowerUp(gameState.game, playerThatHit);
+  }, POWER_UP_TIMEOUT);
+}
+
+function enablePowerUp(game: GameStateType, player: PlayerType) {
+  player.powerUp = game.powerUp?.type;
+  if (player.powerUp === POWER_UPS.BIGGER_PADDLE) {
+    player.h = 200;
+    player.y -= 50;
+  } else if (player.powerUp === POWER_UPS.SPEED) {
+    player.vY = PADDLE_VELOCITY_POWER_UP;
+  }
+}
+
+function disablePowerUp(game: GameStateType, player: PlayerType) {
+  if (player.powerUp === POWER_UPS.BIGGER_PADDLE) {
+    player.h = PADDLE_H;
+    player.y += 50;
+  } else if (player.powerUp === POWER_UPS.SPEED) {
+    player.vY = PADDLE_VELOCITY_Y;
+  }
+  player.powerUp = undefined;
+}
+
+function moveObject(object: ObjectType) {
+  object.x += object.vX;
+  object.y += object.vY;
+}
+
+function movePaddle(paddle: ObjectType) {
+  if (paddle.y + paddle.vY <= 0) {
+    paddle.y -= paddle.y;
+  } else if (paddle.y + paddle.h + paddle.vY >= CANVAS_H) {
+    paddle.y += CANVAS_H - (paddle.y + paddle.h);
+  } else {
+    paddle.y += paddle.vY;
+  }
+}
+
+function bounceBall(game: GameType) {
+  const isBouncingVertically = bounceBallVertically(game);
+  const isBouncingHorizontally = bounceBallPaddle(game);
+  return isBouncingHorizontally || isBouncingVertically;
+}
+
+function bounceBallVertically(game: GameType) {
+  const { ball } = game.game;
+
+  if (ball.y <= 0) {
+    const ballOneFrameAgo = getPosOneFrameAgo(ball);
+    const time = ballOneFrameAgo.y / ball.vY;
+    ball.y = 0;
+    ball.x = ballOneFrameAgo.x + ball.vX * time * -1;
+    ball.vY *= -1;
+    return true;
+  } else if (ball.y + ball.h >= CANVAS_H) {
+    const ballOneFrameAgo = getPosOneFrameAgo(ball);
+    const time = (CANVAS_H - (ballOneFrameAgo.y + ball.h)) / ball.vY;
+    ball.y = CANVAS_H - ball.h;
+    ball.x = ballOneFrameAgo.x + ball.vX * time;
+    ball.vY *= -1;
+    return true;
+  }
+  return false;
+}
+
+function bounceBallPaddle(game: GameType): boolean {
+  const { ball } = game.game;
+
+  if (ball.vX < 0) {
+    return bounceBallLeftPaddle(game);
+  } else if (ball.vX > 0) {
+    return bounceBallRightPaddle(game);
+  }
+  return false;
+}
+
+function bounceBallLeftPaddle(game: GameType) {
+  const { ball, playerOne } = game.game;
+  const ballOneFrameAgo = getPosOneFrameAgo(ball);
+
+  if (isToTheRight(ball, playerOne) || isToTheLeft(ballOneFrameAgo, playerOne))
+    return false;
+
+  if (isToTheRight(ballOneFrameAgo, playerOne)) {
+    const time = (ballOneFrameAgo.x - (playerOne.x + playerOne.w)) / ball.vX;
+    const intersect = ballOneFrameAgo.y + ball.vY * time * -1;
+    if (intersect > bottom(playerOne) || intersect < playerOne.y - ball.h) {
+      return false;
+    }
+    ball.x = playerOne.x + playerOne.w;
+    ball.y = intersect;
+    ball.vX *= -1;
+    return true;
+  }
+  return bounceBallOfPaddleVertically(ball, ballOneFrameAgo, playerOne);
+}
+
+function bounceBallRightPaddle(game: GameType) {
+  const { ball, playerTwo } = game.game;
+  const ballOneFrameAgo = getPosOneFrameAgo(ball);
+
+  if (isToTheLeft(ball, playerTwo) || isToTheRight(ballOneFrameAgo, playerTwo))
+    return false;
+
+  if (isToTheLeft(ballOneFrameAgo, playerTwo)) {
+    const time = (playerTwo.x - (ballOneFrameAgo.x + ball.w)) / ball.vX;
+    const intersect = ballOneFrameAgo.y + ball.vY * time;
+    if (intersect > bottom(playerTwo) || intersect < playerTwo.y - ball.h) {
+      return false;
+    }
+    ball.x = playerTwo.x - ball.w;
+    ball.y = intersect;
+    ball.vX *= -1;
+    return true;
+  }
+  return bounceBallOfPaddleVertically(ball, ballOneFrameAgo, playerTwo);
+}
+
+function bounceBallOfPaddleVertically(
+  ball: ObjectType,
+  ballOneFrameAgo: ObjectType,
+  paddle: ObjectType,
+) {
+  if (ball.vY < 0 && ball.y <= bottom(paddle)) {
+    const time = (bottom(paddle) - ballOneFrameAgo.y) / ball.vY;
+    const intersect = ballOneFrameAgo.x + ball.vX * time;
+    if (intersect > rightSide(paddle) + ball.w || intersect < paddle.x - ball.w)
+      return false;
+
+    ball.vY *= -1;
+    ball.x = intersect;
+    ball.y = bottom(paddle);
+    return true;
+  }
+  if (ball.vY > 0 && ball.y + ball.h >= paddle.y) {
+    const time = (ballOneFrameAgo.y + ball.h - paddle.y) / ball.vY;
+    const intersect = ballOneFrameAgo.x + ball.vX * time;
+    if (intersect > rightSide(paddle) + ball.w || intersect < paddle.x - ball.w)
+      return false;
+
+    ball.vY *= -1;
+    ball.x = intersect;
+    ball.y = paddle.y - ball.h;
+    return true;
+  }
+  return false;
+}
+
+function getPosOneFrameAgo(obj: ObjectType): ObjectType {
+  return {
+    ...obj,
+    x: obj.x - obj.vX,
+    y: obj.y - obj.vY,
+  };
+}
+
+export function movePlayerPaddle(
+  player: PlayerType,
+  move: 'up' | 'down' | 'stop',
+) {
+  if (move === 'up') {
+    player.vY = -player.speed;
+  } else if (move === 'down') {
+    player.vY = player.speed;
+  } else {
+    movePaddle(player);
+    player.vY = 0;
+  }
+}
+
+export function initialize(game: Selectable<Game>): GameType {
+  return {
+    isPaused: false,
+    gameId: game.id,
+    roomId: game.id.toString(),
+    points: game.points,
+    hasPowerUps: game.powerUps,
+    isPublic: game.isPublic,
+    intervalId: undefined,
+    disconnectionIntervalId: undefined,
+    lastPlayerToHitTheBall: 0,
+    game: createGamePositions({
+      playerOneId: game.playerOneId,
+      playerTwoId: game.playerTwoId,
+    }),
+  };
+}
+
+export interface CreateGamePositionsPropsType {
+  playerOneId?: number;
+  playerTwoId?: number;
+}
+
+export function createGamePositions({
+  playerOneId,
+  playerTwoId,
+}: CreateGamePositionsPropsType) {
+  return {
+    ball: {
+      h: BALL_SIZE,
+      w: BALL_SIZE,
       vX: 0,
       vY: 0,
       x: CANVAS_W / 2 - BALL_SIZE / 2,
       y: CANVAS_H / 2 - BALL_SIZE / 2,
-    };
+    },
+    playerOne: {
+      w: PADDLE_W,
+      h: PADDLE_H,
+      vY: 0,
+      vX: 0,
+      x: PADDLE_WALL_OFFSET,
+      y: CANVAS_H / 2 - PADDLE_H / 2,
+      speed: PADDLE_VELOCITY_Y,
+      id: playerOneId ?? 0,
+      score: 0,
+      isConnected: true,
+    },
+    playerTwo: {
+      w: PADDLE_W,
+      h: PADDLE_H,
+      vY: 0,
+      vX: 0,
+      x: CANVAS_W - PADDLE_WALL_OFFSET - PADDLE_W,
+      y: CANVAS_H / 2 - PADDLE_H / 2,
+      speed: PADDLE_VELOCITY_Y,
+      id: playerTwoId ?? 0,
+      score: 0,
+      isConnected: true,
+    },
   };
-
-  throwBall(gameState: GameType) {
-    const pointsSum =
-      gameState.game.playerLeft.score + gameState.game.playerRight.score;
-    const side = (pointsSum % 2) * -2 + 1;
-    const ballVelocityX = side * BALL_VELOCITY_X_FIRST_THROW;
-    const ballVelocityY =
-      (Math.round(Math.random()) * 2 - 1) * BALL_VELOCITY_Y_FIRST_THROW;
-
-    gameState.game.ball.vX = ballVelocityX;
-    gameState.game.ball.vY = ballVelocityY;
-    gameState.lastPlayerToHitTheBall = 0;
-  }
-
-  checkIsWinner = (game: GameType) => {
-    if (
-      game.game.playerLeft.score === game.points ||
-      game.game.playerRight.score === game.points
-    ) {
-      return true;
-    }
-    return false;
-  };
-
-  checkBallIsOutAndChangeScore = (game: GameType) => {
-    if (game.game.ball.x + game.game.ball.w <= 0) {
-      game.game.playerRight.score += 1;
-      return true;
-    } else if (game.game.ball.x >= CANVAS_W) {
-      game.game.playerLeft.score += 1;
-      return true;
-    }
-    return false;
-  };
-
-  updateNextFrameGameState = (game: GameType) => {
-    this.movePaddle(game.game.playerLeft);
-    this.movePaddle(game.game.playerRight);
-    this.moveBall(game);
-    this.bounceBall(game);
-    if (this.checkPowerUpCollision(game)) {
-      this.handleHitPowerUp(game);
-    }
-  };
-
-  checkPowerUpCollision(gameState: GameType) {
-    if (!gameState.lastPlayerToHitTheBall || !gameState.game.powerUps) return;
-
-    const { ball, powerUps } = gameState.game;
-    if (ball.x + ball.w < powerUps.x || ball.x > powerUps.x + powerUps.w) {
-      return false;
-    }
-    if (ball.y + ball.h < powerUps.y || ball.y > powerUps.y + powerUps.h) {
-      return false;
-    }
-    return true;
-  }
-
-  handleHitPowerUp(gameState: GameType) {
-    const { playerLeft, playerRight } = gameState.game;
-
-    let playerThatHit = playerLeft;
-    if (gameState.lastPlayerToHitTheBall === PLAYER_SIDES.RIGHT) {
-      playerThatHit = playerRight;
-    }
-    this.enablePowerUp(gameState.game, playerThatHit);
-    gameState.game.powerUps = undefined;
-    setTimeout(() => {
-      this.placeNewPowerUp(gameState);
-      this.disablePowerUp(gameState.game, playerThatHit);
-    }, POWER_UP_TIMEOUT);
-  }
-
-  enablePowerUp(game: GameStateType, player: PlayerType) {
-    player.powerUp = game.powerUps?.type;
-    if (player.powerUp === POWER_UPS.BIGGER_PADDLE) {
-      player.h = 200;
-      player.y -= 50;
-    }
-  }
-
-  disablePowerUp(game: GameStateType, player: PlayerType) {
-    if (player.powerUp === POWER_UPS.BIGGER_PADDLE) {
-      player.h = PADDLE_H;
-      player.y += 50;
-    }
-    player.powerUp = undefined;
-  }
-
-  moveBall(gameState: GameType) {
-    const { ball, playerLeft, playerRight } = gameState.game;
-    if (ball.vX === 0 && ball.vY === 0) {
-      return;
-    }
-
-    this.moveObject(ball);
-
-    let playerWithPower = playerRight;
-    if (ball.vX < 0) {
-      if (
-        !playerLeft.powerUp ||
-        playerLeft.powerUp !== POWER_UPS.GRAVITY_PADDLE
-      ) {
-        return;
-      }
-      playerWithPower = playerLeft;
-    } else if (
-      !playerRight.powerUp ||
-      playerRight.powerUp !== POWER_UPS.GRAVITY_PADDLE
-    ) {
-      return;
-    }
-
-    const ballCenterY = ball.y + ball.h / 2;
-    const paddleCenterY = playerWithPower.y + playerWithPower.h / 2;
-    const acc = {
-      y: paddleCenterY - ballCenterY,
-      x: playerWithPower.x - ball.x,
-    };
-    const magnitude = Math.sqrt(acc.x ** 2 + acc.y ** 2);
-    const preMagnitude = Math.sqrt(ball.vX ** 2 + ball.vY ** 2);
-    acc.x = magnitude ? acc.x / magnitude : 0;
-    acc.y = magnitude ? acc.y / magnitude : 0;
-    ball.vY = (acc.y * preMagnitude + ball.vY * 20) / 21;
-  }
-
-  moveObject = (object: ObjectType) => {
-    object.x += object.vX;
-    object.y += object.vY;
-  };
-
-  movePaddle = (paddle: ObjectType) => {
-    if (paddle.y + paddle.vY <= 0) {
-      paddle.y -= paddle.y;
-    } else if (paddle.y + paddle.h + paddle.vY >= CANVAS_H) {
-      paddle.y += CANVAS_H - (paddle.y + paddle.h);
-    } else {
-      paddle.y += paddle.vY;
-    }
-  };
-
-  bounceBall = (game: GameType) => {
-    this.bounceBallHorizontally(game);
-    this.bounceBallPaddle(game);
-  };
-
-  bounceBallHorizontally(game: GameType) {
-    const { ball } = game.game;
-
-    if (ball.y <= 0) {
-      ball.y -= ball.y * 2;
-      ball.vY *= -1;
-    } else if (ball.y + ball.h >= CANVAS_H) {
-      ball.y -= (ball.y + ball.h - CANVAS_H) * 2;
-      ball.vY *= -1;
-    }
-  }
-
-  bounceBallPaddle(game: GameType) {
-    const { ball, playerLeft, playerRight } = game.game;
-
-    if (isTouchingLeftPaddle(playerLeft, ball)) {
-      const velocityFactor = Math.random() * 1 + 1;
-      ball.x -= (ball.x - (playerLeft.x + playerLeft.w)) * 2;
-      ball.vX = velocityFactor * BALL_VELOCITY_X;
-      game.lastPlayerToHitTheBall = PLAYER_SIDES.LEFT;
-    } else if (isTouchingRightPaddle(playerRight, ball)) {
-      const velocityFactor = Math.random() * 1 + 1;
-      ball.x -= (ball.x + ball.w - playerRight.x) * 2;
-      ball.vX = velocityFactor * -BALL_VELOCITY_X;
-      game.lastPlayerToHitTheBall = PLAYER_SIDES.RIGHT;
-    }
-  }
-
-  movePlayerPaddle(player: PlayerType, move: 'up' | 'down' | 'stop') {
-    if (move === 'up') {
-      player.vY = -PADDLE_VELOCITY_Y;
-    } else if (move === 'down') {
-      player.vY = PADDLE_VELOCITY_Y;
-    } else {
-      player.vY = 0;
-    }
-  }
-
-  initialize(props: {
-    id: string;
-    playerLeftId: number;
-    playerRightId: number;
-    gameReq: GameRequestDto;
-  }): GameType {
-    return {
-      points: props.gameReq.nbPoints,
-      hasPowerUps: props.gameReq.powerUps,
-      isPublic: !props.gameReq.targetId,
-      intervalId: undefined,
-      disconnectionIntervalId: undefined,
-      lastPlayerToHitTheBall: 0,
-      isPaused: false,
-      game: GameEngineService.createGamePositions({
-        id: props.id,
-        playerLeftId: props.playerLeftId,
-        playerRightId: props.playerRightId,
-      }),
-    };
-  }
-
-  static createGamePositions(props?: {
-    id: string;
-    playerLeftId: number;
-    playerRightId: number;
-  }) {
-    return {
-      id: props?.id ?? '',
-      ball: {
-        h: BALL_SIZE,
-        w: BALL_SIZE,
-        vX: 0,
-        vY: 0,
-        x: CANVAS_W / 2 - BALL_SIZE / 2,
-        y: CANVAS_H / 2 - BALL_SIZE / 2,
-      },
-      playerLeft: {
-        w: PADDLE_W,
-        h: PADDLE_H,
-        vY: 0,
-        vX: 0,
-        x: 20,
-        y: CANVAS_H / 2 - PADDLE_H / 2,
-        id: props?.playerLeftId ?? 0,
-        score: 0,
-        isConnected: true,
-      },
-      playerRight: {
-        w: PADDLE_W,
-        h: PADDLE_H,
-        vY: 0,
-        vX: 0,
-        x: CANVAS_W - 20 - PADDLE_W,
-        y: CANVAS_H / 2 - PADDLE_H / 2,
-        id: props?.playerRightId ?? 0,
-        score: 0,
-        isConnected: true,
-      },
-      w: CANVAS_W,
-      h: CANVAS_H,
-    };
-  }
 }

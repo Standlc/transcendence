@@ -17,7 +17,6 @@ export const useGamePreferences = (): [
       localStorage.setItem("gamePreferences", JSON.stringify(preferences));
       return;
     }
-
     setPreferences(JSON.parse(gamePreferences));
   }, []);
 
