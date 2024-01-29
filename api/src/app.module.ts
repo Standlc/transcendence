@@ -8,6 +8,8 @@ import { OnlineGateway } from './onlineGateway/online.gateway';
 import { PongGameModule } from './pong/Pong.module';
 import { GamesModule } from './games/Games.module';
 import { PlayersModule } from './pong/players/players.module';
+import { FriendsService } from './friends/friends.service';
+import { FriendsModule } from './friends/friends.module';
 
 @Module({
   imports: [
@@ -17,8 +19,9 @@ import { PlayersModule } from './pong/players/players.module';
     GameRequestsModule,
     PongGameModule,
     PlayersModule,
+    FriendsModule,
   ],
   controllers: [AppController],
-  providers: [AppService, OnlineGateway],
+  providers: [AppService, OnlineGateway, FriendsService],
 })
 export class AppModule {}

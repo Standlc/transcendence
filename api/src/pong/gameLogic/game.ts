@@ -52,14 +52,14 @@ export async function startGameInterval(
     gameEndHandler(isEnd);
 
     const playerThatScored = checkIfPlayerScored(game);
+
+    updateNextFrameGameState(game);
     if (playerThatScored) {
       scoreHandler(playerThatScored);
       resetGamePositions(game);
       setTimeout(() => {
         throwBall(game);
       }, THROW_BALL_TIMEMOUT);
-    } else {
-      updateNextFrameGameState(game);
     }
   }, 1000 / FPP);
 }
