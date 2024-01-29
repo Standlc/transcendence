@@ -6,27 +6,29 @@ export type EmitPayloadType<T extends string> = T extends 'updateGameState'
   ? GameStateType
   : T extends 'playerDisconnection'
     ? WsPlayerDisconnection
-    : T extends 'gameEnd'
-      ? WsGameEndType
-      : T extends 'viewersCount'
-        ? number
-        : T extends 'gameStart'
-          ? string
-          : T extends 'privateGameInvitation'
-            ? Selectable<PublicGameRequest>
-            : T extends 'liveGame'
-              ? WsGameIdType
-              : T extends 'liveGameUpdate'
-                ? WsLiveGameUpdate
-                : T extends 'liveGameEnd'
-                  ? number
-                  : T extends 'leaderboardUpdate'
-                    ? Tuple<WsLeaderboardPlayerUpdate>
-                    : T extends 'pause'
-                      ? { isPaused: boolean }
-                      : T extends 'error'
-                        ? WsError
-                        : never;
+    : T extends 'startCountdown'
+      ? number
+      : T extends 'gameEnd'
+        ? WsGameEndType
+        : T extends 'viewersCount'
+          ? number
+          : T extends 'gameStart'
+            ? string
+            : T extends 'privateGameInvitation'
+              ? Selectable<PublicGameRequest>
+              : T extends 'liveGame'
+                ? WsGameIdType
+                : T extends 'liveGameUpdate'
+                  ? WsLiveGameUpdate
+                  : T extends 'liveGameEnd'
+                    ? number
+                    : T extends 'leaderboardUpdate'
+                      ? Tuple<WsLeaderboardPlayerUpdate>
+                      : T extends 'pause'
+                        ? { isPaused: boolean }
+                        : T extends 'error'
+                          ? WsError
+                          : never;
 
 export type Tuple<T> = [T, T];
 

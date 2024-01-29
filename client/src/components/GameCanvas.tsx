@@ -80,14 +80,14 @@ const GameCanvas = memo(({ game, gameId, isPaused }: props) => {
     ctx: CanvasRenderingContext2D,
     game: GameStateType
   ) => {
-    const posX = game.w / 2;
+    const posX = 800 / 2;
 
     ctx.translate(0, 10);
     ctx.beginPath();
     ctx.setLineDash([20, 20]);
     ctx.lineWidth = 10;
     ctx.moveTo(posX, 0);
-    ctx.lineTo(posX, game.h);
+    ctx.lineTo(posX, 600);
     ctx.stroke();
     ctx.translate(0, -10);
   };

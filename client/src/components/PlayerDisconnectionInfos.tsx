@@ -10,12 +10,12 @@ export default function PlayerDisconnectionInfos({
   gameRecord,
 }: {
   disconnectionInfo: WsPlayerDisconnection;
-  gameRecord: AppGame | undefined;
+  gameRecord: AppGame;
 }) {
   const { user } = useContext(UserContext);
 
   const players = useMemo(() => {
-    if (!gameRecord || !gameRecord.playerOne || !gameRecord.playerTwo)
+    if (!gameRecord.playerOne || !gameRecord.playerTwo)
       return undefined;
     if (disconnectionInfo.userId === gameRecord.playerOne?.id) {
       return {

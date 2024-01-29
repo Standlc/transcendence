@@ -37,10 +37,8 @@ export async function startGameInterval(
   if (game.hasPowerUps) {
     placeNewPowerUp(game);
   }
-  gameEndHandler(false);
   setTimeout(() => {
     throwBall(game);
-    gameEndHandler(false);
   }, THROW_BALL_TIMEMOUT);
 
   game.intervalId = setInterval(async () => {
@@ -49,23 +47,20 @@ export async function startGameInterval(
     const isEnd = checkIsWinner(game);
     if (isEnd) {
       clearInterval(game.intervalId);
-      gameEndHandler(true);
     }
+
+    gameEndHandler(isEnd);
 
     const playerThatScored = checkIfPlayerScored(game);
     if (playerThatScored) {
-      resetGamePositions(game);
       scoreHandler(playerThatScored);
-      gameEndHandler(false);
+      resetGamePositions(game);
       setTimeout(() => {
         throwBall(game);
-        gameEndHandler(false);
       }, THROW_BALL_TIMEMOUT);
     } else {
-      if (updateNextFrameGameState(game)) {
-      }
+      updateNextFrameGameState(game);
     }
-    gameEndHandler(false);
   }, 1000 / FPP);
 }
 
@@ -126,7 +121,7 @@ function updateNextFrameGameState(game: GameType) {
   movePaddle(game.game.playerOne);
   movePaddle(game.game.playerTwo);
   moveObject(game.game.ball);
-  return bounceBall(game);
+  bounceBall(game);
   // if (checkPowerUpCollision(game)) {
   //   handleHitPowerUp(game);
   // }
@@ -196,9 +191,8 @@ function movePaddle(paddle: ObjectType) {
 }
 
 function bounceBall(game: GameType) {
-  const isBouncingVertically = bounceBallVertically(game);
-  const isBouncingHorizontally = bounceBallPaddle(game);
-  return isBouncingHorizontally || isBouncingVertically;
+  bounceBallVertically(game);
+  bounceBallPaddle(game);
 }
 
 function bounceBallVertically(game: GameType) {
@@ -210,27 +204,23 @@ function bounceBallVertically(game: GameType) {
     ball.y = 0;
     ball.x = ballOneFrameAgo.x + ball.vX * time * -1;
     ball.vY *= -1;
-    return true;
   } else if (ball.y + ball.h >= CANVAS_H) {
     const ballOneFrameAgo = getPosOneFrameAgo(ball);
     const time = (CANVAS_H - (ballOneFrameAgo.y + ball.h)) / ball.vY;
     ball.y = CANVAS_H - ball.h;
     ball.x = ballOneFrameAgo.x + ball.vX * time;
     ball.vY *= -1;
-    return true;
   }
-  return false;
 }
 
-function bounceBallPaddle(game: GameType): boolean {
+function bounceBallPaddle(game: GameType) {
   const { ball } = game.game;
 
   if (ball.vX < 0) {
-    return bounceBallLeftPaddle(game);
+    bounceBallLeftPaddle(game);
   } else if (ball.vX > 0) {
-    return bounceBallRightPaddle(game);
+    bounceBallRightPaddle(game);
   }
-  return false;
 }
 
 function bounceBallLeftPaddle(game: GameType) {
@@ -238,20 +228,20 @@ function bounceBallLeftPaddle(game: GameType) {
   const ballOneFrameAgo = getPosOneFrameAgo(ball);
 
   if (isToTheRight(ball, playerOne) || isToTheLeft(ballOneFrameAgo, playerOne))
-    return false;
+    return;
 
   if (isToTheRight(ballOneFrameAgo, playerOne)) {
     const time = (ballOneFrameAgo.x - (playerOne.x + playerOne.w)) / ball.vX;
     const intersect = ballOneFrameAgo.y + ball.vY * time * -1;
     if (intersect > bottom(playerOne) || intersect < playerOne.y - ball.h) {
-      return false;
+      return;
     }
     ball.x = playerOne.x + playerOne.w;
     ball.y = intersect;
     ball.vX *= -1;
-    return true;
+    return;
   }
-  return bounceBallOfPaddleVertically(ball, ballOneFrameAgo, playerOne);
+  // bounceBallOfPaddleVertically(ball, ballOneFrameAgo, playerOne);
 }
 
 function bounceBallRightPaddle(game: GameType) {
@@ -259,20 +249,20 @@ function bounceBallRightPaddle(game: GameType) {
   const ballOneFrameAgo = getPosOneFrameAgo(ball);
 
   if (isToTheLeft(ball, playerTwo) || isToTheRight(ballOneFrameAgo, playerTwo))
-    return false;
+    return;
 
   if (isToTheLeft(ballOneFrameAgo, playerTwo)) {
     const time = (playerTwo.x - (ballOneFrameAgo.x + ball.w)) / ball.vX;
     const intersect = ballOneFrameAgo.y + ball.vY * time;
     if (intersect > bottom(playerTwo) || intersect < playerTwo.y - ball.h) {
-      return false;
+      return;
     }
     ball.x = playerTwo.x - ball.w;
     ball.y = intersect;
     ball.vX *= -1;
-    return true;
+    return;
   }
-  return bounceBallOfPaddleVertically(ball, ballOneFrameAgo, playerTwo);
+  // bounceBallOfPaddleVertically(ball, ballOneFrameAgo, playerTwo);
 }
 
 function bounceBallOfPaddleVertically(
@@ -284,25 +274,24 @@ function bounceBallOfPaddleVertically(
     const time = (bottom(paddle) - ballOneFrameAgo.y) / ball.vY;
     const intersect = ballOneFrameAgo.x + ball.vX * time;
     if (intersect > rightSide(paddle) + ball.w || intersect < paddle.x - ball.w)
-      return false;
+      return;
 
     ball.vY *= -1;
     ball.x = intersect;
     ball.y = bottom(paddle);
-    return true;
+    return;
   }
   if (ball.vY > 0 && ball.y + ball.h >= paddle.y) {
     const time = (ballOneFrameAgo.y + ball.h - paddle.y) / ball.vY;
     const intersect = ballOneFrameAgo.x + ball.vX * time;
     if (intersect > rightSide(paddle) + ball.w || intersect < paddle.x - ball.w)
-      return false;
+      return;
 
     ball.vY *= -1;
     ball.x = intersect;
     ball.y = paddle.y - ball.h;
-    return true;
+    return;
   }
-  return false;
 }
 
 function getPosOneFrameAgo(obj: ObjectType): ObjectType {
@@ -322,7 +311,7 @@ export function movePlayerPaddle(
   } else if (move === 'down') {
     player.vY = player.speed;
   } else {
-    movePaddle(player);
+    // movePaddle(player);
     player.vY = 0;
   }
 }

@@ -25,6 +25,8 @@ import ModalLayout from "../components/ModalLayout";
 import { Spinner } from "../UIKit/Kit";
 import GameCanvas from "../components/GameCanvas";
 import { GameFinishedCard } from "../components/GameFinishedCard";
+import { createGamePositions } from "../../../api/src/pong/gameLogic/game";
+import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
 
 export default function GamePage() {
   const { gameId } = useParams();
@@ -32,10 +34,11 @@ export default function GamePage() {
   const gameIdNumber = useMemo(() => Number(gameId), [gameId]);
   const socket = useContext(GameSocketContext);
   const [preferences] = useGamePreferences();
-  const [game, setGame] = useState<GameStateType>();
+  const [game, setGame] = useState<GameStateType>(createGamePositions({}));
   const [playerDisconnectionInfo, setPlayerDisconnectionInfo] =
     useState<WsPlayerDisconnection>();
   const [isPaused, setIsPaused] = useState(false);
+  const [startCountdown, setStartCountdown] = useState<number>();
 
   const gameRecord = useQuery({
     queryFn: async () => {
@@ -79,10 +82,15 @@ export default function GamePage() {
       if (!isPaused) setPlayerDisconnectionInfo(undefined);
     };
 
+    const handleGameStartCoutdown = (countdown: number) => {
+      setStartCountdown(countdown);
+    };
+
     socket.on("updateGameState", handleGameUpadte);
     socket.on("gameEnd", handleGameEnd);
     socket.on("playerDisconnection", handleOpponentDisconnection);
     socket.on("pause", handlePause);
+    socket.on("startCountdown", handleGameStartCoutdown);
     return () => {
       socket.off("updateGameState", handleGameUpadte);
       socket.off("gameEnd", handleGameEnd);
@@ -91,6 +99,10 @@ export default function GamePage() {
       socket.emit("leaveGame", { gameId: gameIdNumber });
     };
   }, [socket, gameIdNumber]);
+
+  if (gameRecord.error) {
+    return <div>We could not find this game</div>;
+  }
 
   return (
     <div className="flex justify-center h-[100vh] p-5 gap-5 w-[100vw] font-title">
@@ -101,14 +113,25 @@ export default function GamePage() {
           {gameRecord.data && <GameFinishedCard game={gameRecord.data} />}
         </ModalLayout>
 
-        <ModalLayout isVisible={!!playerDisconnectionInfo}>
-          {playerDisconnectionInfo && (
+        <ModalLayout
+          isVisible={!!playerDisconnectionInfo}
+          isLoading={gameRecord.isPending}
+        >
+          {playerDisconnectionInfo && gameRecord.data && (
             <GameDisconnectionModal
               disconnectionInfo={playerDisconnectionInfo}
               gameRecord={gameRecord.data}
             />
           )}
         </ModalLayout>
+
+        {!!startCountdown && (
+          <div className="animate-fadein bg-black bg-opacity-80 fixed h-full w-full z-10 flex items-center justify-center">
+            <div className="p-5 text-8xl font-gameFont flex items-center justify-center animate-scalein">
+              <InfiniteSlotMachine state={startCountdown ?? 0} />
+            </div>
+          </div>
+        )}
 
         {game && (
           <>

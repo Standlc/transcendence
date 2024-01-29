@@ -90,8 +90,8 @@ export class PongGateway {
   }
 
   handleConnection(client: Socket) {
-    console.log(this.server.sockets);
-    console.log('NEW CONNECTION:', client.id, 'with userId', client.data.id);
+    // console.log(this.server.sockets);
+    // console.log('NEW CONNECTION:', client.id, 'with userId', client.data.id);
   }
 
   handleDisconnect(client: Socket) {
@@ -233,6 +233,8 @@ export class PongGateway {
 
   async runGame(gameState: GameType) {
     this.emitNewLiveGame(gameState);
+    this.sendTo(gameState.roomId, 'updateGameState', gameState.game);
+    await this.sendGameStartCountdown(gameState);
 
     const handleGameEnd = async (isGameEnd: boolean) => {
       this.sendTo(gameState.roomId, 'updateGameState', gameState.game);
@@ -247,6 +249,22 @@ export class PongGateway {
     };
 
     await startGameInterval(gameState, handleGameEnd, handleScore);
+  }
+
+  async sendGameStartCountdown(game: GameType): Promise<void> {
+    await new Promise((resolve) => {
+      let countdown = 3;
+      const intervalId = setInterval(() => {
+        if (countdown === 0) {
+          this.sendTo(game.roomId, 'startCountdown', countdown);
+          clearInterval(intervalId);
+          resolve(undefined);
+          return;
+        }
+        this.sendTo(game.roomId, 'startCountdown', countdown);
+        countdown--;
+      }, 1000);
+    });
   }
 
   sendLiveGameUpdate(game: GameType) {

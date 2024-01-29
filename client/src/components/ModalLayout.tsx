@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect } from "react";
 import { Spinner } from "../UIKit/Kit";
 
 const ModalLayout = memo(
