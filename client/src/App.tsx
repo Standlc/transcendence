@@ -13,8 +13,12 @@ import { useQuery } from "@tanstack/react-query";
 import PrivateLayout from "./components/PrivateLayout";
 import PublicLayout from "./components/PublicLayout";
 import PongGame from "./pages/PongGame";
+<<<<<<< HEAD
 import { Login } from "./pages/Login";
 import { Dashboard } from "./pages/Dashboard";
+=======
+import { AppUser } from "../../api/src/types/clientSchema";
+>>>>>>> main
 
 const getUser = async () => {
   const res = await axios.get<any>("/api");
@@ -31,6 +35,11 @@ function App() {
       const res: { data: string } = await axios.get("/api");
       console.log(res.data);
       setNow(DateTime.fromISO(res.data).toFormat("HH':' mm: ss"));
+      // const res = await axios.post<AppUser>("/api/auth/login", {
+      //   username: "john",
+      //   password: "123",
+      // });
+      // console.log(res.data);
     };
     testApi();
   }, []);

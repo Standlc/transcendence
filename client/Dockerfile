@@ -1,9 +1,0 @@
-FROM    node:alpine
-
-WORKDIR /app
-
-COPY    package*.json ./
-
-# RUN     npm i
-
-CMD     npm i && npm run dev
