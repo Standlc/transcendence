@@ -1,12 +1,8 @@
-import React from "react";
-import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
-
 import { ChanColumn } from "../components/ChanColumn";
 import { Chatbox } from "../components/Chatbox";
 import { NavBar } from "../components/Navbar/Navbar";
-import { TopBar } from "../components/TopBar/TopBar";
 
-export const Dashboard = ({ now }) => {
+export const Dashboard = () => {
     return (
         <div className="result-page bg-dark-but-not-black ">
             <NavBar />

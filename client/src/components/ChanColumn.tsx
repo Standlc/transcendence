@@ -33,7 +33,7 @@ export const ChanColumn = () => {
             </div>
             <div className="bg-almost-black text-m bloc user-chancolumn">
                 <span className="avatar bg-greyple">IMG </span>
-                <span> Monpachi</span>
+                <span> </span>
                 <span className="text-greyple bloc text-left">
                     {" "}
                     <br></br> en ligne

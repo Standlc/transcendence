@@ -8,19 +8,53 @@ export const Login = () => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
 
+    // const handleSubmit = async (event) => {
+    //     event.preventDefault();
+    //     // Imwhiteplement your authentication logic here
+    //     console.log("Login attempt with:", username, password);
+    //     // On success:
+    //     navigate("/home"); // Redirect to the home route or dashboard
+    // };
+
+    // ...state declarations and other code...
+
     const handleSubmit = async (event) => {
         event.preventDefault();
-        // Implement your authentication logic here
-        console.log("Login attempt with:", username, password);
-        // On success:
-        navigate("/home"); // Redirect to the home route or dashboard
+
+        try {
+            const response = await fetch("http://localhost:5000/api/auth/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ username, password }),
+            });
+            console.log(JSON.stringify({ username, password }));
+
+            if (response.ok) {
+                const data = await response.text();
+                console.log("Login successful:", data);
+                console.log("response", response);
+                // Stocker le token d'authentification si nécessaire, par exemple dans localStorage
+                // localStorage.setItem('token', data.token);
+
+                navigate("/home"); // Rediriger vers la route home ou dashboard
+            } else {
+                // Gérer les erreurs, par exemple en montrant un message à l'utilisateur
+                console.error("Login failed:", response.status);
+                // Afficher un message d'erreur
+            }
+        } catch (error) {
+            console.error("Network error:", error);
+            // Afficher un message d'erreur
+        }
     };
     return (
         <div
-            className="bg-discord-bg-login min-h-screen 
+            className="bg-discord-light-black min-h-screen 
 		w-full flex items-center justify-center"
         >
-            <div className="flex bg-discord-light-grey p-8 rounded-l">
+            <div className="flex bg-discord-dark-grey p-8 rounded-l">
                 <form onSubmit={handleSubmit}>
                     <div className="text-white text-2xl font-bold">Welcome back!</div>
                     <div className="mb-4 text-greyple">
@@ -32,12 +66,13 @@ export const Login = () => {
                             className="text-left block mb-2 text-sm font-bold
 							    text-white"
                         >
-                            EMAIL OR PHONE NUMBER{" "}
+                            USERNAME
                             <span className="text-discord-red">*</span>
                         </label>
+
                         <input
                             type="text"
-                            id="email"
+                            id="username"
                             required
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
@@ -81,7 +116,7 @@ export const Login = () => {
                     </button>
                     <div className="flex text-sm text-greyple items-center mt-2">
                         Need an account?
-                        <a href="#" className="text-sm hover:underline">
+                        <a href="/create-account" className="text-sm hover:underline">
                             <span className="text-discord-blue-link"> Register</span>
                         </a>
                     </div>
