@@ -46,8 +46,7 @@ export const Register = () => {
                     lastname: "",
                 }),
             });
-            console.log(JSON.stringify({ username, password }));
-            console.log(response, "response");
+            // console.log(JSON.stringify({ username, password }));
             if (response.ok) {
                 const data = await response.text();
                 console.log("Login successful:", data);
@@ -62,7 +61,6 @@ export const Register = () => {
                 // Afficher un message d'erreur
             }
         } catch (error) {
-            console.log("response", response);
             console.error("Network error:", error);
             // Afficher un message d'erreur
         }

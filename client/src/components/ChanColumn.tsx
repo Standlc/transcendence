@@ -1,4 +1,10 @@
-export const ChanColumn = () => {
+import { LoginResponse } from "./RequireAuth/AuthProvider";
+
+interface Props {
+    loginResponse: LoginResponse | null;
+}
+
+export const ChanColumn: React.FC<Props> = ({ loginResponse }) => {
     return (
         <div className="bg-not-quite-black chan-column">
             <div
@@ -32,10 +38,9 @@ export const ChanColumn = () => {
                 <span className="bloc text-right">+</span>
             </div>
             <div className="bg-almost-black text-m bloc user-chancolumn">
-                <span className="avatar bg-greyple">IMG </span>
-                <span> </span>
+                <span className="avatar bg-greyple"> {loginResponse?.avatarUrl} </span>
+                <span> {loginResponse?.username} </span>
                 <span className="text-greyple bloc text-left">
-                    {" "}
                     <br></br> en ligne
                 </span>
             </div>

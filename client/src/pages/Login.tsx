@@ -2,11 +2,13 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 // import qrcode from './../../public/qrcode.png';
 import qrcode from "./qrcode.png";
+import { useAuth } from "../components/RequireAuth/AuthProvider";
 
 export const Login = () => {
     const navigate = useNavigate();
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const { login } = useAuth();
 
     // const handleSubmit = async (event) => {
     //     event.preventDefault();
@@ -32,21 +34,16 @@ export const Login = () => {
             console.log(JSON.stringify({ username, password }));
 
             if (response.ok) {
-                const data = await response.text();
+                const data = await response.json();
                 console.log("Login successful:", data);
-                console.log("response", response);
-                // Stocker le token d'authentification si nécessaire, par exemple dans localStorage
-                // localStorage.setItem('token', data.token);
-
+                login(data);
+                console.log("LOGIN", login);
                 navigate("/home"); // Rediriger vers la route home ou dashboard
             } else {
-                // Gérer les erreurs, par exemple en montrant un message à l'utilisateur
                 console.error("Login failed:", response.status);
-                // Afficher un message d'erreur
             }
         } catch (error) {
             console.error("Network error:", error);
-            // Afficher un message d'erreur
         }
     };
     return (
