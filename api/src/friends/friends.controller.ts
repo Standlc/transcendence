@@ -1,67 +1,64 @@
-import { Controller, Get, Post, Body, Param, Delete, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Param, Delete, UseGuards, Request, Query } from '@nestjs/common';
 import { FriendsService } from './friends.service';
-import { CreateFriendDto } from './dto/create-friend.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
-import { Selectable } from 'kysely';
-import { Friend, FriendRequest } from 'src/types/schema';
-import { ApiBody, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiTags, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
+import { ApiCookieAuth, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiQuery, ApiTags, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
+import { ListUsers } from 'src/types/clientSchema';
 
 @ApiTags('friends')
+@UseGuards(JwtAuthGuard)
+@ApiCookieAuth()
+@ApiInternalServerErrorResponse({ description: "Whenever the backend fail in some point, probably an error with the db." })
 @Controller('friends')
 export class FriendsController {
   constructor(private readonly friendsService: FriendsService) {}
 
   //#region <-- Request -->
+
+  //#region AddFriend
   @ApiCreatedResponse({
-    description: "Friend request sent, or added",
+    description: "Friend request sent, but this endpoint will return 'Friend added' if you tried to request someone who already request you",
     schema: {
       type: 'string',
-      examples: {
-        sent: {
-          value: 'Request sent',
-          summary: "Friend request was succesfuly sent"
-        },
-        added: {
-          value: "Friend added",
-          summary: "Request someone who also sent you a request, you are now friend"
-        }
-      }
+      enum: ['Request sent', 'Friend added'],
+      example: 'Request sent',
     }
   })
   @ApiUnprocessableEntityResponse({
-    description: "This status is return if you request as friend yourself or a friend."
+    description: "This status is return if you request someone who is already your friend or yourself."
   })
-  @ApiInternalServerErrorResponse({
-    description: "Whenever the backend fail in some point, probably an error with the db."
+  @ApiNotFoundResponse({
+    description: "Tried to send a request to a user who doesn't exist."
   })
-  @ApiBody({
-    type: CreateFriendDto,
+  @ApiQuery({
+    name: 'userId',
+    required: true,
     description: "The user id of who you wish to send a friend request."
   })
-  @UseGuards(JwtAuthGuard)
   @Post('request')
-  async addFriend(@Request() req, @Body() createFriendDto: CreateFriendDto): Promise<string> {
+  async addFriend(@Request() req, @Query('userId') userId: number): Promise<string> {
     try {
       // ? Before creating a friend request, we check if we didn't have a friend request from the target.
-      return await this.friendsService.acceptRequest(createFriendDto.targetId, req.user.id);
+      return await this.friendsService.acceptRequest(userId, req.user.id);
     } catch(NotFoundException) {
       // ? As we didn't have a friendRequest, we can now create a request.
-      return await this.friendsService.requestAFriend(req.user.id, createFriendDto.targetId);
+      return await this.friendsService.requestAFriend(req.user.id, userId);
     }
   }
+  //#endregion
 
+  //#region GetAllFriendRequest
   @ApiOkResponse({
-    description: "An array of every friend request.",
+    description: "An array of every user who request sent you a request.",
     schema: {
       type: 'object',
       properties: {
-        createdAt: {
+        avatarUrl: {
           type: 'string'
         },
-        friendId: {
-          type: 'integer'
+        username: {
+          type: 'string'
         },
-        userId: {
+        id: {
           type: 'integer'
         }
       }
@@ -69,14 +66,15 @@ export class FriendsController {
     isArray: true
   })
   @ApiNotFoundResponse({
-    description: "No request found."
+    description: "No request was found."
   })
-  @UseGuards(JwtAuthGuard)
   @Get('request')
-  async findAllRequest(@Request() req): Promise<Selectable<FriendRequest>[]> {
+  async findAllRequest(@Request() req): Promise<ListUsers[]> {
     return await this.friendsService.findAllRequest(req.user.id);
   }
+  //#endregion
 
+  //#region AcceptARequest
   @ApiCreatedResponse({
     description: "Request succesfuly accepted.",
     schema: {
@@ -87,22 +85,20 @@ export class FriendsController {
   @ApiNotFoundResponse({
     description: "You tried to accept a request that doesn't exist."
   })
-  @ApiInternalServerErrorResponse({
-    description: "Whenever the backend fail in some point, probably an error with the db."
-  })
-  @ApiParam({
+  @ApiQuery({
     name: 'id',
     required: true,
-    description: "The user id of who issue the friend request."
+    description: "The user id of who issue the friend request you wish to accept."
   })
-  @UseGuards(JwtAuthGuard)
-  @Post('request/:id')
-  async acceptRequest(@Request() req, @Param('id') id: number): Promise<string> {
+  @Post('accept')
+  async acceptRequest(@Request() req, @Query('id') id: number): Promise<string> {
     return await this.friendsService.acceptRequest(id, req.user.id);
   }
+  //#endregion
 
+  //#region DeleteARequest
   @ApiOkResponse({
-    description: "Request was succesfuly removed.",
+    description: "Request was succesfuly denied.",
     schema: {
       type: 'string',
       example: 'Request denied'
@@ -111,36 +107,34 @@ export class FriendsController {
   @ApiNotFoundResponse({
     description: "You tried to denied a request that doesn't exist."
   })
-  @ApiInternalServerErrorResponse({
-    description: "Whenever the backend fail in some point, probably an error with the db."
-  })
-  @ApiParam({
+  @ApiQuery({
     name: 'id',
     required: true,
-    description: "The user id of who issue the friend request."
+    description: "The user id of who issue the friend request you wish to deny."
   })
-  @UseGuards(JwtAuthGuard)
-  @Delete('request/:id')
-  async deleteRequest(@Request() req, @Param('id') id: number): Promise<string> {
+  @Delete('deny')
+  async deleteRequest(@Request() req, @Query('id') id: number): Promise<string> {
     return await this.friendsService.removeRequest(id, req.user.id);
   }
+  //#endregion
 
   //#endregion
 
   //#region <-- Friends -->
 
+  //#region GetAllFriend
   @ApiOkResponse({
     description: "Return an array of friend object",
     schema: {
       type: 'object',
       properties: {
-        createAt: {
+        username: {
           type: 'string'
         },
-        friendId: {
-          type: 'integer'
+        avatarUrl: {
+          type: 'string'
         },
-        userId: {
+        id: {
           type: 'integer'
         }
       }
@@ -148,14 +142,22 @@ export class FriendsController {
     isArray: true
   })
   @ApiNotFoundResponse({
-    description: "No friend found."
+    description: "No friend was found."
   })
-  @UseGuards(JwtAuthGuard)
+  @ApiQuery({
+    name: 'userId',
+    required: false,
+    description: "The user id of who you want to get a friend list, if not specified, the friend list of yourself is returned. "
+  })
   @Get()
-  async findAllFriends(@Request() req): Promise<Selectable<Friend>[]> {
+  async findAllFriends(@Request() req, @Query('userId') userId: number): Promise<ListUsers[]> {
+    if (userId)
+      return await this.friendsService.findAllFriends(userId);
     return await this.friendsService.findAllFriends(req.user.id);
   }
+  //#endregion
 
+  //#region Remove a Friend
   @ApiOkResponse({
     description: "Succesfuly remove id from friend list.",
     schema: {
@@ -163,19 +165,19 @@ export class FriendsController {
       example: "Friend deleted"
     }
   })
-  @ApiNotFoundResponse({
-    description: "You are not friend with this id"
+  @ApiUnprocessableEntityResponse({
+    description: "You are not friend with this user"
   })
   @ApiParam({
     name: 'id',
     required: true,
     description: "The user id of the friend you wish to remove."
   })
-  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   async remove(@Request() req, @Param('id') id: number): Promise<string> {
     return await this.friendsService.remove(req.user.id, id);
   }
+  //#endregion
 
   //#endregion
 }

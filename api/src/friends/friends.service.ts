@@ -1,7 +1,7 @@
 import { Injectable, InternalServerErrorException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { db } from 'src/database';
-import { Friend, FriendRequest } from 'src/types/schema';
-import { Selectable } from 'kysely';
+import { DeleteResult } from 'kysely';
+import { ListUsers } from 'src/types/clientSchema';
 
 @Injectable()
 export class FriendsService {
@@ -20,21 +20,31 @@ export class FriendsService {
   async acceptRequest(sourceId: number, targetId: number): Promise<string> {
     // ? Check if a friendRequest exist with sourceId and targetId, if no
     // ? request found, throwing NotFoundException.
-    const request = await db
-    .selectFrom('friendRequest')
-    .selectAll()
-    .where(({ eb, and}) => and([
-      eb('sourceId', '=', sourceId),
-      eb('targetId', '=', targetId)
-    ]))
-    .executeTakeFirst();
+    let request : {
+      createdAt: Date;
+      sourceId: number;
+      targetId: number;
+    } | undefined;
+    try {
+      request = await db
+      .selectFrom('friendRequest')
+      .selectAll()
+      .where(({ eb, and}) => and([
+        eb('sourceId', '=', sourceId),
+        eb('targetId', '=', targetId)
+      ]))
+      .executeTakeFirst();
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
     if (!request) {
       console.log('Tried to accept an inexistant friend request.');
       throw new NotFoundException();
     }
 
+    // ? Create the new friendship in the database and deleting the request.
     try {
-      // ? Add new friendship to the database.
       await db
       .insertInto('friend')
       .values([
@@ -49,16 +59,14 @@ export class FriendsService {
       ])
       .executeTakeFirstOrThrow();
 
-      // ? After adding the new friendship, we delete the friend request.
       await db
       .deleteFrom('friendRequest')
       .where(({ eb, and}) => and([
         eb('sourceId', '=', sourceId),
         eb('targetId', '=', targetId)
       ]))
-      .execute();
+      .executeTakeFirstOrThrow();
 
-      console.log(targetId, ' accept friend request from ', sourceId);
       return 'Friend added';
     } catch (error) {
       console.log(error);
@@ -66,21 +74,35 @@ export class FriendsService {
     }
   }
 
-
   /**
    * Create a new friend request from sourceId to targetId
    * @param sourceId user who issue the request
    * @param targetId user who will receive the request
    * @returns 'Request sent' if the request is create, otherwise an exception is
    * throw.
-   * @throws UnprocessableEntity, InternalServerError
+   * @throws UnprocessableEntity, InternalServerError, NotFound
    */
   async requestAFriend(sourceId: number, targetId: number): Promise<string> {
     // ? User can't be friend with itself.
     if (sourceId == targetId) {
-      console.log("Tried to request itself as friend.");
+      console.log(sourceId, "Tried to request itself as friend.");
       throw new UnprocessableEntityException(targetId, "You can't be friend with yourself.");
     }
+
+    // ? Check if target exist
+    let targetUser: { id:number } | undefined;
+    try {
+      targetUser = await db
+      .selectFrom('user')
+      .select('id')
+      .where('id', '=', targetId)
+      .executeTakeFirst();
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
+    if (!targetUser)
+      throw new NotFoundException();
 
     // ? Check if both user arent already friend, exit function if they were
     // ? already friend.
@@ -90,8 +112,8 @@ export class FriendsService {
       throw new UnprocessableEntityException(targetId, "You are already friend with this user.");
     }
 
+    // ? Create a new request from sourceId to targetId
     try {
-      // ? Insert a new request from sourceId to targetId.
       await db
       .insertInto('friendRequest')
       .values(
@@ -100,7 +122,7 @@ export class FriendsService {
           targetId: targetId,
         }
       )
-      .executeTakeFirstOrThrow();
+      .executeTakeFirst();
 
       console.log(sourceId, " sent a friend request to ", targetId);
       return "Request sent";
@@ -113,37 +135,61 @@ export class FriendsService {
   /**
    * Find all friend request of targetId
    * @param targetId
-   * @returns Array of request
-   * @throws NotFound
+   * @returns Array of Users who sent a request to targetId
+   * @throws NotFound, InternalServerException
    */
-  async findAllRequest(targetId: number): Promise<Selectable<FriendRequest>[]> {
-    const result: Selectable<FriendRequest>[] = await db
-    .selectFrom('friendRequest')
-    .selectAll()
-    .where('targetId', '=', targetId)
-    .execute();
+  async findAllRequest(targetId: number): Promise<ListUsers[]> {
+    let requestsId: { sourceId: number}[];
+    try {
+      requestsId = await db
+      .selectFrom('friendRequest')
+      .select('sourceId')
+      .where('targetId', '=', targetId)
+      .execute();
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
 
-    if (!result)
+    if (!requestsId || requestsId.length === 0)
       throw new NotFoundException();
-    return result;
+
+    let arrayRequestId: number[] = [];
+    requestsId.forEach(requestId => {
+      arrayRequestId.push(requestId.sourceId);
+    });
+
+    let requestUsers: ListUsers[];
+    try {
+      requestUsers = await db
+      .selectFrom('user')
+      .select(['id', 'username', 'avatarUrl'])
+      .where('id', 'in', arrayRequestId)
+      .execute()
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
+    return (requestUsers);
   }
 
   /**
    * Delete a friend request from requestUserId.
    * @param requestUserId
    * @param userId
-   * @returns "Friend removed" if the friend was remove, otherwise an exception is thrown.
+   * @returns "Request denied" if the request was remove, otherwise an exception
+   * is thrown.
    * @throws NotFound, InternalServerError
    */
   async removeRequest(requestUserId: number, userId: number): Promise<string> {
     try {
-      const result = await db
+      const result: DeleteResult = await db
       .deleteFrom('friendRequest')
       .where(({ eb, and }) => and([
           eb('sourceId', '=', requestUserId),
           eb('targetId', '=', userId)
         ]))
-      .executeTakeFirstOrThrow();
+      .executeTakeFirst();
 
       if (result.numDeletedRows == 0n) {
         console.log("Tried to remove an inexistant request.")
@@ -164,18 +210,43 @@ export class FriendsService {
    * Get every friend of user id, if no friend throw NotFoundException.
    * @param id User id of who we'll get friend list.
    * @returns An array of Friend
-   * @throws NotFound
+   * @throws NotFound, InternalServerError
    */
-  async findAllFriends(id: number): Promise<Selectable<Friend>[]> {
-    const result = await db
-    .selectFrom('friend')
-    .selectAll()
-    .where('userId', '=', id)
-    .execute();
+  async findAllFriends(id: number): Promise<ListUsers[]> {
+    let friendsId: {friendId: number}[];
+    try {
+      friendsId = await db
+      .selectFrom('friend')
+      .select('friendId')
+      .orderBy('createdAt asc')
+      .groupBy(['friendId', 'createdAt'])
+      .where('userId', '=', id)
+      .execute();
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
 
-    if (!result)
+    if (!friendsId || friendsId && friendsId.length === 0)
       throw new NotFoundException();
-    return result;
+
+    let arrayFriendsId: number[] = [];
+    friendsId.forEach(friendsId => {
+      arrayFriendsId.push(friendsId.friendId);
+    });
+
+    let friendList: ListUsers[];
+    try {
+      friendList = await db
+      .selectFrom('user')
+      .select(['avatarUrl', 'id', 'username'])
+      .where('id', 'in', arrayFriendsId)
+      .execute();
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
+    return friendList;
   }
 
   /**
@@ -184,25 +255,32 @@ export class FriendsService {
    * @param friendId User id of the friend to delete form selfId
    * @returns 'Friend deleted' if the friend is deleted, otherwise an exception
    * is thrown.
-   * @throws NotFound
+   * @throws UnprocessableEntity, InternalServerError
    */
   async remove(selfId: number, friendId: number): Promise<string> {
-    const result = await db
-    .deleteFrom('friend')
-    .where(({ eb, or, and }) => or([
-      and([
-        eb('userId', '=', selfId),
-        eb('friendId', '=', friendId),
-      ]),
-      and([
-        eb('friendId', '=', selfId),
-        eb('userId', '=', friendId),
-      ])
-    ]))
-    .execute();
+    let result: DeleteResult[];
+    try {
+      result = await db
+      .deleteFrom('friend')
+      .where(({ eb, or, and }) => or([
+        and([
+          eb('userId', '=', selfId),
+          eb('friendId', '=', friendId),
+        ]),
+        and([
+          eb('friendId', '=', selfId),
+          eb('userId', '=', friendId),
+        ])
+      ]))
+      .execute();
+
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
 
     if (!result || result && result[0].numDeletedRows <= 0n)
-      throw new NotFoundException(friendId, "Friend not found, you are not friend with this id.");
+      throw new UnprocessableEntityException(friendId, "You are not friend with this user");
     return 'Friend deleted';
   }
 
@@ -211,15 +289,24 @@ export class FriendsService {
   //#region <-- Friend Utils -->
 
   async isFriend(selfId: number, friendId: number): Promise<boolean> {
-    const result = await db
-    .selectFrom('friend')
-    .selectAll()
-    .where(({ eb, and}) => and([
-      eb('userId', '=', selfId),
-      eb('friendId', '=', friendId)
-    ]))
-    .executeTakeFirst()
-
+    let result: {
+      createdAt: Date;
+      friendId: number;
+      userId: number;
+    } | undefined;
+    try {
+      result = await db
+      .selectFrom('friend')
+      .selectAll()
+      .where(({ eb, and}) => and([
+        eb('userId', '=', selfId),
+        eb('friendId', '=', friendId)
+      ]))
+      .executeTakeFirst()
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
     if (result)
       return true;
     return false;
