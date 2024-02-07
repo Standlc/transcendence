@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Delete, UseGuards, Request, Query } from '@nestjs/common';
+import { Controller, Get, Post, Param, Delete, UseGuards, Request, Query, NotFoundException } from '@nestjs/common';
 import { FriendsService } from './friends.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { ApiCookieAuth, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiQuery, ApiTags, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
@@ -24,7 +24,7 @@ export class FriendsController {
     }
   })
   @ApiUnprocessableEntityResponse({
-    description: "This status is return if you request someone who is already your friend or yourself."
+    description: "This status is return if you request someone who is already your friend, yourself or you already sent a request."
   })
   @ApiNotFoundResponse({
     description: "Tried to send a request to a user who doesn't exist."
@@ -39,9 +39,12 @@ export class FriendsController {
     try {
       // ? Before creating a friend request, we check if we didn't have a friend request from the target.
       return await this.friendsService.acceptRequest(userId, req.user.id);
-    } catch(NotFoundException) {
+    } catch(error) {
       // ? As we didn't have a friendRequest, we can now create a request.
-      return await this.friendsService.requestAFriend(req.user.id, userId);
+      if (error instanceof NotFoundException)
+        return await this.friendsService.requestAFriend(req.user.id, userId);
+      else
+        throw error;
     }
   }
   //#endregion

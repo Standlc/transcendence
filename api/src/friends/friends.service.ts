@@ -112,6 +112,29 @@ export class FriendsService {
       throw new UnprocessableEntityException(targetId, "You are already friend with this user.");
     }
 
+    // ? Check if you didn't already sent a request
+    let alreadySent: {
+      createdAt: Date;
+      sourceId: number;
+      targetId: number;
+  } | undefined
+  ;
+    try {
+      alreadySent = await db
+      .selectFrom('friendRequest')
+      .selectAll()
+      .where(({eb, and}) => and([
+        eb('sourceId', '=', sourceId),
+        eb('targetId', '=', targetId)
+      ]))
+      .executeTakeFirst();
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
+    if (alreadySent)
+      throw new UnprocessableEntityException(targetId, "You already sent a request to this user");
+
     // ? Create a new request from sourceId to targetId
     try {
       await db
