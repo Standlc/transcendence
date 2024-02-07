@@ -30,19 +30,19 @@ export class FriendsController {
     description: "Tried to send a request to a user who doesn't exist."
   })
   @ApiQuery({
-    name: 'userId',
+    name: 'id',
     required: true,
     description: "The user id of who you wish to send a friend request."
   })
   @Post('request')
-  async addFriend(@Request() req, @Query('userId') userId: number): Promise<string> {
+  async addFriend(@Request() req, @Query('id') id: number): Promise<string> {
     try {
       // ? Before creating a friend request, we check if we didn't have a friend request from the target.
-      return await this.friendsService.acceptRequest(userId, req.user.id);
+      return await this.friendsService.acceptRequest(id, req.user.id);
     } catch(error) {
       // ? As we didn't have a friendRequest, we can now create a request.
       if (error instanceof NotFoundException)
-        return await this.friendsService.requestAFriend(req.user.id, userId);
+        return await this.friendsService.requestAFriend(req.user.id, id);
       else
         throw error;
     }
@@ -148,14 +148,14 @@ export class FriendsController {
     description: "No friend was found."
   })
   @ApiQuery({
-    name: 'userId',
+    name: 'id',
     required: false,
     description: "The user id of who you want to get a friend list, if not specified, the friend list of yourself is returned. "
   })
   @Get()
-  async findAllFriends(@Request() req, @Query('userId') userId: number): Promise<ListUsers[]> {
-    if (userId)
-      return await this.friendsService.findAllFriends(userId);
+  async findAllFriends(@Request() req, @Query('id') id: number): Promise<ListUsers[]> {
+    if (id)
+      return await this.friendsService.findAllFriends(id);
     return await this.friendsService.findAllFriends(req.user.id);
   }
   //#endregion
@@ -171,13 +171,13 @@ export class FriendsController {
   @ApiUnprocessableEntityResponse({
     description: "You are not friend with this user"
   })
-  @ApiParam({
+  @ApiQuery({
     name: 'id',
     required: true,
     description: "The user id of the friend you wish to remove."
   })
-  @Delete(':id')
-  async remove(@Request() req, @Param('id') id: number): Promise<string> {
+  @Delete()
+  async remove(@Request() req, @Query('id') id: number): Promise<string> {
     return await this.friendsService.remove(req.user.id, id);
   }
   //#endregion

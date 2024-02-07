@@ -205,8 +205,9 @@ export class FriendsService {
    * @throws NotFound, InternalServerError
    */
   async removeRequest(requestUserId: number, userId: number): Promise<string> {
+    let result: DeleteResult;
     try {
-      const result: DeleteResult = await db
+      result = await db
       .deleteFrom('friendRequest')
       .where(({ eb, and }) => and([
           eb('sourceId', '=', requestUserId),
@@ -214,15 +215,16 @@ export class FriendsService {
         ]))
       .executeTakeFirst();
 
-      if (result.numDeletedRows == 0n) {
-        console.log("Tried to remove an inexistant request.")
-        throw new NotFoundException(requestUserId, "Request not found");
-      }
-      return "Request denied";
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException();
     }
+
+    if (!result || result.numDeletedRows == 0n) {
+      console.log("Tried to remove an inexistant request.")
+      throw new NotFoundException(requestUserId, "Request not found");
+    }
+    return "Request denied";
   }
 
   //#endregion
