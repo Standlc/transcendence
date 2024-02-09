@@ -2,7 +2,6 @@ import { Injectable } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { Request } from "express";
 import { Strategy } from "passport-jwt";
-import { AppUser } from "src/types/clientSchema";
 import { UsersService } from "src/users/users.service";
 
 @Injectable()

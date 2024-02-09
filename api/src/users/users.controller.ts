@@ -10,8 +10,6 @@ import { AppUser, ListUsers } from 'src/types/clientSchema';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  //#region <-- Post request -->
-
   /**
    * ? Create a new user in the database.
    * @param body
@@ -22,10 +20,6 @@ export class UsersController {
   async createUser(@Body() body: CreateUsersDto): Promise<string> {
     return await this.usersService.createUser(body);
   }
-
-  //#endregion
-
-  //#region <-- Get request -->
 
   /**
    * ? Return a subset of user(s) data, matching the name substring.
@@ -76,5 +70,4 @@ export class UsersController {
     return await this.usersService.getUserList();
   }
 
-  //#endregion
 }
