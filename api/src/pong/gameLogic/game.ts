@@ -9,24 +9,18 @@ import {
 } from '../../types/games/pongGameTypes';
 import { bottom, isToTheLeft, isToTheRight, rightSide } from './collisions';
 import { Game } from 'src/types/schema';
+import { BALL_SIZE, CANVAS_H, CANVAS_W, PADDLE_H, PADDLE_VELOCITY_Y, createGamePositions } from './gamePositions';
 
-export const CANVAS_H = 600;
-export const CANVAS_W = 800;
-export const BALL_SIZE = 20;
-export const PADDLE_H = 80;
-export const PADDLE_W = 10;
-export const BALL_VELOCITY_X = 20;
-export const BALL_VELOCITY_Y = 20;
-export const BALL_VELOCITY_X_FIRST_THROW = 20;
-export const BALL_VELOCITY_Y_FIRST_THROW = 20;
-export const PADDLE_VELOCITY_Y = 30;
-export const PADDLE_VELOCITY_POWER_UP = 45;
-export const PADDLE_WALL_OFFSET = 20;
-export const FPP = 20;
+export const BALL_VELOCITY_X = 30;
+export const BALL_VELOCITY_Y = 29;
+export const BALL_VELOCITY_X_FIRST_THROW = 30;
+export const BALL_VELOCITY_Y_FIRST_THROW = 29;
+export const PADDLE_VELOCITY_POWER_UP = 50;
+export const FPP = 15;
 export const POWER_UP_TIMEOUT = 4000;
 export const DISCONNECTION_PAUSE_TIMEOUT = 1000;
 export const LIVE_STATS_INTERVAL = 5000;
-export const DISCONNECTION_END_GAME_TIMEMOUT = 3;
+export const DISCONNECTION_END_GAME_TIMEMOUT = 5;
 export const THROW_BALL_TIMEMOUT = 1000;
 
 export async function startGameInterval(
@@ -34,9 +28,9 @@ export async function startGameInterval(
   gameEndHandler: (isGameEnd: boolean) => void,
   scoreHandler: (player: PlayerType) => void,
 ) {
-  if (game.hasPowerUps) {
-    placeNewPowerUp(game);
-  }
+  // if (game.hasPowerUps) {
+  //   placeNewPowerUp(game);
+  // }
   setTimeout(() => {
     throwBall(game);
   }, THROW_BALL_TIMEMOUT);
@@ -331,50 +325,5 @@ export function initialize(game: Selectable<Game>): GameType {
       playerOneId: game.playerOneId,
       playerTwoId: game.playerTwoId,
     }),
-  };
-}
-
-export interface CreateGamePositionsPropsType {
-  playerOneId?: number;
-  playerTwoId?: number;
-}
-
-export function createGamePositions({
-  playerOneId,
-  playerTwoId,
-}: CreateGamePositionsPropsType) {
-  return {
-    ball: {
-      h: BALL_SIZE,
-      w: BALL_SIZE,
-      vX: 0,
-      vY: 0,
-      x: CANVAS_W / 2 - BALL_SIZE / 2,
-      y: CANVAS_H / 2 - BALL_SIZE / 2,
-    },
-    playerOne: {
-      w: PADDLE_W,
-      h: PADDLE_H,
-      vY: 0,
-      vX: 0,
-      x: PADDLE_WALL_OFFSET,
-      y: CANVAS_H / 2 - PADDLE_H / 2,
-      speed: PADDLE_VELOCITY_Y,
-      id: playerOneId ?? 0,
-      score: 0,
-      isConnected: true,
-    },
-    playerTwo: {
-      w: PADDLE_W,
-      h: PADDLE_H,
-      vY: 0,
-      vX: 0,
-      x: CANVAS_W - PADDLE_WALL_OFFSET - PADDLE_W,
-      y: CANVAS_H / 2 - PADDLE_H / 2,
-      speed: PADDLE_VELOCITY_Y,
-      id: playerTwoId ?? 0,
-      score: 0,
-      isConnected: true,
-    },
   };
 }

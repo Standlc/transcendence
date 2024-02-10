@@ -13,8 +13,8 @@ import {
   WsPlayerDisconnection,
 } from "../../../api/src/types/games/socketPayloadTypes";
 import { GameStateType } from "../../../api/src/types/games/pongGameTypes";
-import { UserContext } from "../contextsProviders/UserContext";
-import { GameSocketContext } from "../contextsProviders/GameSocketContext";
+import { UserContext } from "../ContextsProviders/UserContext";
+import { GameSocketContext } from "../ContextsProviders/GameSocketContext";
 import GameLayout from "../components/GameLayout";
 import { useGamePreferences } from "../utils/useGamePreferences";
 import { Avatar } from "../UIKit/Avatar";
@@ -25,8 +25,8 @@ import ModalLayout from "../components/ModalLayout";
 import { Spinner } from "../UIKit/Kit";
 import GameCanvas from "../components/GameCanvas";
 import { GameFinishedCard } from "../components/GameFinishedCard";
-import { createGamePositions } from "../../../api/src/pong/gameLogic/game";
 import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
+import { createGamePositions } from "../../../api/src/pong/gameLogic/gamePositions";
 
 export default function GamePage() {
   const { gameId } = useParams();

@@ -55,7 +55,6 @@ const getPlayer = (
 };
 
 @WebSocketGateway(5050, {
-  // namespace: 'games',
   cors: {
     origin: '*',
   },

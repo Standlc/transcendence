@@ -3,7 +3,7 @@ import { Avatar } from "../UIKit/Avatar";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { LeaderbordPlayer } from "../../../api/src/types/games/games";
-import { GameSocketContext } from "../contextsProviders/GameSocketContext";
+import { GameSocketContext } from "../ContextsProviders/GameSocketContext";
 import {
   Tuple,
   WsLeaderboardPlayerUpdate,

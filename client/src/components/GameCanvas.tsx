@@ -1,7 +1,7 @@
 import { memo, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { CRYSTAL, POWER_UP_COLORS } from "../utils/game/sprites";
-import { UserContext } from "../contextsProviders/UserContext";
-import { GameSocketContext } from "../contextsProviders/GameSocketContext";
+import { UserContext } from "../ContextsProviders/UserContext";
+import { GameSocketContext } from "../ContextsProviders/GameSocketContext";
 import {
   GameStateType,
   ObjectType,
@@ -9,7 +9,7 @@ import {
 } from "../../../api/src/types/games/pongGameTypes";
 import { WsPlayerMove } from "../../../api/src/types/games/socketPayloadTypes";
 
-const SERVER_FPP = 20;
+const SERVER_FPP = 15;
 const VELOCITY_RATIO = 1;
 
 const MOVE_MAP: Record<string, "up" | "down"> = {
@@ -85,7 +85,7 @@ const GameCanvas = memo(({ game, gameId, isPaused }: props) => {
     ctx.translate(0, 10);
     ctx.beginPath();
     ctx.setLineDash([20, 20]);
-    ctx.lineWidth = 10;
+    ctx.lineWidth = 8;
     ctx.moveTo(posX, 0);
     ctx.lineTo(posX, 600);
     ctx.stroke();

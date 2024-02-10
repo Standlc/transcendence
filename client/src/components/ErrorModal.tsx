@@ -1,6 +1,6 @@
 import { useContext } from "react";
 import ModalLayout from "./ModalLayout";
-import { ErrorContext } from "../contextsProviders/ErrorContext";
+import { ErrorContext } from "../ContextsProviders/ErrorContext";
 
 export const ErrorModal = () => {
   const { error, setError } = useContext(ErrorContext);

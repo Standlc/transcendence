@@ -1,6 +1,6 @@
 import { memo, useContext, useMemo } from "react";
 import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
-import { UserContext } from "../contextsProviders/UserContext";
+import { UserContext } from "../ContextsProviders/UserContext";
 import { GamePreferencesType } from "../types/game";
 import { GAME_STYLES } from "../utils/game/gameBackgrounds";
 import { GameStateType } from "../../../api/src/types/games/pongGameTypes";
@@ -28,7 +28,7 @@ export default function GameLayout({
           backgroundColor: GAME_STYLES[preferences.style].bg,
           flexDirection: reverse ? "row-reverse" : "unset",
         }}
-        className="self-center max-h-full relative bg-opacity-100 border-[5px] border-[rgba(255,255,255,0.1)] rounded-3xl max-w-[700px]"
+        className="self-center max-h-full relative bg-opacity-100 border-[8px] border-[rgba(255,255,255,0.1)] rounded-3xl max-w-[700px] shadow-[0_8px_0_rgb(25,25,25)]"
       >
         <GameScores
           playerOneScore={game.playerOne.score}
@@ -57,9 +57,8 @@ export default function GameLayout({
 const TableLegs = memo(() => {
   return (
     <div className="relative bottom-0 w-full h-[60px] flex justify-center items-center -z-10">
-      <div className="bg-[rgb(30,30,30)] h-[30px] w-full absolute top-0 left-0 rounded-bl-3xl rounded-br-3xl -translate-y-[20px]"></div>
       <div className="bg-[rgb(20,20,20)] h-full w-[15px]"></div>
-      <div className="bg-[rgb(20,20,20)] h-[10px] w-[70%]"></div>
+      <div className="bg-[rgb(20,20,20)] h-[8px] w-[75%]"></div>
       <div className="bg-[rgb(20,20,20)] h-full w-[15px]"></div>
     </div>
   );

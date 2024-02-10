@@ -9,7 +9,7 @@ import PrivateLayout from "./components/PrivateLayout";
 import PublicLayout from "./components/PublicLayout";
 import PlayPage from "./pages/PlayPage";
 import GamePage from "./pages/GamePage";
-import { AppUser } from "./contextsProviders/UserContext";
+import { AppUser } from "./ContextsProviders/UserContext";
 import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
@@ -73,6 +73,7 @@ function App() {
                 element={<PublicLayout />}
                 errorElement={<div>\(o_o)/</div>}
               >
+                {/* ALL OF THE BELOW IS TO BE REPLACED */}
                 <Route
                   index
                   element={

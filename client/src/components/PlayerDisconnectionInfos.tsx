@@ -1,7 +1,7 @@
 import { useContext, useMemo } from "react";
 import { Avatar } from "../UIKit/Avatar";
 import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
-import { UserContext } from "../contextsProviders/UserContext";
+import { UserContext } from "../ContextsProviders/UserContext";
 import { AppGame } from "../../../api/src/types/games/returnTypes";
 import { WsPlayerDisconnection } from "../../../api/src/types/games/socketPayloadTypes";
 

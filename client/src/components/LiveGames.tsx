@@ -1,5 +1,5 @@
 import { useContext, useEffect } from "react";
-import { GameSocketContext } from "../contextsProviders/GameSocketContext";
+import { GameSocketContext } from "../ContextsProviders/GameSocketContext";
 import { AppGame } from "../../../api/src/types/games/returnTypes";
 import { Avatar } from "../UIKit/Avatar";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";

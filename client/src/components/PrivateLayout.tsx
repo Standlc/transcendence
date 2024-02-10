@@ -1,18 +1,12 @@
 import { Outlet } from "react-router-dom";
-import { AppUser, UserContext } from "../contextsProviders/UserContext";
+import { AppUser, UserContext } from "../ContextsProviders/UserContext";
 import { useEffect, useState } from "react";
-import { GameSocketContext } from "../contextsProviders/GameSocketContext";
+import { GameSocketContext } from "../ContextsProviders/GameSocketContext";
 import { Socket, io } from "socket.io-client";
-import { ErrorContext, ErrorType } from "../contextsProviders/ErrorContext";
+import { ErrorContext, ErrorType } from "../ContextsProviders/ErrorContext";
 import { ErrorModal } from "./ErrorModal";
 
-export default function PrivateLayout({
-  user,
-}: // setUser,
-{
-  user: AppUser;
-  // setUser: React.Dispatch<React.SetStateAction<AppUser | undefined>>;
-}) {
+export default function PrivateLayout({ user }: { user: AppUser }) {
   const [gameSocket, setGameSocket] = useState<Socket>();
   const [error, setError] = useState<ErrorType | undefined>();
 

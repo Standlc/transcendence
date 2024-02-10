@@ -2,12 +2,12 @@ import { ArrowDropDownRounded, ArrowDropUpRounded } from "@mui/icons-material";
 import { GamePreferencesType, GameStylesType } from "../types/game";
 import { PublicGameRequestDto } from "../../../api/src/types/games/gameRequestsDto";
 import { useContext, useEffect, useState } from "react";
-import { GameSocketContext } from "../contextsProviders/GameSocketContext";
+import { GameSocketContext } from "../ContextsProviders/GameSocketContext";
 import { GAME_STYLES } from "../utils/game/gameBackgrounds";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { WsError } from "../../../api/src/types/games/socketPayloadTypes";
-import { ErrorContext } from "../contextsProviders/ErrorContext";
+import { ErrorContext } from "../ContextsProviders/ErrorContext";
 
 export default function GamePreferences({
   preferences,

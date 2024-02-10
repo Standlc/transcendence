@@ -1,6 +1,6 @@
 import { useContext, useMemo } from "react";
-import { GameStateType } from "../../../../api/src/types/game";
-import { UserContext } from "../../contextsProviders/UserContext";
+import { UserContext } from "../../ContextsProviders/UserContext";
+import { GameStateType } from "../../../../api/src/types/games/pongGameTypes";
 
 export const getGamePlayers = (
   game: GameStateType | undefined,

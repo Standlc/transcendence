@@ -1,6 +1,6 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { GameSocketContext } from "../contextsProviders/GameSocketContext";
+import { GameSocketContext } from "../ContextsProviders/GameSocketContext";
 import ModalLayout from "../components/ModalLayout";
 import GameLayout from "../components/GameLayout";
 import GamePreferences from "../components/GamePreferences";
@@ -9,9 +9,9 @@ import Leaderboard from "../components/Leaderboard";
 import { useGamePreferences } from "../utils/useGamePreferences";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
-import { createGamePositions } from "../../../api/src/pong/gameLogic/game";
 import GameCanvas from "../components/GameCanvas";
 import { ArrowLink } from "../UIKit/ArrowLink";
+import { createGamePositions } from "../../../api/src/pong/gameLogic/gamePositions";
 
 export default function PlayPage() {
   const socket = useContext(GameSocketContext);
