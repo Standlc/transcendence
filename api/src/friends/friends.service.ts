@@ -186,7 +186,7 @@ export class FriendsService {
     try {
       requestUsers = await db
       .selectFrom('user')
-      .select(['id', 'username', 'avatarUrl'])
+      .select(['id', 'username', 'avatarUrl', 'rating'])
       .where('id', 'in', arrayRequestId)
       .execute()
     } catch (error) {
@@ -264,7 +264,7 @@ export class FriendsService {
     try {
       friendList = await db
       .selectFrom('user')
-      .select(['avatarUrl', 'id', 'username'])
+      .select(['avatarUrl', 'id', 'username', 'rating'])
       .where('id', 'in', arrayFriendsId)
       .execute();
     } catch (error) {

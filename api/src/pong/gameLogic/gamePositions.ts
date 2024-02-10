@@ -3,7 +3,7 @@ export const CANVAS_W = 800;
 export const BALL_SIZE = 20;
 export const PADDLE_H = 80;
 export const PADDLE_W = 10;
-export const PADDLE_VELOCITY_Y = 40;
+export const PADDLE_VELOCITY_Y = 50;
 export const PADDLE_WALL_OFFSET = 20;
 
 export function createGamePositions({
