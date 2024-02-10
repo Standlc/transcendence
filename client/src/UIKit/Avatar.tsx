@@ -1,37 +1,55 @@
-import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import { Person } from "@mui/icons-material";
+import { Avatar as AvatarIcon } from "@mui/material";
+
+const COLORS = [
+  "#309d51",
+  "#5765f2",
+  "#FEE75C",
+  "#ED4245",
+  "#ebcc0e",
+  "#23272A",
+  "#bb397f",
+];
 
 const avatarSizes = {
   xs: 18,
   sm: 30,
   md: 40,
   lg: 55,
-  xl: 100,
+  xl: 80,
   "2xl": 160,
 };
 
 export const Avatar = ({
   imgUrl,
   size,
+  userId,
 }: {
   imgUrl: string | null | undefined;
   size: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
+  userId: number;
 }) => {
   const dimension = avatarSizes[size];
+
+  const avatarColor = () => {
+    return COLORS[userId % COLORS.length];
+  };
 
   return (
     <div
       style={{
+        backgroundColor: avatarColor(),
         height: `${dimension}px`,
         minHeight: `${dimension}px`,
         width: `${dimension}px`,
         minWidth: `${dimension}px`,
       }}
-      className="group-[avatar]-hover:border-border_p group-[avatar]-hover:shadow-[0_0_0_5px_rgba(255,255,255,0.1)] group-[avatar]-active:scale-[92%] flex select-none items-center justify-center overflow-hidden rounded-lg border border-border_s bg-white bg-opacity-[5%] [transition:border_0.2s,box-shadow_0.2s,transform_0.2s]"
+      className="flex select-none items-center justify-center overflow-hidden rounded-md"
     >
       {imgUrl ? (
-        <img src={imgUrl} className="h-full w-full rounded-lg object-cover" />
+        <img src={imgUrl} className="h-full w-full rounded-md object-cover" />
       ) : (
-        <AccountCircleIcon sx={{ fontSize: `${dimension + 7}px` }} />
+        <Person sx={{ fontSize: `${dimension * 0.9}px` }} />
       )}
     </div>
   );

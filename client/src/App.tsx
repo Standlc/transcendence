@@ -1,60 +1,55 @@
-import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
-import { useEffect, useState } from "react";
-import "./App.css";
-import axios from "axios";
-import { DateTime } from "luxon";
+import { useState } from "react";
 import {
   Route,
   RouterProvider,
   createBrowserRouter,
   createRoutesFromElements,
 } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import PrivateLayout from "./components/PrivateLayout";
 import PublicLayout from "./components/PublicLayout";
-import PongGame from "./pages/PongGame";
-import { AppUser } from "../../api/src/types/clientSchema";
-
-const getUser = async () => {
-  const res = await axios.get<any>("/api");
-  return res.data;
-};
+import PlayPage from "./pages/PlayPage";
+import GamePage from "./pages/GamePage";
+import { AppUser } from "./ContextsProviders/UserContext";
+import axios from "axios";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { LeaderboardPage } from "./pages/LeaderboardPage";
+import { LiveGamesPage } from "./pages/LiveGamesPage";
 
 function App() {
-  const [user, setUser] = useState<any | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(true);
-  const [now, setNow] = useState("");
-
-  useEffect(() => {
-    const testApi = async () => {
-      const res: { data: string } = await axios.get("/api");
-      console.log(res.data);
-      setNow(DateTime.fromISO(res.data).toFormat("HH':' mm: ss"));
-      // const res = await axios.post<AppUser>("/api/auth/login", {
-      //   username: "john",
-      //   password: "123",
-      // });
-      // console.log(res.data);
-    };
-    testApi();
-  }, []);
-
-  const { isPending, data } = useQuery({
-    queryKey: ["user"],
-    retry: false,
-    refetchOnWindowFocus: false,
-    queryFn: getUser,
+  const queryClient = useQueryClient();
+  const [credentials, setCredentials] = useState({
+    username: "",
+    password: "",
   });
 
-  useEffect(() => {
-    if (data) {
-      setUser(data);
-    }
-    setIsLoading(isPending);
-  }, [data, isPending]);
+  const getUser = useQuery({
+    queryKey: ["user"],
+    retry: false,
+    queryFn: async () => {
+      const res = await axios.get<AppUser>("/api/auth/login");
+      return res.data;
+    },
+  });
 
-  if (isLoading) {
-    return "Loading...";
+  const logUser = useMutation({
+    mutationKey: ["logUser", credentials],
+    mutationFn: async () => {
+      const res = await axios.post<AppUser>("/api/auth/login", {
+        username: credentials.username,
+        password: credentials.password,
+      });
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["user"], data);
+    },
+    onError: () => {
+      // -> handle login error
+    },
+  });
+
+  if (getUser.isLoading) {
+    return null;
   }
 
   return (
@@ -62,25 +57,59 @@ function App() {
       router={createBrowserRouter(
         createRoutesFromElements(
           <>
-            <Route element={<PrivateLayout />}>
+            {getUser.data ? (
               <Route
-                element={
-                  <>
-                    <RocketLaunchIcon />
-                    <h2 className="font-extrabold">Current time is: {now}</h2>
-                  </>
-                }
-                index={true}
-              />
-              <Route path="/play" element={<PongGame />} />
-            </Route>
-
-            <Route element={<PublicLayout />}>
+                element={<PrivateLayout user={getUser.data} />}
+                errorElement={<div>\(o_o)/</div>}
+              >
+                <Route index element={<div>home</div>}></Route>
+                <Route path="/play" element={<PlayPage />} />
+                <Route path="/play/:gameId" element={<GamePage />} />
+                <Route path="/leaderboard" element={<LeaderboardPage />} />
+                <Route path="/live" element={<LiveGamesPage />} />
+              </Route>
+            ) : (
               <Route
-                element={<h2 className="font-extrabold">{now}</h2>}
-                index
-              />
-            </Route>
+                element={<PublicLayout />}
+                errorElement={<div>\(o_o)/</div>}
+              >
+                {/* ALL OF THE BELOW IS TO BE REPLACED */}
+                <Route
+                  index
+                  element={
+                    <div className="text-black">
+                      {logUser.isPending && <span>Loading...</span>}
+                      {logUser.isError && <span>{logUser.error.message}</span>}
+                      <input
+                        placeholder="username"
+                        value={credentials.username}
+                        onChange={(e) =>
+                          setCredentials({
+                            ...credentials,
+                            username: e.target.value,
+                          })
+                        }
+                      />
+                      <br />
+                      <br />
+                      <input
+                        placeholder="password"
+                        value={credentials.password}
+                        onChange={(e) =>
+                          setCredentials({
+                            ...credentials,
+                            password: e.target.value,
+                          })
+                        }
+                      />
+                      <br />
+                      <br />
+                      <button onClick={() => logUser.mutate()}>LOGIN</button>
+                    </div>
+                  }
+                />
+              </Route>
+            )}
           </>
         )
       )}

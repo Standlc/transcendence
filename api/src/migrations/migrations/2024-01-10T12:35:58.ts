@@ -21,4 +21,9 @@ export async function down(db: Kysely<any>): Promise<void> {
     .dropColumn('lastname')
     .dropColumn('email')
     .execute();
+
+  await db.schema
+    .alterTable('game')
+    .dropColumn('isPublic')
+    .execute();
 }

@@ -10,6 +10,12 @@ export default defineConfig({
     proxy: {
       "/api": process.env.REACT_APP_API_HOST,
       "/public": process.env.REACT_APP_API_HOST,
+      "/socket.io/": {
+        target: process.env.GAME_SOCKET_SERVER_HOST,
+        ws: true,
+        // changeOrigin: true,
+        // rewrite: (path) => path.replace(/^\/socket.io/, ""),
+      },
     },
   },
   plugins: [react()],

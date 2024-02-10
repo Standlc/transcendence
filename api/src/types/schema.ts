@@ -71,11 +71,13 @@ export interface FriendRequest {
 export interface Game {
   createdAt: Generated<Timestamp>;
   id: Generated<number>;
-  isPublic: Generated<boolean>;
-  player1_id: number | null;
-  player1_score: number | null;
-  player2_id: number | null;
-  player2_score: number | null;
+  isPublic: boolean;
+  playerOneId: number;
+  playerOneScore: Generated<number>;
+  playerTwoId: number;
+  playerTwoScore: Generated<number>;
+  points: number;
+  powerUps: boolean;
   winnerId: number | null;
 }
 
@@ -94,6 +96,9 @@ export interface PrivateGameRequest {
 
 export interface PublicGameRequest {
   createdAt: Generated<Timestamp>;
+  points: number;
+  powerUps: boolean;
+  targetId: number | null;
   userId: number;
 }
 
@@ -106,6 +111,7 @@ export interface User {
   id: Generated<number>;
   lastname: string | null;
   password: string;
+  rating: Generated<number>;
   username: string;
 }
 
