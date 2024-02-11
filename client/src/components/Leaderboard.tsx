@@ -97,12 +97,12 @@ export default function Leaderboard({ limit }: { limit?: number }) {
           <thead className="">
             <tr className="opacity-100">
               <th className="text-left max-w-0"></th>
-              <th className="text-left px-5 py-3 max-w-0 pr-0">Rank</th>
-              <th className="text-left px-5 py-3">Player</th>
-              <th className="px-5 py-3 text-center">Rating</th>
+              <th className="text-left px-5 pb-3 max-w-0 pr-0">Rank</th>
+              <th className="text-left px-5 pb-3">Player</th>
+              <th className="px-5 pb-3 text-center">Rating</th>
               <th className="text-left w-full"></th>
-              <th className="px-5 py-3 text-center">Wins</th>
-              <th className="px-5 py-3 text-center">Losses</th>
+              <th className="px-5 pb-3 text-center">Wins</th>
+              <th className="px-5 pb-3 text-center">Losses</th>
             </tr>
           </thead>
 

@@ -9,13 +9,14 @@ import {
 } from '../../types/games/pongGameTypes';
 import { bottom, isToTheLeft, isToTheRight, rightSide } from './collisions';
 import { Game } from 'src/types/schema';
-import { BALL_SIZE, CANVAS_H, CANVAS_W, PADDLE_H, PADDLE_VELOCITY_Y, createGamePositions } from './gamePositions';
+import { BALL_SIZE, CANVAS_H, CANVAS_W, PADDLE_BIG_HEIGHT, PADDLE_H, PADDLE_VELOCITY_Y, POWER_UP_SIZE, createGamePositions } from './gamePositions';
 
-export const BALL_VELOCITY_X = 30;
-export const BALL_VELOCITY_Y = 29;
+export const BALL_VELOCITY_X = 60;
+export const BALL_VELOCITY_Y = 40;
 export const BALL_VELOCITY_X_FIRST_THROW = 30;
-export const BALL_VELOCITY_Y_FIRST_THROW = 29;
-export const PADDLE_VELOCITY_POWER_UP = 50;
+export const BALL_VELOCITY_Y_FIRST_THROW = 30;
+
+export const PADDLE_VELOCITY_POWER_UP = 70;
 export const FPP = 15;
 export const POWER_UP_TIMEOUT = 4000;
 export const DISCONNECTION_PAUSE_TIMEOUT = 1000;
@@ -28,9 +29,10 @@ export async function startGameInterval(
   gameEndHandler: (isGameEnd: boolean) => void,
   scoreHandler: (player: PlayerType) => void,
 ) {
-  // if (game.hasPowerUps) {
-  //   placeNewPowerUp(game);
-  // }
+  if (game.hasPowerUps) {
+    placeNewPowerUp(game);
+  }
+
   setTimeout(() => {
     throwBall(game);
   }, THROW_BALL_TIMEMOUT);
@@ -61,8 +63,8 @@ export async function startGameInterval(
 function placeNewPowerUp(gameSate: GameType) {
   const randomPowerUp = (Math.floor(Math.random() * 3) + 1) as any;
   gameSate.game.powerUp = {
-    h: 40,
-    w: 40,
+    h: POWER_UP_SIZE,
+    w: POWER_UP_SIZE,
     vX: 0,
     vY: 0,
     x: CANVAS_W / 4 + (Math.random() * CANVAS_W) / 2,
@@ -116,21 +118,21 @@ function updateNextFrameGameState(game: GameType) {
   movePaddle(game.game.playerTwo);
   moveObject(game.game.ball);
   bounceBall(game);
-  // if (checkPowerUpCollision(game)) {
-  //   handleHitPowerUp(game);
-  // }
+  if (checkPowerUpCollision(game)) {
+    handleHitPowerUp(game);
+  }
 }
 
 function checkPowerUpCollision(gameState: GameType) {
-  if (!gameState.lastPlayerToHitTheBall || !gameState.game.powerUp) return;
+  if (!gameState.lastPlayerToHitTheBall || !gameState.game.powerUp) return false;
 
   const { ball, powerUp } = gameState.game;
   if (ball.x + ball.w < powerUp.x || ball.x > powerUp.x + powerUp.w) {
     return false;
   }
-  if (ball.y + ball.h < powerUp.y || ball.y > powerUp.y + powerUp.h) {
-    return false;
-  }
+  // if (ball.y + ball.h < powerUp.y || ball.y > powerUp.y + powerUp.h) {
+  //   return false;
+  // }
   return true;
 }
 
@@ -151,21 +153,25 @@ function handleHitPowerUp(gameState: GameType) {
 
 function enablePowerUp(game: GameStateType, player: PlayerType) {
   player.powerUp = game.powerUp?.type;
-  if (player.powerUp === POWER_UPS.BIGGER_PADDLE) {
-    player.h = 200;
-    player.y -= 50;
-  } else if (player.powerUp === POWER_UPS.SPEED) {
-    player.vY = PADDLE_VELOCITY_POWER_UP;
-  }
+  // if (player.powerUp === POWER_UPS.BIGGER_PADDLE) {
+  player.h = PADDLE_BIG_HEIGHT;
+  player.y -= (PADDLE_BIG_HEIGHT - PADDLE_H) / 2;
+  // } else if (player.powerUp === POWER_UPS.SPEED) {
+  //   player.vY = PADDLE_VELOCITY_POWER_UP;
+  // } else {
+
+  // }
 }
 
 function disablePowerUp(game: GameStateType, player: PlayerType) {
-  if (player.powerUp === POWER_UPS.BIGGER_PADDLE) {
-    player.h = PADDLE_H;
-    player.y += 50;
-  } else if (player.powerUp === POWER_UPS.SPEED) {
-    player.vY = PADDLE_VELOCITY_Y;
-  }
+  // if (player.powerUp === POWER_UPS.BIGGER_PADDLE) {
+  player.h = PADDLE_H;
+  player.y += 50;
+  // } else if (player.powerUp === POWER_UPS.SPEED) {
+  //   player.vY = PADDLE_VELOCITY_Y;
+  // } else {
+
+  // }
   player.powerUp = undefined;
 }
 
@@ -193,69 +199,82 @@ function bounceBallVertically(game: GameType) {
   const { ball } = game.game;
 
   if (ball.y <= 0) {
-    const ballOneFrameAgo = getPosOneFrameAgo(ball);
-    const time = ballOneFrameAgo.y / ball.vY;
-    ball.y = 0;
-    ball.x = ballOneFrameAgo.x + ball.vX * time * -1;
+    // const ballOneFrameAgo = getPosOneFrameAgo(ball);
+    // const time = ballOneFrameAgo.y / ball.vY;
+    // ball.y = 0;
+    // ball.x = ballOneFrameAgo.x + ball.vX * time * -1;
+    ball.y = -ball.y * 2;
     ball.vY *= -1;
   } else if (ball.y + ball.h >= CANVAS_H) {
-    const ballOneFrameAgo = getPosOneFrameAgo(ball);
-    const time = (CANVAS_H - (ballOneFrameAgo.y + ball.h)) / ball.vY;
-    ball.y = CANVAS_H - ball.h;
-    ball.x = ballOneFrameAgo.x + ball.vX * time;
+    // const ballOneFrameAgo = getPosOneFrameAgo(ball);
+    // const time = (CANVAS_H - (ballOneFrameAgo.y + ball.h)) / ball.vY;
+    // ball.y = CANVAS_H - ball.h;
+    // ball.x = ballOneFrameAgo.x + ball.vX * time;
+    ball.y -= (ball.y + ball.h - CANVAS_H) * 2;
     ball.vY *= -1;
   }
 }
 
 function bounceBallPaddle(game: GameType) {
   const { ball } = game.game;
+  let hasHitAPaddle = false;
 
   if (ball.vX < 0) {
-    bounceBallLeftPaddle(game);
+    hasHitAPaddle = bounceBallLeftPaddle(game);
   } else if (ball.vX > 0) {
-    bounceBallRightPaddle(game);
+    hasHitAPaddle = bounceBallRightPaddle(game);
+  }
+
+  if (hasHitAPaddle) {
+    ball.vY = ((Math.random() * 2) - 1) * BALL_VELOCITY_Y;
   }
 }
 
-function bounceBallLeftPaddle(game: GameType) {
+function bounceBallLeftPaddle(game: GameType): boolean {
   const { ball, playerOne } = game.game;
   const ballOneFrameAgo = getPosOneFrameAgo(ball);
 
   if (isToTheRight(ball, playerOne) || isToTheLeft(ballOneFrameAgo, playerOne))
-    return;
+    return false;
 
   if (isToTheRight(ballOneFrameAgo, playerOne)) {
     const time = (ballOneFrameAgo.x - (playerOne.x + playerOne.w)) / ball.vX;
     const intersect = ballOneFrameAgo.y + ball.vY * time * -1;
     if (intersect > bottom(playerOne) || intersect < playerOne.y - ball.h) {
-      return;
+      return false;
     }
     ball.x = playerOne.x + playerOne.w;
     ball.y = intersect;
-    ball.vX *= -1;
-    return;
+    ball.vX = BALL_VELOCITY_X;
+
+    game.lastPlayerToHitTheBall = PLAYER_SIDES.LEFT;
+    return true;
   }
+  return false;
   // bounceBallOfPaddleVertically(ball, ballOneFrameAgo, playerOne);
 }
 
-function bounceBallRightPaddle(game: GameType) {
+function bounceBallRightPaddle(game: GameType): boolean {
   const { ball, playerTwo } = game.game;
   const ballOneFrameAgo = getPosOneFrameAgo(ball);
 
   if (isToTheLeft(ball, playerTwo) || isToTheRight(ballOneFrameAgo, playerTwo))
-    return;
+    return false;
 
   if (isToTheLeft(ballOneFrameAgo, playerTwo)) {
     const time = (playerTwo.x - (ballOneFrameAgo.x + ball.w)) / ball.vX;
     const intersect = ballOneFrameAgo.y + ball.vY * time;
     if (intersect > bottom(playerTwo) || intersect < playerTwo.y - ball.h) {
-      return;
+      return false;
     }
     ball.x = playerTwo.x - ball.w;
     ball.y = intersect;
-    ball.vX *= -1;
-    return;
+    ball.vX = -BALL_VELOCITY_X;
+
+    game.lastPlayerToHitTheBall = PLAYER_SIDES.RIGHT;
+    return true;
   }
+  return false;
   // bounceBallOfPaddleVertically(ball, ballOneFrameAgo, playerTwo);
 }
 

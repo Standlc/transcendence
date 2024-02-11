@@ -15,15 +15,15 @@ import {
 import { GameStateType } from "../../../api/src/types/games/pongGameTypes";
 import { UserContext } from "../ContextsProviders/UserContext";
 import { GameSocketContext } from "../ContextsProviders/GameSocketContext";
-import GameLayout from "../components/GameLayout";
+import GameLayout from "../components/gameComponents/GameLayout";
 import { useGamePreferences } from "../utils/useGamePreferences";
 import { Avatar } from "../UIKit/Avatar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { AppGame } from "../../../api/src/types/games/returnTypes";
-import ModalLayout from "../components/ModalLayout";
+import ModalLayout from "../UIKit/ModalLayout";
 import { Spinner } from "../UIKit/Kit";
-import GameCanvas from "../components/GameCanvas";
+import GameCanvas from "../components/gameComponents/GameCanvas";
 import { GameFinishedCard } from "../components/GameFinishedCard";
 import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
 import { createGamePositions } from "../../../api/src/pong/gameLogic/gamePositions";
@@ -92,11 +92,11 @@ export default function GamePage() {
     socket.on("pause", handlePause);
     socket.on("startCountdown", handleGameStartCoutdown);
     return () => {
+      socket.emit("leaveGame", { gameId: gameIdNumber });
       socket.off("updateGameState", handleGameUpadte);
       socket.off("gameEnd", handleGameEnd);
       socket.off("playerDisconnection", handleOpponentDisconnection);
       socket.off("pause", handlePause);
-      socket.emit("leaveGame", { gameId: gameIdNumber });
     };
   }, [socket, gameIdNumber]);
 
@@ -186,12 +186,7 @@ function PlayersInfos({ gameRecord }: { gameRecord: AppGame | undefined }) {
     >
       {gameRecord ? (
         <>
-          <div
-            // style={{
-            //   flexDirection: reverse ? "row-reverse" : "unset",
-            // }}
-            className="py-2 px-2 bg-zinc-900 rounded-lg flex items-end gap-2 shadow-card [flex-direction:inherit]"
-          >
+          <div className="rounded-lg flex items-end gap-3 [flex-direction:inherit]">
             <div>
               <Avatar
                 size="md"
@@ -210,11 +205,11 @@ function PlayersInfos({ gameRecord }: { gameRecord: AppGame | undefined }) {
             </div>
           </div>
 
-          <div className="absolute justify-self-center self-center left-[50%] top-[50%] -translate-y-[50%] -translate-x-[50%]">
+          {/* <div className="absolute justify-self-center self-center left-[50%] top-[50%] -translate-y-[50%] -translate-x-[50%]">
             <span className="font-gameFont text-2xl uppercase">VS</span>
-          </div>
+          </div> */}
 
-          <div className="py-2 px-2 bg-zinc-900 rounded-lg flex items-end gap-2 shadow-card [flex-direction:inherit]">
+          <div className="rounded-lg flex items-end gap-3 [flex-direction:inherit]">
             <div className="flex items-center flex-wrap-reverse gap-x-2 justify-end [flex-direction:inherit]">
               <div className="text-xs font-title text-indigo-400 font-bold rounded-md px-2 py-[2px] bg-indigo-600 bg-opacity-10">
                 {gameRecord.playerTwo?.rating ?? "unkown"}

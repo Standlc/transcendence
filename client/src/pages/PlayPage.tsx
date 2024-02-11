@@ -1,17 +1,18 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GameSocketContext } from "../ContextsProviders/GameSocketContext";
-import ModalLayout from "../components/ModalLayout";
-import GameLayout from "../components/GameLayout";
+import GameLayout from "../components/gameComponents/GameLayout";
 import GamePreferences from "../components/GamePreferences";
 import LiveGames from "../components/LiveGames";
 import Leaderboard from "../components/Leaderboard";
 import { useGamePreferences } from "../utils/useGamePreferences";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
-import GameCanvas from "../components/GameCanvas";
+import GameCanvas from "../components/gameComponents/GameCanvas";
 import { ArrowLink } from "../UIKit/ArrowLink";
 import { createGamePositions } from "../../../api/src/pong/gameLogic/gamePositions";
+import { PlayArrowRounded, SettingsRounded } from "@mui/icons-material";
+import { PublicGameRequestDto } from "../../../api/src/types/games/gameRequestsDto";
 
 export default function PlayPage() {
   const socket = useContext(GameSocketContext);
@@ -42,6 +43,19 @@ export default function PlayPage() {
       socket.off("gameStart", handleGameStart);
     };
   }, [socket]);
+
+  const findGame = useMutation({
+    mutationKey: ["findMatch", preferences],
+    mutationFn: async () => {
+      setIsSearchingGame(true);
+      const payload: PublicGameRequestDto = {
+        points: preferences.points,
+        powerUps: preferences.powerUps,
+      };
+      const res = await axios.post<any>("/api/game-requests", payload);
+      return res.data;
+    },
+  });
 
   const inviteFriendToPlay = () => {
     if (privateGameUserId === "") {
@@ -75,24 +89,39 @@ export default function PlayPage() {
   return (
     <div className="flex justify-center min-h-[100vh] p-5 gap-10 w-[100vw]">
       <div className="flex flex-col min-h-[100vh] p-5 gap-10 max-w-[1100px]">
-        <ModalLayout isVisible={isSearchingGame}>
-          <SearchingGameInfos cancel={() => cancelGameRequest.mutate()} />
-        </ModalLayout>
-
         <h1 className="text-4xl font-[900]">🕹️ Games</h1>
 
-        <div className="flex gap-5 flex-wrap">
-          <div className="flex-[3] min-w-[200px]">
-            <GameLayout game={game} preferences={preferences}>
-              <GameCanvas game={game} isPaused={true} />
-            </GameLayout>
-          </div>
-          <div className="flex-[2] min-w-[200px]">
-            <GamePreferences
+        <div className="relative flex gap-5 flex-wrap flex-col items-center">
+          <div className="flex-[3] min-w-[200px] relative overflow-hidden rounded-2xl">
+            {/* <GamePreferences
               preferences={preferences}
               setPreferences={setPreferences}
               setIsSearchingGame={setIsSearchingGame}
-            />
+            /> */}
+            <GameLayout game={game} preferences={preferences}>
+              <button className="absolute animate-slow-spin top-3 right-3 p-1 flex before:absolute before:top-0 before:left-0 before:content-[''] before:h-[100%] before:w-[100%] before:rounded-full before:bg-white before:opacity-20">
+                <SettingsRounded />
+              </button>
+
+              <button
+                onClick={() => findGame.mutate()}
+                className="absolute flex flex-col items-center justify-center gap-1 mt-0 hover:-translate-y-[1px] active:translate-y-0 py-4 px-7 rounded-full bg-indigo-600 font-[900] text-2xl shadow-button"
+              >
+                <div className="flex gap-3 items-center">
+                  {!isSearchingGame && (
+                    <PlayArrowRounded style={{ margin: -5, fontSize: 30 }} />
+                  )}
+                  <span>{!isSearchingGame ? "Play" : "Finding a game"}</span>
+                </div>
+                {isSearchingGame && (
+                  <div className="h-[3px] w-[100%] overflow-hidden flex justify-center">
+                    <div className="h-full w-[70%] animate-move-left-right bg-white opacity-50"></div>
+                  </div>
+                )}
+              </button>
+
+              <GameCanvas game={game} isPaused={true} />
+            </GameLayout>
           </div>
         </div>
 
@@ -112,28 +141,5 @@ export default function PlayPage() {
         </div>
       </div>
     </div>
-  );
-}
-
-function SearchingGameInfos({ cancel }: { cancel: () => void }) {
-  return (
-    <>
-      <div className="flex flex-col gap-5 items-center p-5">
-        <div className="flex flex-col gap-3 items-center">
-          <div className="flex items-center gap-3">
-            <span className="font-[900] text-3xl">Buckle up!</span>
-          </div>
-          <span className="opacity-70">Looking for a game...</span>
-        </div>
-      </div>
-      <div className="flex justify-end w-full bg-bg-2 px-5 py-3">
-        <button
-          onClick={cancel}
-          className="hover:text-red-600 font-[600] text-base"
-        >
-          Cancel
-        </button>
-      </div>
-    </>
   );
 }

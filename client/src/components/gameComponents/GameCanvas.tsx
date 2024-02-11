@@ -1,13 +1,17 @@
 import { memo, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { CRYSTAL, POWER_UP_COLORS } from "../utils/game/sprites";
-import { UserContext } from "../ContextsProviders/UserContext";
-import { GameSocketContext } from "../ContextsProviders/GameSocketContext";
+import { UserContext } from "../../ContextsProviders/UserContext";
+import { GameSocketContext } from "../../ContextsProviders/GameSocketContext";
 import {
   GameStateType,
   ObjectType,
-  PowerUpType,
-} from "../../../api/src/types/games/pongGameTypes";
-import { WsPlayerMove } from "../../../api/src/types/games/socketPayloadTypes";
+} from "../../../../api/src/types/games/pongGameTypes";
+import { WsPlayerMove } from "../../../../api/src/types/games/socketPayloadTypes";
+import {
+  CANVAS_H,
+  CANVAS_W,
+} from "../../../../api/src/pong/gameLogic/gamePositions";
+import { SoundEffects } from "./GameSoundEffects";
+import { PowerUp } from "./PowerUp";
 
 const SERVER_FPP = 15;
 const VELOCITY_RATIO = 1;
@@ -42,54 +46,31 @@ const GameCanvas = memo(({ game, gameId, isPaused }: props) => {
     ctx.fillRect(obj.x, obj.y, obj.w, obj.h);
   };
 
-  const drawPowerUp = (ctx: CanvasRenderingContext2D, obj: PowerUpType) => {
-    const pixelSize = obj.h / CRYSTAL.length;
-
-    for (let y = 0; y < CRYSTAL.length; y++) {
-      for (let x = 0; x < CRYSTAL[y].length; x++) {
-        ctx.fillStyle = POWER_UP_COLORS[obj.type][CRYSTAL[y][x]];
-        ctx.fillRect(
-          obj.x + x * pixelSize,
-          obj.y + y * pixelSize,
-          pixelSize,
-          pixelSize
-        );
-      }
-    }
-  };
-
   const drawGame = (
     canvas: HTMLCanvasElement,
     ctx: CanvasRenderingContext2D,
     game: GameStateType
   ) => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = "rgba(255,255,255,0.3)";
-    drawMiddleSeparation(ctx, game);
+    drawMiddleSeparation(ctx);
     ctx.fillStyle = "white";
-    // drawSprite(ctx, game.ball, BASKETBALL, BASKETBALL_COLORS);
     drawRect(ctx, game.ball, "white");
     drawRect(ctx, game.playerOne, "white");
     drawRect(ctx, game.playerTwo, "white");
-    if (game.powerUp) {
-      drawPowerUp(ctx, game.powerUp);
-    }
   };
 
-  const drawMiddleSeparation = (
-    ctx: CanvasRenderingContext2D,
-    game: GameStateType
-  ) => {
-    const posX = 800 / 2;
+  const drawMiddleSeparation = (ctx: CanvasRenderingContext2D) => {
+    const posX = CANVAS_W / 2;
 
-    ctx.translate(0, 10);
+    ctx.strokeStyle = "rgba(255,255,255,0.25)";
+    ctx.translate(0, 17);
     ctx.beginPath();
-    ctx.setLineDash([20, 20]);
+    ctx.setLineDash([34, 34]);
     ctx.lineWidth = 8;
     ctx.moveTo(posX, 0);
-    ctx.lineTo(posX, 600);
+    ctx.lineTo(posX, CANVAS_H);
     ctx.stroke();
-    ctx.translate(0, -10);
+    ctx.translate(0, -17);
   };
 
   const movePaddle = (paddle: ObjectType, deltaTime: number) => {
@@ -98,45 +79,22 @@ const GameCanvas = memo(({ game, gameId, isPaused }: props) => {
 
     if (newPosY <= 0) {
       paddle.y = 0;
-    } else if (newPosY + paddle.h > 600) {
-      paddle.y = 600 - paddle.h;
+    } else if (newPosY + paddle.h > CANVAS_H) {
+      paddle.y = CANVAS_H - paddle.h;
     } else {
       paddle.y = newPosY;
     }
   };
 
-  const getPosOneFrameAgo = (
-    obj: ObjectType,
-    deltaTime: number
-  ): ObjectType => {
-    return {
-      ...obj,
-      x: obj.x - obj.vX * SERVER_FPP * deltaTime,
-      y: obj.y - obj.vY * SERVER_FPP * deltaTime,
-    };
-  };
-
-  const bounceBallVertically = (game: GameStateType, deltaTime: number) => {
-    const { ball } = game;
-
+  function bounceBallVertically(ball: ObjectType) {
     if (ball.y <= 0) {
-      const ballOneFrameAgo = getPosOneFrameAgo(ball, deltaTime);
-      const time = ballOneFrameAgo.y / ball.vY;
-      ball.y = 0;
-      ball.x = ballOneFrameAgo.x + ball.vX * time * -1;
+      ball.y = -ball.y * 2;
       ball.vY *= -1;
-      return true;
-    } else if (ball.y + ball.h >= 600) {
-      const ballOneFrameAgo = getPosOneFrameAgo(ball, deltaTime);
-      const time = (600 - (ballOneFrameAgo.y + ball.h)) / ball.vY;
-      ball.y = 600 - ball.h;
-      ball.x = ballOneFrameAgo.x + ball.vX * time;
-      console.log("ball.x", ball.x);
+    } else if (ball.y + ball.h >= CANVAS_H) {
+      ball.y -= (ball.y + ball.h - CANVAS_H) * 2;
       ball.vY *= -1;
-      return true;
     }
-    return false;
-  };
+  }
 
   const moveObject = (object: ObjectType, deltaTime: number) => {
     object.x += object.vX * SERVER_FPP * deltaTime * VELOCITY_RATIO;
@@ -160,7 +118,7 @@ const GameCanvas = memo(({ game, gameId, isPaused }: props) => {
         moveObject(ball, deltaTime);
         movePaddle(playerOne, deltaTime);
         movePaddle(playerTwo, deltaTime);
-        // bounceBallVertically(game, deltaTime);
+        bounceBallVertically(game.ball);
         drawGame(canvas, ctx, game);
         if (!isPaused) {
           draw();
@@ -207,33 +165,17 @@ const GameCanvas = memo(({ game, gameId, isPaused }: props) => {
   }, [currMove, isUserAPlayer, isPaused]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      height={600}
-      width={800}
-      className="[image-rendering:pixelated] h-full w-full"
-    />
+    <>
+      <canvas
+        ref={canvasRef}
+        height={CANVAS_H}
+        width={CANVAS_W}
+        className="[image-rendering:pixelated] h-full w-full"
+      />
+      <PowerUp powerUp={game.powerUp} />
+      <SoundEffects ballVelocityX={game.ball.vX} ballVelocityY={game.ball.vY} />
+    </>
   );
 });
 
 export default GameCanvas;
-// const drawSprite = (
-//   ctx: CanvasRenderingContext2D,
-//   obj: ObjectType,
-//   sprite: any,
-//   colorTable: any
-// ) => {
-//   const pixelSize = obj.h / sprite.length;
-
-//   for (let y = 0; y < sprite.length; y++) {
-//     for (let x = 0; x < sprite[y].length; x++) {
-//       ctx.fillStyle = colorTable[sprite[y][x]];
-//       ctx.fillRect(
-//         obj.x + x * pixelSize,
-//         obj.y + y * pixelSize,
-//         pixelSize,
-//         pixelSize
-//       );
-//     }
-//   }
-// };

@@ -1,5 +1,5 @@
 import { memo, useEffect } from "react";
-import { Spinner } from "../UIKit/Kit";
+import { Spinner } from "./Kit";
 
 const ModalLayout = memo(
   ({

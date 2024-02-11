@@ -1,4 +1,8 @@
-import { ArrowDropDownRounded, ArrowDropUpRounded } from "@mui/icons-material";
+import {
+  ArrowDropDownRounded,
+  ArrowDropUpRounded,
+  VolumeUpRounded,
+} from "@mui/icons-material";
 import { GamePreferencesType, GameStylesType } from "../types/game";
 import { PublicGameRequestDto } from "../../../api/src/types/games/gameRequestsDto";
 import { useContext, useEffect, useState } from "react";
@@ -59,14 +63,27 @@ export default function GamePreferences({
   }, [socket]);
 
   return (
-    <div className="flex flex-col gap-5 p-5 flex-1 h-min rounded-lg bg-zinc-900 shadow-card-xl">
-      <button
+    <div
+      style={
+        {
+          // backgroundColor: GAME_STYLES[preferences.style].bg,
+        }
+      }
+      className="z-[1] absolute flex items-center justify-center top-0 h-full w-full bg-zinc-900"
+    >
+      <Setting>
+        <VolumeUpRounded />
+      </Setting>
+
+      <Setting>10</Setting>
+      <Setting>🦄</Setting>
+      {/* <button
         onClick={() => findGame.mutate()}
         className="hover:-translate-y-[1px] active:translate-y-0 py-2 px-5 rounded-md bg-indigo-600 font-title font-[900] text-2xl shadow-button"
       >
         Play
-      </button>
-
+      </button> */}
+      {/* 
       <div className="font-title flex flex-col gap-3">
         <DropDownOptions title="Gameplay">
           <div
@@ -108,10 +125,18 @@ export default function GamePreferences({
             );
           })}
         </DropDownOptions>
-      </div>
+      </div> */}
     </div>
   );
 }
+
+const Setting = ({ children }: { children: any }) => {
+  return (
+    <div className="flex cursor-pointer items-center rounded-md justify-center w-[35px] h-[35px] hover:bg-indigo-600">
+      {children}
+    </div>
+  );
+};
 
 export function DropDownOptions({
   title,

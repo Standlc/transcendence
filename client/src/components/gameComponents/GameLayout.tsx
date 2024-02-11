@@ -1,9 +1,9 @@
 import { memo, useContext, useMemo } from "react";
-import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
-import { UserContext } from "../ContextsProviders/UserContext";
-import { GamePreferencesType } from "../types/game";
-import { GAME_STYLES } from "../utils/game/gameBackgrounds";
-import { GameStateType } from "../../../api/src/types/games/pongGameTypes";
+import InfiniteSlotMachine from "../../UIKit/InfiniteSlotMachine";
+import { UserContext } from "../../ContextsProviders/UserContext";
+import { GamePreferencesType } from "../../types/game";
+import { GAME_STYLES } from "../../utils/game/gameBackgrounds";
+import { GameStateType } from "../../../../api/src/types/games/pongGameTypes";
 
 export default function GameLayout({
   game,
@@ -28,7 +28,7 @@ export default function GameLayout({
           backgroundColor: GAME_STYLES[preferences.style].bg,
           flexDirection: reverse ? "row-reverse" : "unset",
         }}
-        className="self-center max-h-full relative bg-opacity-100 border-[8px] border-[rgba(255,255,255,0.1)] rounded-3xl max-w-[700px] shadow-[0_8px_0_rgb(25,25,25)]"
+        className="self-center max-h-full relative bg-opacity-100 border-[5px] border-[rgba(255,255,255,0.1)] rounded-2xl max-w-[700px] shadow-[0_8px_0_rgb(25,25,25)]"
       >
         <GameScores
           playerOneScore={game.playerOne.score}
