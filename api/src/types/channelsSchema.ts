@@ -42,6 +42,11 @@ export interface ConnectToChannel {
   userId: number;
 }
 
+export interface ConnectToDm {
+  conversationId: number;
+  userId: number;
+}
+
 export interface SocketAntiSpam extends Socket {
   requestCount?: number;
 }

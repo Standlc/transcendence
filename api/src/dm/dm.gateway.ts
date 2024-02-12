@@ -14,7 +14,11 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { DirectMessageContent, SocketAntiSpam } from 'src/types/channelsSchema';
+import {
+  ConnectToDm,
+  DirectMessageContent,
+  SocketAntiSpam,
+} from 'src/types/channelsSchema';
 import { WsAuthGuard } from 'src/auth/ws-auth.guard';
 
 @WebSocketGateway({
@@ -32,7 +36,6 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @WebSocketServer() server: Server;
 
-  // !!! TODO = need to find a way to extract userId, like the @Request in http?
   afterInit(socket: Socket) {
     socket.use((client, next) => {
       try {
@@ -80,26 +83,26 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('joinConversation')
   async joinConversation(
     @ConnectedSocket() socket: Socket,
-    @MessageBody() data: { conversationId: number; userId: number },
+    @MessageBody() payload: ConnectToDm,
   ) {
     try {
-      await this.dmService.userExists(data.userId);
+      console.log('Payload:', payload);
+      await this.dmService.userExists(payload.userId);
     } catch (error) {
       socket.disconnect();
       throw new NotFoundException('User not found');
     }
 
     try {
-      await this.dmService.conversationExists(data.conversationId);
+      await this.dmService.conversationExists(payload.conversationId);
     } catch (error) {
-      socket.disconnect();
       throw new NotFoundException('Conversation not found');
     }
 
     try {
-      socket.join(data.conversationId.toString());
+      socket.join(payload.conversationId.toString());
       console.log(
-        `User ${data.userId} joined conversation ${data.conversationId}`,
+        `User ${payload.userId} joined conversation ${payload.conversationId}`,
       );
     } catch (error) {
       socket.disconnect();
@@ -110,12 +113,12 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('leaveConversation')
   async leaveConversation(
     @ConnectedSocket() socket: Socket,
-    @MessageBody() data: { conversationId: number; userId: number },
+    @MessageBody() payload: ConnectToDm,
   ) {
     try {
-      socket.leave(data.conversationId.toString());
+      socket.leave(payload.conversationId.toString());
       console.log(
-        `User ${data.userId} left conversation ${data.conversationId}`,
+        `User ${payload.userId} left conversation ${payload.conversationId}`,
       );
     } catch (error) {
       console.error(error);
@@ -124,14 +127,36 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  @SubscribeMessage('createDirectMessage')
-  create(socket: Socket, @MessageBody() directMessage: DirectMessageContent) {
+  // !!! to test more later
+  @SubscribeMessage('quitConversation')
+  async quitChannel(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() payload: ConnectToDm,
+  ) {
     try {
-      if (socket.rooms.has(directMessage.conversationId.toString())) {
-        this.dmService.createDirectMessage(directMessage);
+      socket.leave(payload.conversationId.toString());
+      this.dmService.quitConversation(payload); // delete the user, or the conversation
+      console.log(
+        `User ${payload.userId} quit conversation ${payload.conversationId}`,
+      );
+    } catch (error) {
+      console.error(error);
+      socket.disconnect();
+      throw new UnprocessableEntityException('Unable to quit conversation');
+    }
+  }
+
+  @SubscribeMessage('createDirectMessage')
+  create(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() payload: DirectMessageContent,
+  ) {
+    try {
+      if (socket.rooms.has(payload.conversationId.toString())) {
+        this.dmService.createDirectMessage(payload);
         this.server
-          .to(directMessage.conversationId.toString())
-          .emit('createDirectMessage', directMessage);
+          .to(payload.conversationId.toString())
+          .emit('createDirectMessage', payload);
       }
     } catch (error) {
       console.error(error);

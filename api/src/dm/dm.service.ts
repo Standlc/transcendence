@@ -7,9 +7,11 @@ import {
 import { Conversation } from '../types/schema';
 import { db } from 'src/database';
 import {
+  ConnectToDm,
   DirectMessageContent,
   DmWithSenderInfo,
 } from 'src/types/channelsSchema';
+import { DeleteResult } from 'kysely';
 
 @Injectable()
 export class DmService {
@@ -272,6 +274,49 @@ export class DmService {
         .executeTakeFirstOrThrow();
     } catch (error) {
       throw new NotFoundException('Channel not found');
+    }
+  }
+
+  //
+  //
+  //
+  async quitConversation(payload: ConnectToDm) {
+    // delete user from conversation
+    let userIsDeleted: DeleteResult;
+    try {
+      userIsDeleted = await db
+        .deleteFrom('conversation')
+        .where('id', '=', payload.conversationId)
+        .where((eb) =>
+          eb.or([
+            eb('user1_id', '=', payload.userId),
+            eb('user2_id', '=', payload.userId),
+          ]),
+        )
+        .executeTakeFirst();
+
+      console.log('User is deleted from conversation:', userIsDeleted);
+    } catch (error) {
+      console.error(error);
+      throw new InternalServerErrorException();
+    }
+
+    if (userIsDeleted[0]?.numDeletedRows === 0n) {
+      try {
+        await db
+          .deleteFrom('conversation')
+          .where('id', '=', payload.conversationId)
+          .execute();
+
+        await db
+          .deleteFrom('directMessage')
+          .where('conversationId', '=', payload.conversationId)
+          .execute();
+        console.log('Conversation deleted');
+      } catch (error) {
+        console.error(error);
+        throw new InternalServerErrorException();
+      }
     }
   }
 

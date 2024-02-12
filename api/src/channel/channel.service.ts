@@ -728,17 +728,44 @@ export class ChannelService {
   */
 
 
-  // !!! need 2 PUT to change password | other things ?
-
-
   /*
-  async leaveChannelMembersAsOwner(userId: number, channelId: number) {
+  async leaveChannelAsOwner(userId: number, channelId: number) {
 
     //if only one member, delete the channel + admin + member + messages
 
     //if has other admins, set the first admin as the new owner
 
     //if there is no admins, set the first member as the new owner
+  }
+  */
+
+
+  /*
+  async leaveChannelAsAdmin(userId: number, channelId: number) {
+
+    await db
+      .deleteFrom('channelAdmin')
+      .where('channelId', '=', channelId)
+      .where('userId', '=', userId)
+      .execute();
+
+    await db
+      .deleteFrom('channelMember')
+      .where('channelId', '=', channelId)
+      .where('userId', '=', userId)
+      .execute()
+  }
+  */
+
+
+  /*
+  async leaveChannelAsMember(userId: number, channelId: number) {
+
+    await db
+      .deleteFrom('channelMember')
+      .where('channelId', '=', channelId)
+      .where('userId', '=', userId)
+      .execute()
   }
   */
 
@@ -780,6 +807,4 @@ export class ChannelService {
     throw new Error();
   }
   */
-
-
 }
