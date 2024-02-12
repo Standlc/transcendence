@@ -538,5 +538,248 @@ export class ChannelService {
     }
   }
 
-  // !!! leave channel ? new owner ?
+
+  // !!! pseudo code area
+
+
+  /*
+  async userIsAdmin(userId: number, channelId: number): Promise<channelAdmin> {
+    try {
+
+      const admin = await db
+        .selectFrom('channelAdmin')
+        .select('userId')
+        .where('userId', '=', userId)
+        .where('channelId', '=', channelId)
+        .executeTakeFirstOrThrow();
+
+      return admin;
+    } else {
+      throw new InternalServerError();
+    }
+  }
+  */
+
+
+  /*
+  async userIsOwner(userId: number, channelId: number): Promise<number> {
+    try {
+
+      const owner = await db
+        .selectFrom('channel')
+        .select('channelOwner')
+        .where('channelOwner', '=', userId)
+        .where('id', '=', channelId)
+        .executeTakeFirstOrThrow();
+
+      return userId;
+    } else {
+      throw new InternalServerError();
+    }
+  }
+  */
+
+
+  /*
+  async banUser(userId: number, userToBanId: number, channelId: number) {
+    try {
+      await userIsAdmin(userId, channelId);
+    } catch {
+      throw new Error();
+    }
+
+    if (userToBanId is in the channel and is not the owner)
+    {
+      await db
+        .insertInto('bannedUser')
+        .values(
+          bannedById: userId,
+          bannedId: userToBanId,
+          channelId: channelId,)
+        .execute();
+    }
+  }
+  */
+
+
+  /*
+  async unbanUser(userId: number, userToUnbanId: number, channelId: number)) {
+    try {
+      await userIsAdmin(userId, channelId);
+    } catch {
+      throw new Error();
+    }
+
+    if (userToUnbanId is in the channel and is not the owner) {
+      await db
+        .deleteFrom('bannedUser')
+        .where('id', '=', 'userToUnbanId')
+        .where('channelId', '=', 'channelId')
+        .execute();
+    }
+  }
+  */
+
+
+  /*
+  async muteUser(userId: number, userToMuteId: number, channelId: number, endTime: Timestamp)
+    try {
+      await userIsAdmin(userId, channelId);
+    } catch {
+      throw new Error();
+    }
+
+    if (userToMuteId is in the channel and is not the owner)
+    {
+      await db
+        .insertInto('mutedUser')
+        .values(
+          channelId: channelId,
+          mutedEnd: endTime,
+          userId: userId,
+        )
+        .execute();
+    }
+  */
+
+
+  /*
+  async unmuteUser(userId: number, userToUnmuteId: number, channelId: number) {
+    try {
+      await userIsAdmin(userId, channelId);
+    } catch {
+      throw new Error();
+    }
+  
+    if (userToMuteId is in the channel and is not the owner) {
+      await db
+        .deleteFrom('mutedUser')
+        .where('id', '=', 'userToUnmuteId')
+        .where('id', '=', 'channelId')
+        .execute();
+    }
+  }
+  */
+
+
+  // !!!  need to implement an autodelete function to clean 'mutedUser'
+  //      when the mutedEnd time comes
+
+
+  /*
+  async blockUser(userId: number, userToBlock: number) {
+    
+    await db
+      .insertInto('blockerUser')
+      .values(
+        blockedById: userId,
+        blockedId: userToBlock,
+      )
+      .execute();
+  }
+  */
+
+
+  /*
+  async unblockUser(userId: number, userToUnblock: number) {
+    
+    await db
+      .deleteFrom('blockerUser')
+      .where('blockedById', '=', 'userId')
+      .where('blockedId', '=', 'userToUnblock')
+      .execute();
+  }
+  */
+
+
+  /*
+  async setAdministrator(userId: number, newAdminId: number, channelId: number) {
+    try {
+      await userIsAdmin(userId, channelId);
+    } catch {
+      throw new Error();
+    }
+
+    await db
+      .insertInto('channelAdmin')
+      .values(
+        channelId: channelId,
+        userId: newAdminId,
+      )
+      .execute();
+  }
+  */
+
+
+  /*
+  async unsetAdministrator(userId: number, toDeleteAdminId: number, channelId: number) {
+    try {
+      await userIsAdmin(userId, channelId);
+    } catch {
+      throw new Error();
+    }
+
+    await db
+      .deleteFrom('channelAdmin')
+      .where('userId', '=', toDeleteAdminId)
+      .where('channelId', '=', channelId)
+      .execute();
+  }
+  */
+
+
+  // !!! need 2 PUT to change password | other things ?
+
+
+  /*
+  async leaveChannelMembersAsOwner(userId: number, channelId: number) {
+
+    //if only one member, delete the channel + admin + member + messages
+
+    //if has other admins, set the first admin as the new owner
+
+    //if there is no admins, set the first member as the new owner
+  }
+  */
+
+
+  /*
+  async usersAreFriends(userId: number, friendId: number): Promise<boolean> {
+    try {
+      await db
+        .selectFrom('friend')
+        .select('userId')
+        .where('userId', '=', userId)
+        .where('friendId', '=', friendId)
+        .executeTakeFirstOrThrow();
+
+      return true;
+    } else {
+      throw new Error();
+    }
+    throw new Error();
+  }
+  */
+
+
+  /*
+  async verifyPassword(userId: number, password: string): Promise<boolean> {
+    try {
+      const user = await db
+        .selectFrom('user')
+        .select('password')
+        .where('id', '=', userId)
+        .executeTakeFirstOrThrow();
+
+      const match = await bcrypt.compare(password, user.password);
+
+      return match;
+    } else {
+      throw new Error();
+    }
+    throw new Error();
+  }
+  */
+
+
 }

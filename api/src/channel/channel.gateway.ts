@@ -183,6 +183,10 @@ export class ChannelGateway
     }
 
     try {
+      // !!! TODO
+      // if (user is owner of the channel) 
+      // this.channelService.leaveChannelMembersAsOwner(userId, channelId);
+
       socket.leave(String(payload.channelId));
       console.log(
         `Client socket ${socket.id}, left channel: ${payload.channelId}`,
@@ -205,4 +209,74 @@ export class ChannelGateway
       throw new InternalServerErrorException();
     }
   }
+
+  // !!! pseudocode area
+
+  /*
+  @SubscribeMessage('banUser')
+  async handleBanUser() {
+
+    this.ChannelService.banUser(userId, userToBanId, channelId);
+  }
+  */
+
+
+  /*
+  @SubscribeMessage('unbanUser')
+  async handleUnbanUser() {
+    
+    this.ChannelService.unbanUser(userId, userToUnbanId, channelId);
+  }
+  */
+
+
+  /*
+  @SubscribeMessage('kickUser')
+  async handleKickUser() {
+
+    socket.leave() for the kicked user // !!! need to find how
+  }
+  */
+
+
+  /*
+  @SubscribeMessage('muteUser')
+  async handleMuteUser() {
+
+    this.ChannelService.muteUser(userId, userToMuteId, channelId, Date() of end of mute);
+  }
+  */
+
+
+  /*
+  @SubsribeMessage('unmuteUser')
+  async handleUnmute() {
+
+    this.ChannelService.async unmuteUser(userId, userToUnmuteId, channelId);
+  }
+  */
+
+
+  /*
+  @SubscribeMessage('blockUser')
+  async handleBlockUser() {
+
+    //blocked user can still send messages but the user who blocked cannot see them
+    //blocked works for all the channels
+
+    this.ChannelService.blockUser(userId, userToBlock);
+
+  }
+  */
+ 
+
+  /*
+  @SubscribeMessage('unblockUser')
+  async hndleUnblockUser() {
+
+    this.ChannelService.unblockUser(userId, userToUnblock);
+  }
+  */
+
+
 }
