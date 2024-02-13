@@ -14,11 +14,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import {
-  ConnectToDm,
-  DirectMessageContent,
-  SocketAntiSpam,
-} from 'src/types/channelsSchema';
+import { ConnectToDm, DirectMessageContent } from 'src/types/channelsSchema';
 import { WsAuthGuard } from 'src/auth/ws-auth.guard';
 
 @WebSocketGateway({
@@ -163,33 +159,4 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
       throw new UnprocessableEntityException('Cannot send message');
     }
   }
-
-  /*// >>> in http requests
-  @SubscribeMessage('findAllDirectMessages')
-  findAll(
-    @MessageBody() data: { conversationId: number },
-  ): Promise<DirectMessage[]> {
-    return this.dmService.findAllDirectMessages(data.conversationId);
-  }
-
-  // >>> not needed
-  @SubscribeMessage('findDirectMessage')
-  findOne(@MessageBody() id: number) {
-    return this.dmService.findDirectMessage(id);
-  }
-
-  // >>> not needed
-  @SubscribeMessage('updateDirectMessage')
-  update(@MessageBody() directMessage: DirectMessage) {
-    return this.dmService.updateDirectMessage(
-      Number(directMessage.id),
-      directMessage,
-    );
-  }
-
-  // >>> not needed
-  @SubscribeMessage('removeDirectMessage')
-  remove(@MessageBody() id: number) {
-    return this.dmService.removeDirectMessage(id);
-  }*/
 }

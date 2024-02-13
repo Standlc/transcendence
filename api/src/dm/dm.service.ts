@@ -177,7 +177,6 @@ export class DmService {
   //
   //
   //
-  //
   async getConversationMessages(
     id: number,
     userId: number,
@@ -281,7 +280,6 @@ export class DmService {
   //
   //
   async quitConversation(payload: ConnectToDm) {
-    // delete user from conversation
     let userIsDeleted: DeleteResult;
     try {
       userIsDeleted = await db
@@ -319,63 +317,4 @@ export class DmService {
       }
     }
   }
-
-  // >>> all msg can be found threw http requests or this socket io method
-  /*async findAllDirectMessages(
-    conversationId: number,
-  ): Promise<DirectMessage[]> {
-    try {
-      const message = await db
-        .selectFrom('directMessage')
-        .selectAll()
-        .where('conversationId', '=', conversationId)
-        .orderBy('createdAt', 'asc')
-        .execute();
-      console.log('Found all direct messages:', message);
-      return message as unknown as DirectMessage[];
-    } catch (error) {
-      console.error(error);
-      throw new InternalServerErrorException('Unable to find messages');
-    }
-  }
-
-  // >>> not needed
-  async findDirectMessage(id: number): Promise<DirectMessage | undefined> {
-    try {
-      const [message] = await db
-        .selectFrom('directMessage')
-        .select(['content', 'conversationId', 'createdAt', 'id', 'senderId'])
-        .where('id', '=', id)
-        .execute();
-      return message as unknown as DirectMessage;
-    } catch (error) {
-      console.error(error);
-    }
-    return undefined;
-  }
-
-  // >>> not needed
-  async updateDirectMessage(
-    id: number,
-    directMessage: DirectMessage,
-  ): Promise<void> {
-    try {
-      await db
-        .updateTable('directMessage')
-        .set('content', directMessage.content)
-        .where('id', '=', id)
-        .execute();
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
-  // >>> not needed
-  async removeDirectMessage(id: number): Promise<void> {
-    try {
-      await db.deleteFrom('directMessage').where('id', '=', id).execute();
-    } catch (error) {
-      console.error(error);
-    }
-  }*/
 }
