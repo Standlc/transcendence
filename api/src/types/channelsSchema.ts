@@ -47,6 +47,24 @@ export interface ConnectToDm {
   userId: number;
 }
 
-export interface SocketAntiSpam extends Socket {
-  requestCount?: number;
+// export interface SocketAntiSpam extends Socket {
+//   requestCount?: number;
+// }
+
+export interface ActionOnUser {
+  userId: number;
+  targetUserId: number;
+  channelId: number;
+}
+
+export interface MuteUser {
+  userId: number;
+  targetUserId: number;
+  channelId: number;
+  muteEnd: Date;
+}
+
+export interface BlockUser {
+  userId: number;
+  targetUserId: number;
 }
