@@ -54,8 +54,8 @@ input:focus {
     height: 100vh;
 
     flex-direction: column;
-    width: 80px;
-    min-width: 80px;
+    width: 95px;
+    min-width: 95px;
 }
 
 .result-page {
@@ -75,16 +75,16 @@ input:focus {
     position: sticky;
     flex-direction: column;
     top: 0;
-    width: 265px;
-    min-width: 265px;
-    max-width: 265px;
+    width: 320px;
+    min-width: 320px;
+    max-width: 320px;
 }
 
 .user-chancolumn {
     display: flex;
     position: absolute;
     bottom: 0vh;
-    height: 7vh;
+    height: 5.5vh;
     width: 100%;
 }
 

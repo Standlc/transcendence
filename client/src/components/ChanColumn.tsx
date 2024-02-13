@@ -1,4 +1,5 @@
 import { LoginResponse } from "./RequireAuth/AuthProvider";
+import defaultAvatar from "./defaultAvatar.png";
 
 interface Props {
     loginResponse: LoginResponse | null;
@@ -37,12 +38,12 @@ export const ChanColumn: React.FC<Props> = ({ loginResponse }) => {
                 <div>MESSAGE PRIVES</div>
                 <span className="bloc text-right">+</span>
             </div>
-            <div className="bg-almost-black text-m bloc user-chancolumn">
-                <span className="avatar bg-greyple"> {loginResponse?.avatarUrl} </span>
-                <span> {loginResponse?.username} </span>
-                <span className="text-greyple bloc text-left">
-                    <br></br> en ligne
+            <div className="bg-almost-black text-m user-chancolumn">
+                <span className="avatar bg-greyple mt-6">
+                    <img src={defaultAvatar} alt="avatar" />
                 </span>
+                <span className=" font-bold mt-3"> {loginResponse?.username} </span>
+                <span className="text-greyple mt-10">En ligne</span>
             </div>
         </div>
     );
