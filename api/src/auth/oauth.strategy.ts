@@ -14,19 +14,20 @@ export class Oauth2Strategy extends PassportStrategy(Strategy) {
       tokenURL: 'https://api.intra.42.fr/oauth/token',
       clientID: 'u-s4t2ud-bfc3bd01981c3981040a3dad1e9dd27fb360884521e5e00d29a603717305c64a',
       clientSecret: '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',
-      callbackURL: 'http://localhost:5000/api/auth/redirect',
+      callbackURL: 'http://localhost:3000/api/auth/redirect',
       scope: 'public'
     }); //config
   }
 
+  //protect with try catch
   async validate(accessToken: string) {
     const config = {
       headers: { Authorization: `Bearer ${accessToken}` }
     };
 
-    let test: AxiosResponse<string[]>;
+    let test: AxiosResponse<any>;
     test = await firstValueFrom(
-      this.httpService.get<string[]>('https://api.intra.42.fr/v2').pipe(
+      this.httpService.get<any>('https://api.intra.42.fr/v2/me', config).pipe(
         catchError((error: AxiosError) => {
           console.log(error.response?.data);
           throw "An error happened!";
