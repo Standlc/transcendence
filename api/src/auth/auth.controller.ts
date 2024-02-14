@@ -40,7 +40,7 @@ export class AuthController {
    * with a passord
    */
   @UseGuards(LocalAuthGuard)
-  @ApiOkResponse({type: ConnectUsersDto, isArray: false})
+//   @ApiOkResponse({type: ConnectUsersDto, isArray: false})
   @Get('login')
   async loginWithPassword(@Request() req, @Res({ passthrough: true }) res: ResponseType): Promise<AppUser> {
     const token: string = await this.authService.login(req.user.id);
