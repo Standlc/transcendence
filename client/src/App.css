@@ -96,7 +96,7 @@ input:focus {
 }
 
 .topbar-section {
-    height: 50px;
+    height: 60px;
     position: sticky;
     width: 100%;
     display: flex;

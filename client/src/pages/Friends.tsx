@@ -63,11 +63,12 @@ export const Friends = () => {
                         style={{ borderBottomWidth: "3px" }}
                     >
                         <svg
+                            className="ml-4 mt-3"
                             aria-hidden="true"
                             role="img"
                             xmlns="http://www.w3.org/2000/svg"
-                            width="28"
-                            height="28"
+                            width="35"
+                            height="35"
                             viewBox="0 0 24 24"
                         >
                             <path
@@ -79,7 +80,7 @@ export const Friends = () => {
                                 d="M13 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"
                             ></path>
                         </svg>
-                        <div>Amis</div>
+                        <div className="ml-2 mt-4 font-bold text-xl ">Amis</div>
                     </div>
                     <div className="relative mt-5 ml-5 mr-5">
                         <input
@@ -114,7 +115,7 @@ export const Friends = () => {
                         EN LIGNE - 2
                     </div>
                     <div className="border-b border-b-gray-500 border-t-1 " />
-                    <ul className="w-full">
+                    <ul className="w-full p-5">
                         {friends.map((friend) => (
                             <li key={friend.id}>
                                 <button
@@ -123,7 +124,7 @@ export const Friends = () => {
                                 >
                                     [avatar] {friend.name}
                                     <span className=""> [bio]</span>
-                                    <span className="text-right block">
+                                    <span className="text-right mr-5 block">
                                         <button>supprimer</button>
                                     </span>
                                 </button>

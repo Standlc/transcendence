@@ -23,8 +23,8 @@ export const ChanColumn: React.FC<Props> = ({ loginResponse, setCurrentPage }) =
                         aria-hidden="true"
                         role="img"
                         xmlns="http://www.w3.org/2000/svg"
-                        width="28"
-                        height="28"
+                        width="35"
+                        height="35"
                         viewBox="0 0 24 24"
                     >
                         <path
@@ -36,7 +36,7 @@ export const ChanColumn: React.FC<Props> = ({ loginResponse, setCurrentPage }) =
                             d="M13 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"
                         ></path>
                     </svg>
-                    <div className="ml-5">
+                    <div className="ml-6 mt-1">
                         <button onClick={handleFriendsClick}>Amis</button>
                     </div>
                 </div>
