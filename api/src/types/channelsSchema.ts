@@ -14,8 +14,10 @@ export type DirectMessageContent = Omit<DirectMessage, 'createdAt' | 'id'>;
 
 // combine User interface and Channel interface
 export interface MessageWithSenderInfo {
+  avatarUrl: string | null;
+  username: string;
   channelId: number;
-  content: string | null;
+  messageContent: string | null;
   createdAt: Generated<Timestamp>;
   messageId: Generated<number>;
   senderId: number;
@@ -23,8 +25,7 @@ export interface MessageWithSenderInfo {
   isAdmin: boolean;
   isBanned: boolean;
   isMuted: boolean;
-  avatarUrl: string | null;
-  username: string;
+  isBlockedByUserIds: number[];
 }
 
 export interface DmWithSenderInfo {

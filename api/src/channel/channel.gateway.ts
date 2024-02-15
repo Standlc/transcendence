@@ -89,17 +89,17 @@ export class ChannelGateway
     @ConnectedSocket() socket: Socket,
     @MessageBody() payload: ConnectToChannel,
   ): Promise<void> {
-    try {
-      await this.channelService.userExists(payload.userId);
-      await this.channelService.channelExists(payload.channelId);
-      await this.channelService.userIsBanned(payload.userId, payload.channelId);
-      // !!! TODO = verify if user invited, + the right password
-    } catch (error) {
-      socket.disconnect();
-      throw new UnauthorizedException(
-        'User, channel or both do not exist | User is banned',
-      );
-    }
+    // try { !!! ADD LATER
+    //   await this.channelService.userExists(payload.userId);
+    //   await this.channelService.channelExists(payload.channelId);
+    //   await this.channelService.userIsBanned(payload.userId, payload.channelId);
+    //   // !!! TODO = verify if user invited, + the right password
+    // } catch (error) {
+    //   socket.disconnect();
+    //   throw new UnauthorizedException(
+    //     'User, channel or both do not exist | User is banned',
+    //   );
+    // }
 
     if (!payload.channelId) {
       throw new BadRequestException('No channel id provided');
@@ -122,19 +122,18 @@ export class ChannelGateway
   @SubscribeMessage('createChannelMessage')
   async handleMessage(
     @ConnectedSocket() socket: Socket,
-    @MessageBody() payload: ChannelMessage,
+    @MessageBody() payload: ChannelMessage, // !!! change to omit interface
   ): Promise<void> {
-    try {
-      await this.channelService.userIsBanned(
-        payload.senderId,
-        payload.channelId,
-      );
-    } catch (error) {
-      socket.disconnect();
-      throw new UnauthorizedException(
-        'User, channel or both do not exist | User is banned',
-      );
-    }
+    // try { // !!! ADD LATER
+    //   await this.channelService.userIsBanned(
+    //     payload.senderId,
+    //     payload.channelId,
+    //   );
+    // } catch (error) {
+    //   throw new UnauthorizedException(
+    //     'User, channel or both do not exist | User is banned',
+    //   );
+    // }
 
     // Do not disconnect the muted user, just don't send the message
     try {

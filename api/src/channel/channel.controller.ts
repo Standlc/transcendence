@@ -39,8 +39,7 @@ export class UserController {
 
   //
   //
-  // !!! TOREWRITE
-  /*
+  //
   @ApiOperation({ summary: 'Get all messages of a channel' })
   @ApiParam({
     name: 'channelId',
@@ -48,16 +47,22 @@ export class UserController {
     type: 'number',
   })
   @ApiOkResponse({
-    description: 'Messages of the channel',
+    description: 'Messages of the channel with sender info',
     schema: {
       type: 'array',
       items: {
         type: 'object',
         properties: {
+          avatarUrl: {
+            type: 'string | null',
+          },
+          username: {
+            type: 'string',
+          },
           channelId: {
             type: 'number',
           },
-          content: {
+          messageContent: {
             type: 'string | null',
           },
           createdAt: {
@@ -66,30 +71,25 @@ export class UserController {
           messageId: {
             type: 'Generated<number>',
           },
-          sender: {
-            type: 'object',
-            properties: {
-              senderId: {
-                type: 'number',
-              },
-              isOwner: {
-                type: 'boolean',
-              },
-              isAdmin: {
-                type: 'boolean',
-              },
-              isBanned: {
-                type: 'boolean',
-              },
-              isMuted: {
-                type: 'boolean',
-              },
-              avatarUrl: {
-                type: 'string | null',
-              },
-              username: {
-                type: 'string',
-              },
+          senderId: {
+            type: 'number',
+          },
+          isOwner: {
+            type: 'boolean',
+          },
+          isAdmin: {
+            type: 'boolean',
+          },
+          isBanned: {
+            type: 'boolean',
+          },
+          isMuted: {
+            type: 'boolean',
+          },
+          isBlockedByUserIds: {
+            type: 'array',
+            items: {
+              type: 'number',
             },
           },
         },
@@ -98,8 +98,9 @@ export class UserController {
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @ApiNotFoundResponse({
-    description: 'Data not found in db | User is not a member of the channel',
+    description: 'User not found | Channel not found', /// !!! TODO to complete
   })
+  @ApiUnauthorizedResponse({ description: 'User is banned' })
   @Get(':channelId/messages')
   getMessages(
     @Param('channelId') channelId: number,
@@ -107,7 +108,7 @@ export class UserController {
   ): Promise<MessageWithSenderInfo[]> {
     console.log('GET: Recieved channelId:', channelId);
     return this.channelService.getChannelMessages(req.user.id, channelId);
-  }*/
+  }
 
   //
   //
@@ -160,7 +161,7 @@ export class UserController {
   @ApiOperation({ summary: 'Create a new channel' })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @ApiUnprocessableEntityResponse({
-    description: 'Data not found in db | not inserted in db',
+    description: 'Channel name already exists | Invalid channel name length',
   })
   @ApiBody({
     schema: {
