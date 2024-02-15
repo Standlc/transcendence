@@ -5,33 +5,27 @@ import {
   UnauthorizedException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { Channel, ChannelMessage } from '../types/schema';
+import { Channel } from '../types/schema';
 import { db } from 'src/database';
 import {
   ActionOnUser,
   BlockUser,
   ChannelCreationData,
   ChannelDataWithoutPassword,
+  ChannelMessageContent,
   ConnectToChannel,
   MessageWithSenderInfo,
   MuteUser,
 } from 'src/types/channelsSchema';
 import * as bcrypt from 'bcrypt';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { ColumnType } from 'kysely';
 
 @Injectable()
 export class ChannelService {
   //
   //
   //
-  async createMessage(message: ChannelMessage): Promise<void> {
-    // User exists in db
-    // try {
-    //  await this.userExists(userId);
-    // } catch (error) {
-    //  throw new InternalServerErrorException();
-    // }
+  async createMessage(message: ChannelMessageContent): Promise<void> {
     try {
       console.log('createMessage');
       await db
@@ -59,235 +53,108 @@ export class ChannelService {
     try {
       await this.userExists(userId);
     } catch (error) {
+      throw new NotFoundException('User not found');
+    }
+
+    try {
+      await this.channelExists(channelId);
+    } catch (error) {
+      throw new NotFoundException('Channel not found');
+    }
+
+    try {
+      const isMember = await db
+        .selectFrom('channelMember')
+        .select('userId')
+        .where('userId', '=', userId)
+        .where('channelId', '=', channelId)
+        .executeTakeFirst();
+
+      if (!isMember) {
+        throw new NotFoundException('User is not a member of the channel');
+      }
+    } catch (error) {
+      console.error('Error getting messages:', error);
       throw new InternalServerErrorException();
     }
 
-    const isMember = await db
-      .selectFrom('channelMember')
-      .select('userId')
-      .where('userId', '=', userId)
-      .where('channelId', '=', channelId)
-      .executeTakeFirst();
+    // !!! TODO user is banned UnauthorizedException
 
-    if (!isMember) {
-      throw new NotFoundException('User is not a member of the channel');
+    try {
+      const messages = await db
+        .selectFrom('channelMessage')
+        .selectAll()
+        .where('channelMessage.channelId', '=', channelId)
+        .orderBy('channelMessage.createdAt', 'asc')
+        .leftJoin('user', 'channelMessage.senderId', 'user.id')
+        .leftJoin(
+          'channelAdmin',
+          'channelAdmin.channelId',
+          'channelMessage.channelId',
+        )
+        .leftJoin('channel', 'channel.channelOwner', 'channelMessage.senderId')
+        .leftJoin(
+          'bannedUser',
+          'bannedUser.bannedId',
+          'channelMessage.senderId',
+        )
+        .leftJoin('mutedUser', (join) =>
+          join
+            .onRef('mutedUser.userId', '=', 'channelMessage.senderId')
+            .on('mutedUser.channelId', '=', channelId)
+            .on('mutedUser.mutedEnd', '>', new Date()),
+        )
+        .select([
+          'channelMessage.channelId',
+          'channelMessage.content',
+          'channelMessage.createdAt',
+          'channelMessage.id as messageId',
+          'channelMessage.senderId',
+          'user.avatarUrl',
+          'user.username',
+          'channelAdmin.userId as isAdmin',
+          'bannedUser.bannedId as isBanned',
+          'mutedUser.userId as isMuted',
+          'mutedUser.mutedEnd',
+          'channel.channelOwner',
+        ])
+        .execute();
+
+      // !!! TODO add this part for each user
+      const blockedById = await db
+        .selectFrom('blockedUser')
+        .select('blockedById')
+        .where('blockedId', '=', userId)
+        .execute();
+
+      console.log('blockedById:', blockedById);
+
+      const result: MessageWithSenderInfo[] = messages.map((message) => ({
+        channelId: message.channelId,
+        content: message.content,
+        createdAt: message.createdAt as Date,
+        messageId: message.messageId as number,
+        senderId: message.senderId,
+        isOwner: message.channelOwner !== null,
+        isAdmin: message.isAdmin !== null,
+        isBanned: message.isBanned !== null,
+        isMuted: message.isMuted !== null,
+        mutedEnd: message.mutedEnd,
+        avatarUrl: message.avatarUrl,
+        username: message.username || 'no username',
+        blockedById: blockedById,
+      })) as unknown as MessageWithSenderInfo[];
+
+      if (result.length === 0) {
+        throw new NotFoundException('No messages found');
+      }
+
+      return result as unknown as MessageWithSenderInfo[];
+    } catch (error) {
+      console.error('Error getting messages:', error);
+      throw new InternalServerErrorException();
     }
-
-    const messages = await db
-      .selectFrom('channelMessage')
-      .selectAll()
-      .where('channelMessage.channelId', '=', channelId)
-      .orderBy('channelMessage.createdAt', 'asc')
-      .leftJoin('user', 'channelMessage.senderId', 'user.id')
-      .leftJoin(
-        'channelAdmin',
-        'channelAdmin.channelId',
-        'channelMessage.channelId',
-      )
-      .leftJoin('channel', 'channel.channelOwner', 'channelMessage.senderId')
-      .leftJoin('bannedUser', 'bannedUser.bannedId', 'channelMessage.senderId')
-      .leftJoin('mutedUser', (join) =>
-        join
-          .onRef('mutedUser.userId', '=', 'channelMessage.senderId')
-          .on('mutedUser.channelId', '=', channelId)
-          .on('mutedUser.mutedEnd', '>', new Date()),
-      )
-      .select([
-        'channelMessage.channelId',
-        'channelMessage.content',
-        'channelMessage.createdAt',
-        'channelMessage.id as messageId',
-        'channelMessage.senderId',
-        'user.avatarUrl',
-        'user.username',
-        'channelAdmin.userId as isAdmin',
-        'bannedUser.bannedId as isBanned',
-        'mutedUser.userId as isMuted',
-        'mutedUser.mutedEnd',
-        'channel.channelOwner',
-      ])
-      .execute();
-
-    // !!! TODO add this part for each user
-    const blockedById = await db
-      .selectFrom('blockedUser')
-      .select('blockedById')
-      .where('blockedId', '=', userId)
-      .execute();
-
-    console.log('blockedById:', blockedById);
-
-    // Transform the result as needed
-    const result: MessageWithSenderInfo[] = messages.map((message) => ({
-      channelId: message.channelId,
-      content: message.content,
-      createdAt: message.createdAt as Date,
-      messageId: message.messageId as number,
-      senderId: message.senderId,
-      isOwner: message.channelOwner !== null,
-      isAdmin: message.isAdmin !== null,
-      isBanned: message.isBanned !== null,
-      isMuted: message.isMuted !== null,
-      mutedEnd: message.mutedEnd,
-      avatarUrl: message.avatarUrl,
-      username: message.username || 'no username',
-      blockedById: blockedById,
-    })) as unknown as MessageWithSenderInfo[];
-
-    if (result.length === 0) {
-      throw new NotFoundException('No messages found');
-    }
-
-    return result as unknown as MessageWithSenderInfo[];
   }
-
-  //
-  //
-  //
-  // !!! TOREWRITE: getmessages
-  // async getChannelMessages(
-  //   userId: number,
-  //   channelId: number,
-  // ): Promise<MessageWithSenderInfo[]> {
-  //   // User exists in db
-  //   try {
-  //     await this.userExists(userId);
-  //   } catch (error) {
-  //     throw new InternalServerErrorException();
-  //   }
-
-  //   const isMember = await db
-  //     .selectFrom('channelMember')
-  //     .select('userId')
-  //     .where('userId', '=', userId)
-  //     .where('channelId', '=', channelId)
-  //     .executeTakeFirst();
-
-  //   if (!isMember) {
-  //     throw new NotFoundException('User is not a member of the channel');
-  //   }
-
-  //   // Take messages data
-  //   let messages: {
-  //     channelId: number;
-  //     content: string | null;
-  //     createdAt: Date;
-  //     id: number;
-  //     senderId: number;
-  //   }[];
-  //   try {
-  //     messages = await db
-  //       .selectFrom('channelMessage')
-  //       .select(['channelId', 'content', 'createdAt', 'id', 'senderId'])
-  //       .where('channelId', '=', channelId)
-  //       .orderBy('createdAt', 'asc')
-  //       .execute();
-  //   } catch (error) {
-  //     throw new InternalServerErrorException();
-  //   }
-
-  //   if (messages.length === 0) {
-  //     throw new NotFoundException('No messages found');
-  //   }
-
-  //   // Extract unique senderIds from the messages
-  //   const uniqueSenderIds = Array.from(
-  //     new Set(messages.map((msg) => msg.senderId)),
-  //   );
-
-  //   const users: {
-  //     [key: number]: {
-  //       avatarUrl: string | null;
-  //       username: string;
-  //       isOwner: boolean;
-  //       isAdmin: boolean;
-  //       isBanned: boolean;
-  //       isMuted: boolean;
-  //       mutedEnd: Date | null;
-  //     };
-  //   } = {};
-
-  //   try {
-  //     // Fetch user details for each unique senderId
-  //     await Promise.all(
-  //       uniqueSenderIds.map(async (senderId) => {
-  //         const user = await db
-  //           .selectFrom('user')
-  //           .select(['avatarUrl', 'username'])
-  //           .where('id', '=', senderId)
-  //           .executeTakeFirst();
-
-  //         if (user) {
-  //           // Additional checks for owner, admin, banned, muted
-  //           const isAdmin = await db
-  //             .selectFrom('channelAdmin')
-  //             .select(['userId'])
-  //             .where('userId', '=', senderId)
-  //             .where('channelId', '=', channelId)
-  //             .execute();
-
-  //           const isOwner = await db
-  //             .selectFrom('channel')
-  //             .select(['channelOwner'])
-  //             .where('channelOwner', '=', senderId)
-  //             .execute();
-
-  //           const isBanned = await db
-  //             .selectFrom('bannedUser')
-  //             .select(['bannedId'])
-  //             .where('bannedId', '=', senderId)
-  //             .execute();
-
-  //           const isMuted = await db
-  //             .selectFrom('mutedUser')
-  //             .select(['userId', 'mutedEnd'])
-  //             .where('channelId', '=', channelId)
-  //             .where('userId', '=', senderId)
-  //             .where('mutedEnd', '>', new Date())
-  //             .execute();
-
-  //           users[senderId] = {
-  //             avatarUrl: user.avatarUrl,
-  //             username: user.username,
-  //             isOwner: isOwner.length > 0,
-  //             isAdmin: isAdmin.length > 0,
-  //             isBanned: isBanned.length > 0,
-  //             isMuted: isMuted.length > 0,
-  //             mutedEnd: isMuted.length > 0 ? isMuted[0].mutedEnd : null,
-  //           };
-  //         }
-  //       }),
-  //     );
-  //   } catch (error) {
-  //     console.error(error);
-  //     throw new InternalServerErrorException();
-  //   }
-
-  //   return messages.map((message) => ({
-  //     channelId: message.channelId,
-  //     content: message.content,
-  //     createdAt: message.createdAt as unknown as ColumnType<
-  //       Date,
-  //       string | Date | undefined,
-  //       string | Date
-  //     >,
-  //     messageId: message.id as unknown as ColumnType<
-  //       number,
-  //       number | undefined,
-  //       number
-  //     >,
-  //     sender: {
-  //       senderId: message.senderId,
-  //       isOwner: users[message.senderId]?.isOwner || false,
-  //       isAdmin: users[message.senderId]?.isAdmin || false,
-  //       isBanned: users[message.senderId]?.isBanned || false,
-  //       isMuted: users[message.senderId]?.isMuted || false,
-  //       mutedEnd: users[message.senderId]?.mutedEnd,
-  //       avatarUrl: users[message.senderId]?.avatarUrl,
-  //       username: users[message.senderId]?.username || 'no username',
-  //     },
-  //   })) as unknown as MessageWithSenderInfo[];
-  // }
 
   //
   //
@@ -299,18 +166,14 @@ export class ChannelService {
     try {
       await this.userExists(userId);
     } catch (error) {
-      throw new InternalServerErrorException();
+      throw new NotFoundException('User not found');
     }
 
-    if (
-      channel.password !== null &&
-      (channel.isPublic as unknown as boolean) === true
-    ) {
+    const boolPublic = (channel.isPublic as unknown as boolean).toString();
+    if (channel.password !== null && boolPublic === 'true') {
       throw new UnprocessableEntityException(
-        'A channel with a password must be private',
+        'A public channel cannot have a password',
       );
-    } else {
-      console.log('channel:', channel);
     }
 
     if (
@@ -322,7 +185,7 @@ export class ChannelService {
     }
 
     // Verify if channel name is available
-    let nameExists: { name: string | null } | undefined; // !!! remove null, migration
+    let nameExists: { name: string | null } | undefined;
     try {
       nameExists = await db
         .selectFrom('channel')
@@ -410,11 +273,16 @@ export class ChannelService {
   //
   //
   async deleteChannel(channelId: number, userId: number): Promise<string> {
-    // User exists in db
     try {
       await this.userExists(userId);
     } catch (error) {
-      throw new InternalServerErrorException();
+      throw new NotFoundException('User not found');
+    }
+
+    try {
+      await this.channelExists(channelId);
+    } catch (error) {
+      throw new NotFoundException('Channel not found');
     }
 
     // Verify if the user is the owner of the channel
@@ -460,11 +328,16 @@ export class ChannelService {
     channel: Channel,
     userId: number,
   ): Promise<string> {
-    // User exists in db
     try {
       await this.userExists(userId);
     } catch (error) {
-      throw new InternalServerErrorException();
+      throw new NotFoundException('User not found');
+    }
+
+    try {
+      await this.channelExists(id);
+    } catch (error) {
+      throw new NotFoundException('Channel not found');
     }
 
     // Verify if channel name is valid
@@ -510,7 +383,7 @@ export class ChannelService {
         url === channel.photoUrl
       ) {
         throw new UnprocessableEntityException(
-          'Same as actual or Invalid photoUrl',
+          'Same as current or Invalid photoUrl',
         );
       }
     } else {
@@ -532,25 +405,12 @@ export class ChannelService {
     }
 
     if (isOwner) {
-      // !!! to test = check if it is the same password
+      // !!! to test
       if (channel.password != null) {
         try {
-          const oldPassword = await db
-            .selectFrom('channel')
-            .select('password')
-            .where('id', '=', id)
-            .executeTakeFirst();
-          if (oldPassword && oldPassword.password != null) {
-            const match = await bcrypt.compare(
-              channel.password,
-              oldPassword.password,
-            );
-            if (match) {
-              throw new UnprocessableEntityException('Same password');
-            }
-          }
+          this.verifyPassword(id, channel.password);
         } catch (error) {
-          throw new InternalServerErrorException();
+          throw new UnauthorizedException('Invalid password');
         }
       }
 
@@ -562,7 +422,7 @@ export class ChannelService {
           .updateTable('channel')
           .set({
             channelOwner: channel.channelOwner,
-            isPublic: Boolean(channel.isPublic), // !!! check, need for the password setting
+            isPublic: channel.isPublic as unknown as boolean, // !!! to test
             name: channel.name,
             password: hashedPassword,
             photoUrl: channel.photoUrl,
@@ -614,7 +474,6 @@ export class ChannelService {
     channelId: number,
     userId: number,
   ): Promise<ChannelDataWithoutPassword> {
-    // User exists in db
     try {
       await this.userExists(userId);
     } catch (error) {
@@ -654,13 +513,6 @@ export class ChannelService {
   async getAllChannelsOfTheUser(
     userId: number,
   ): Promise<ChannelDataWithoutPassword[]> {
-    // User exists in db
-    try {
-      await this.userExists(userId);
-    } catch (error) {
-      throw new InternalServerErrorException('1');
-    }
-
     // Take user info
     let user: { avatarUrl: string | null; username: string }[];
     try {
@@ -670,19 +522,19 @@ export class ChannelService {
         .where('id', '=', userId)
         .execute();
     } catch (error) {
-      throw new InternalServerErrorException('2');
+      throw new InternalServerErrorException();
     }
 
     if (!user || user.length === 0) {
-      throw new NotFoundException('Current user not found.');
+      throw new NotFoundException('User not found.');
     }
 
-    let channels: ChannelDataWithoutPassword[];
+    let channels: ChannelDataWithoutPassword[]; // !!! to test
     try {
       channels = (await db
         .selectFrom('channel')
         .leftJoin('channelMember', 'channel.id', 'channelMember.channelId')
-        // .leftJoin('bannedUser', 'channel.id', 'bannedUser.channelId') !!! do not work
+        .leftJoin('bannedUser', 'channel.id', 'bannedUser.channelId')
         .select([
           'channel.channelOwner',
           'channel.createdAt',
@@ -692,11 +544,11 @@ export class ChannelService {
           'channel.photoUrl',
         ])
         .where('channelMember.userId', '=', userId)
-        // .where('bannedUser.bannedId', '!=', userId) // !!! do not work
+        .where('bannedUser.bannedId', '!=', userId)
         .execute()) as unknown as ChannelDataWithoutPassword[];
       console.log('channels:', channels);
     } catch (error) {
-      throw new InternalServerErrorException('3');
+      throw new InternalServerErrorException();
     }
     if (!channels) {
       throw new NotFoundException('No channels found');
@@ -738,7 +590,7 @@ export class ChannelService {
     } catch (error) {
       throw new InternalServerErrorException();
     }
-    if (!bannedUser || bannedUser.length === 0) {
+    if (bannedUser.length > 0) {
       throw new UnauthorizedException('User is banned');
     }
   }
@@ -746,7 +598,7 @@ export class ChannelService {
   //
   //
   //
-  async userIsMuted(channelMessage: ChannelMessage): Promise<void> {
+  async userIsMuted(channelMessage: ChannelMessageContent): Promise<void> {
     let mutedUser: { userId: number; mutedEnd: Date }[];
     try {
       mutedUser = await db
@@ -759,7 +611,7 @@ export class ChannelService {
     } catch (error) {
       throw new InternalServerErrorException();
     }
-    if (!mutedUser || mutedUser.length === 0) {
+    if (mutedUser.length > 0) {
       throw new UnauthorizedException('User is muted');
     }
   }
@@ -1209,18 +1061,51 @@ export class ChannelService {
 
   //
   //
-  // !!! to test
-  async verifyPassword(userId: number, password: string): Promise<boolean> {
+  //
+  async verifyPassword(channelId: number, password: string): Promise<boolean> {
     try {
-      const user = await db
-        .selectFrom('user')
+      const channelPwd = await db
+        .selectFrom('channel')
         .select('password')
-        .where('id', '=', userId)
+        .where('id', '=', channelId)
         .executeTakeFirstOrThrow();
 
-      const match = await bcrypt.compare(password, user.password);
+      const match = await bcrypt.compare(
+        password,
+        channelPwd.password as string,
+      );
 
       return match;
+    } catch (error) {
+      throw new InternalServerErrorException();
+    }
+  }
+  //
+  //
+  //
+  async joinChannel(userId: number, channelId: number): Promise<void> {
+    try {
+      const isMember = await db
+        .selectFrom('channelMember')
+        .where('userId', '=', userId)
+        .where('channelId', '=', channelId)
+        .execute();
+      if (isMember.length > 0) {
+        console.log('User is already a member of the channel, not added in db');
+        return;
+      }
+    } catch (error) {
+      throw new InternalServerErrorException();
+    }
+
+    try {
+      await db
+        .insertInto('channelMember')
+        .values({
+          channelId: channelId,
+          userId: userId,
+        })
+        .execute();
     } catch (error) {
       throw new InternalServerErrorException();
     }

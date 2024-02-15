@@ -98,7 +98,8 @@ export class UserController {
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @ApiNotFoundResponse({
-    description: 'User not found | Channel not found', /// !!! TODO to complete
+    description:
+      'User not found | Channel not found | User is not a member of the channel | No messages found',
   })
   @ApiUnauthorizedResponse({ description: 'User is banned' })
   @Get(':channelId/messages')
@@ -146,7 +147,7 @@ export class UserController {
     },
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @ApiNotFoundResponse({ description: 'Data not found in db' })
+  @ApiNotFoundResponse({ description: 'User not found | No channels found' })
   @Get()
   async getAllChannelsOfTheUser(
     @Request() req,
@@ -159,10 +160,6 @@ export class UserController {
   //
   //
   @ApiOperation({ summary: 'Create a new channel' })
-  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @ApiUnprocessableEntityResponse({
-    description: 'Channel name already exists | Invalid channel name length',
-  })
   @ApiBody({
     schema: {
       type: 'object',
@@ -173,10 +170,10 @@ export class UserController {
         name: {
           type: 'string',
         },
-        password: {
+        photoUrl: {
           type: 'string | null',
         },
-        photoUrl: {
+        password: {
           type: 'string | null',
         },
       },
@@ -197,7 +194,7 @@ export class UserController {
           type: 'Generated<number>',
         },
         isPublic: {
-          type: 'Generated<boolean>', // !!! not generated
+          type: 'Generated<boolean>',
         },
         name: {
           type: 'string',
@@ -207,6 +204,12 @@ export class UserController {
         },
       },
     },
+  })
+  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
+  @ApiNotFoundResponse({ description: 'User not found' })
+  @ApiUnprocessableEntityResponse({
+    description:
+      'A public channel cannot have a password | Invalid channel name length | Channel name already exists',
   })
   @Post()
   createChannel(
@@ -241,7 +244,7 @@ export class UserController {
           type: 'Generated<number>',
         },
         isPublic: {
-          type: 'Generated<boolean>', // !!! not generated
+          type: 'Generated<boolean>',
         },
         name: {
           type: 'string',
@@ -253,7 +256,7 @@ export class UserController {
     },
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @ApiNotFoundResponse({ description: 'Channel not found' })
+  @ApiNotFoundResponse({ description: 'User not found | Channel not found' })
   @Get(':channelId')
   async getChannel(
     @Param('channelId') channelId: number,
@@ -302,8 +305,14 @@ export class UserController {
   })
   @ApiOkResponse({ description: 'Channel updated' })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
+  @ApiNotFoundResponse({ description: 'User not found | Channel not found' })
   @ApiUnprocessableEntityResponse({
-    description: 'Invalid data | Same password',
+    description:
+      'Invalid channel name length | Channel name already exists | Same as current or Invalid photoUrl | Invalid photoUrl',
+  })
+  @ApiUnauthorizedResponse({
+    description:
+      'Invalid password | Only the owner or the admin can update this data',
   })
   @Put(':channelId')
   updateChannel(
@@ -325,8 +334,10 @@ export class UserController {
     type: 'number',
   })
   @ApiOkResponse({ description: 'Channel deleted' })
-  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @ApiUnauthorizedResponse({ description: 'Only the owner can delete channel' })
+  @ApiNotFoundResponse({ description: 'User not found | Channel not found' })
+  @ApiUnauthorizedResponse({
+    description: 'Only the owner can delete this channel',
+  })
   @Delete(':channelId')
   deleteChannel(@Param('channelId') channelId: number, @Request() req) {
     console.log('DELETE: Received channelId:', channelId);

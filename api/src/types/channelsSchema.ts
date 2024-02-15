@@ -1,5 +1,10 @@
-import { Socket } from 'socket.io';
-import { Channel, DirectMessage, Generated, Timestamp } from './schema';
+import {
+  Channel,
+  ChannelMessage,
+  DirectMessage,
+  Generated,
+  Timestamp,
+} from './schema';
 
 export type ChannelDataWithoutPassword = Omit<Channel, 'password'>;
 
@@ -11,6 +16,8 @@ export type ChannelCreationData = Omit<
 export type UserId = { userId: number };
 
 export type DirectMessageContent = Omit<DirectMessage, 'createdAt' | 'id'>;
+
+export type ChannelMessageContent = Omit<ChannelMessage, 'createdAt' | 'id'>;
 
 // combine User interface and Channel interface
 export interface MessageWithSenderInfo {
@@ -41,16 +48,15 @@ export interface DmWithSenderInfo {
 export interface ConnectToChannel {
   channelId: number;
   userId: number;
+  password: string;
+  isPublic: boolean;
+  channelOwner: number;
 }
 
 export interface ConnectToDm {
   conversationId: number;
   userId: number;
 }
-
-// export interface SocketAntiSpam extends Socket {
-//   requestCount?: number;
-// }
 
 export interface ActionOnUser {
   userId: number;

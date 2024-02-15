@@ -9,10 +9,10 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { ChannelMessage } from 'src/types/schema';
 import {
   ActionOnUser,
   BlockUser,
+  ChannelMessageContent,
   ConnectToChannel,
   MuteUser,
 } from 'src/types/channelsSchema';
@@ -20,6 +20,7 @@ import {
   BadRequestException,
   InternalServerErrorException,
   UnauthorizedException,
+  UnprocessableEntityException,
   UseGuards,
 } from '@nestjs/common';
 import { WsAuthGuard } from 'src/auth/ws-auth.guard';
@@ -89,17 +90,50 @@ export class ChannelGateway
     @ConnectedSocket() socket: Socket,
     @MessageBody() payload: ConnectToChannel,
   ): Promise<void> {
-    // try { !!! ADD LATER
-    //   await this.channelService.userExists(payload.userId);
-    //   await this.channelService.channelExists(payload.channelId);
-    //   await this.channelService.userIsBanned(payload.userId, payload.channelId);
-    //   // !!! TODO = verify if user invited, + the right password
-    // } catch (error) {
-    //   socket.disconnect();
-    //   throw new UnauthorizedException(
-    //     'User, channel or both do not exist | User is banned',
-    //   );
-    // }
+    try {
+      await this.channelService.userExists(payload.userId);
+    } catch (error) {
+      socket.disconnect();
+      throw new UnauthorizedException('User do not exist');
+    }
+    try {
+      await this.channelService.channelExists(payload.channelId);
+    } catch (error) {
+      throw new UnauthorizedException('Channel do not exist');
+    }
+    try {
+      await this.channelService.userIsBanned(payload.userId, payload.channelId);
+    } catch (error) {
+      throw new UnauthorizedException('User is banned');
+    }
+
+    try {
+      if (
+        payload.userId !== payload.channelOwner &&
+        payload.isPublic === false
+      ) {
+        await this.channelService.usersAreFriends(
+          payload.userId,
+          payload.channelOwner,
+        );
+      }
+    } catch (error) {
+      throw new UnauthorizedException(
+        'Users are not friends, impossible to join a private or protected channel',
+      );
+    }
+
+    try {
+      console.log(payload.password);
+      if (payload.password !== null) {
+        await this.channelService.verifyPassword(
+          payload.channelId,
+          payload.password,
+        );
+      }
+    } catch (error) {
+      throw new UnauthorizedException('Invalid password');
+    }
 
     if (!payload.channelId) {
       throw new BadRequestException('No channel id provided');
@@ -107,6 +141,12 @@ export class ChannelGateway
 
     try {
       socket.join(String(payload.channelId));
+      try {
+        this.channelService.joinChannel(payload.userId, payload.channelId);
+      } catch (error) {
+        socket.disconnect();
+        throw new UnprocessableEntityException('Could not join channel');
+      }
       console.log(
         `Client socket ${socket.id}, joined channel: ${payload.channelId}`,
       );
@@ -122,18 +162,17 @@ export class ChannelGateway
   @SubscribeMessage('createChannelMessage')
   async handleMessage(
     @ConnectedSocket() socket: Socket,
-    @MessageBody() payload: ChannelMessage, // !!! change to omit interface
+    @MessageBody() payload: ChannelMessageContent,
   ): Promise<void> {
-    // try { // !!! ADD LATER
-    //   await this.channelService.userIsBanned(
-    //     payload.senderId,
-    //     payload.channelId,
-    //   );
-    // } catch (error) {
-    //   throw new UnauthorizedException(
-    //     'User, channel or both do not exist | User is banned',
-    //   );
-    // }
+    try {
+      await this.channelService.userIsBanned(
+        payload.senderId,
+        payload.channelId,
+      );
+    } catch (error) {
+      socket.leave(String(payload.channelId));
+      throw new UnauthorizedException('User is banned');
+    }
 
     // Do not disconnect the muted user, just don't send the message
     try {
@@ -146,13 +185,10 @@ export class ChannelGateway
     try {
       this.channelService.createMessage(payload);
     } catch (error) {
-      socket.disconnect();
+      socket.leave(String(payload.channelId));
       console.error(error);
       throw new InternalServerErrorException();
     }
-
-    if (!payload.channelId)
-      throw new BadRequestException('No channel id provided');
 
     try {
       this.server

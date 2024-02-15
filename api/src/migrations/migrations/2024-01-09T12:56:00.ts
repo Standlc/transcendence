@@ -76,7 +76,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('name', 'varchar(50)')
     .addColumn('photoUrl', 'varchar(50)')
     .addColumn('isPublic', 'boolean', (col) => col.defaultTo('true').notNull())
-    .addColumn('password', 'varchar(50)') // !!! change to varchar(255)
+    .addColumn('password', 'varchar(50)')
     .addColumn('channelOwner', 'integer', (col) =>
       col.references('user.id').notNull(),
     )
