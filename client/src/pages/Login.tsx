@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 // import qrcode from './../../public/qrcode.png';
+// import qrcode from "./qrcode.png";
 import qrcode from "./qrcode.png";
 import { useAuth } from "../components/RequireAuth/AuthProvider";
 

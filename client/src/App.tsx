@@ -11,6 +11,7 @@ import { Login } from "./pages/Login";
 import { Dashboard } from "./pages/Dashboard";
 import { Register } from "./pages/Register";
 import { AuthProvider, useAuth } from "./components/RequireAuth/AuthProvider";
+import { Friends } from "./pages/Friends";
 
 function App() {
     return (
@@ -24,6 +25,7 @@ function App() {
                                 <Route path="/home" element={<Dashboard />} />
                                 <Route path="/play" element={<PongGame />} />
                                 <Route path="/create-account" element={<Register />} />
+                                <Route path="/friends" element={<Friends />} />
                             </Route>
                         </>
                     )

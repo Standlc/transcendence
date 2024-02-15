@@ -3,9 +3,14 @@ import defaultAvatar from "./defaultAvatar.png";
 
 interface Props {
     loginResponse: LoginResponse | null;
+    setCurrentPage: (page: string) => void;
 }
 
-export const ChanColumn: React.FC<Props> = ({ loginResponse }) => {
+export const ChanColumn: React.FC<Props> = ({ loginResponse, setCurrentPage }) => {
+    const handleFriendsClick = () => {
+        setCurrentPage("friends");
+    };
+
     return (
         <div className="bg-not-quite-black chan-column">
             <div
@@ -31,7 +36,9 @@ export const ChanColumn: React.FC<Props> = ({ loginResponse }) => {
                             d="M13 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"
                         ></path>
                     </svg>
-                    <div className="ml-5">Amis</div>
+                    <div className="ml-5">
+                        <button onClick={handleFriendsClick}>Amis</button>
+                    </div>
                 </div>
             </div>
             <div className="cell-chan  font-bold text-greyple hover:text-white hover:rounded-md text-sm text-left flex items-center justify-between">

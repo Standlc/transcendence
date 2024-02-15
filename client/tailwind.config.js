@@ -22,6 +22,7 @@ export default {
         'discord-red': '#ED4245',
         'discord-black': '#1E1F22',
         'almost-black': '#232529',
+        'bg-login': '#242424',
       },
     },
   },
