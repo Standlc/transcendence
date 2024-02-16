@@ -1,52 +1,69 @@
+import defaultAvatar from "../../../components/defaultAvatar.png";
+
 export const MonCompte = () => {
     return (
-        <div className="w-full h-full">
+        <div className="w-full ">
             <div className=" mb-5">
                 <h1 className="ml-10 mt-20 text-3xl text-left font-bold">Mon Compte</h1>
             </div>
             <div className="ml-10 items-center justify-center h-full">
                 <div className="rounded-t-xl settings-account-header"></div>
                 <div className="rounded-b-xl settings-account bg-discord-black flex items-center justify-center">
-                    <span>AVATAR</span>
-                    <span>Monpachi</span>
+                    <div className="flex flex-row">
+                        <div className="block rounded-full bg-greyple mt-4 mb-4 mr-[100px]">
+                            <img
+                                src={defaultAvatar}
+                                alt="avatar"
+                                className="w-32 h-32 "
+                            />
+                        </div>
+                        <div className="text-xl block font-bold mt-5 ">Monpachi</div>
+                    </div>
+
                     <div className="rounded-xl settings-account-body bg-discord-dark-grey">
-                        <div className="w-5/6 ml-5 mt-5 text-greyple text-left">
-                            <div className="flex justify-between items-center">
-                                <span>NOM D'AFFICHAGE</span>
-                                <button className="rounded-l bg-grey px-4 py-2">
-                                    Modifier
-                                </button>
+                        <div className="w-[500px] ml-5 mt-5 text-greyple text-left">
+                            <div>NOM D'AFFICHAGE</div>
+                            <div className="w-full flex block text-white">
+                                <div className=" w-full tata">
+                                    <div>Monpachi</div>
+                                    <button className=" rounded-l  px-4  py-2 bg-grey block text-right ">
+                                        Modifier
+                                    </button>
+                                </div>
                             </div>
-                            <div className="w-full text-white">
-                                <span>Monpachi</span>
+                        </div>
+                        <div className="w-[500px] ml-5 mt-5 text-greyple text-left">
+                            <div>NOM D'UTILASATEUR</div>
+                            <div className="w-full flex block text-white">
+                                <div className=" w-full tata">
+                                    <div>Monpachi</div>
+                                    <button className=" rounded-l  px-4  py-2 bg-grey block text-right ">
+                                        Modifier
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <div className="w-full ml-5 mt-5 text-greyple text-left">
-                            NOM D'UTILISATEUR
-                            <span className="w-full flex block text-white">
-                                Monpachi
-                                <button className="w-30 rounded-l bg-grey block text-right ">
-                                    Modifier
-                                </button>
-                            </span>
+                        <div className="w-[500px] ml-5 mt-5 text-greyple text-left">
+                            <div>EMAIL</div>
+                            <div className="w-full flex block text-white">
+                                <div className=" w-full tata">
+                                    <div>********@gmail.com</div>
+                                    <button className=" rounded-l  px-4  py-2 bg-grey block text-right ">
+                                        Modifier
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <div className="w-full ml-5 mt-5 text-greyple text-left">
-                            EMAIL
-                            <span className="w-full flex block text-white">
-                                ********@gmail.com
-                                <button className=" w-30 rounded-l  bg-grey block text-right ">
-                                    Modifier
-                                </button>
-                            </span>
-                        </div>
-                        <div className="w-full ml-5 mt-5 text-greyple text-left">
-                            NUMERO DE TELEPHONE
-                            <span className="w-full flex block text-white">
-                                **********
-                                <button className=" w-30 rounded-l  bg-grey block text-right ">
-                                    Modifier
-                                </button>
-                            </span>
+                        <div className="w-[500px] ml-5 mt-5 text-greyple text-left">
+                            <div>NUMERO</div>
+                            <div className="w-full flex block text-white">
+                                <div className=" w-full tata">
+                                    <div>0610912391</div>
+                                    <button className=" rounded-l  px-4  py-2 bg-grey block text-right ">
+                                        Modifier
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

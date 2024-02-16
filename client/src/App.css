@@ -114,9 +114,7 @@ input:focus {
 .settings {
     display: flex;
     flex-direction: column;
-    margin-left: 450px;
-    align-items: center;
-    justify-content: center;
+    margin-left: 300px;
 }
 
 .settings-account-header {
@@ -130,13 +128,23 @@ input:focus {
     display: flex;
     flex-direction: column;
     width: 550px;
-    height: 300px;
-    background-color: aquamarine;
+    height: 400px;
 }
 
 .settings-account {
     display: flex;
     flex-direction: column;
     width: 600px;
-    min-height: 500px;
+    min-height: 600px;
+}
+
+.test {
+    width: 100%;
+}
+
+.tata {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-between;
 }
