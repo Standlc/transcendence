@@ -24,7 +24,6 @@ export const Chatbox = () => {
                 </svg>
                 <div>Amis</div>
             </div>
-            {/* <h1>Chatbox</h1> */}
         </div>
     );
 };

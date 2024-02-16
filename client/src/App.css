@@ -110,3 +110,33 @@ input:focus {
     width: 85%;
     margin-left: 15px;
 }
+
+.settings {
+    display: flex;
+    flex-direction: column;
+    margin-left: 450px;
+    align-items: center;
+    justify-content: center;
+}
+
+.settings-account-header {
+    display: flex;
+    width: 600px;
+    height: 150px;
+    background-color: antiquewhite;
+}
+
+.settings-account-body {
+    display: flex;
+    flex-direction: column;
+    width: 550px;
+    height: 300px;
+    background-color: aquamarine;
+}
+
+.settings-account {
+    display: flex;
+    flex-direction: column;
+    width: 600px;
+    min-height: 500px;
+}

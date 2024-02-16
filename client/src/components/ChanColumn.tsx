@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { LoginResponse } from "./RequireAuth/AuthProvider";
 import defaultAvatar from "./defaultAvatar.png";
 
@@ -7,8 +8,13 @@ interface Props {
 }
 
 export const ChanColumn: React.FC<Props> = ({ loginResponse, setCurrentPage }) => {
+    const navigate = useNavigate();
     const handleFriendsClick = () => {
         setCurrentPage("friends");
+    };
+
+    const handleSettingClick = () => {
+        navigate("/settings");
     };
 
     return (
@@ -51,6 +57,7 @@ export const ChanColumn: React.FC<Props> = ({ loginResponse, setCurrentPage }) =
                 </span>
                 <span className=" font-bold mt-3"> {loginResponse?.username} </span>
                 <span className="text-greyple mt-10">En ligne</span>
+                <button onClick={handleSettingClick}>setting</button>
             </div>
         </div>
     );
