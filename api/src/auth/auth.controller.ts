@@ -30,7 +30,11 @@ export class AuthController {
    */
     @Get('redirect')
     @UseGuards(OauthGuard)
-    redirect(@Res() res: Response) {
+    async redirect(@Request() req, @Res() res: Response) {
+      const token: string = await this.authService.login(req.user.id);
+      let date = new Date();
+      date.setDate(date.getDate() + 7);
+      res.cookie('token', token, {expires: date});
       res.redirect('http://localhost:3000/');
     }
 

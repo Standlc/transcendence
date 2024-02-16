@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { db } from 'src/database';
 import { CreateUsersDto } from './dto/create-users.dto';
 import * as bcrypt from 'bcrypt';
 import { AppUser, ListUsers } from 'src/types/clientSchema';
 import { LoginUserDto } from './dto/login-user.dto';
+import { userFromIntra } from 'src/auth/oauth.strategy';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class UsersService {
@@ -24,6 +26,37 @@ export class UsersService {
       return 'success';
     } catch (error) {
       return 'error';
+    }
+  }
+
+  /**
+   * Create a user in the db for oauth, we generate a password for the user,
+   * but we don't communicate to them, since they will use oauth to connect.
+   * They will be able to change the password if they want to connect without
+   * oauth though.
+   * @param intraUser 
+   * @returns True if we correctly create a new user, false otherwise
+   * @throws InternalServerError if the db fail
+   */
+  async createOauthUser(intraUser: userFromIntra): Promise<boolean> {
+    try {
+      const hashedPassword = await bcrypt.hash(randomBytes(32), 10);
+      const result = await db
+      .insertInto('user')
+      .values({
+        email: intraUser.email,
+        username: intraUser.username,
+        avatarUrl: intraUser.avatarUrl,
+        firstname: intraUser.firstname,
+        lastname: intraUser.lastname,
+        password: hashedPassword
+      })
+      .executeTakeFirst();
+      if (result.numInsertedOrUpdatedRows === 0n)
+        return false;
+      return true;
+    } catch (error) {
+      throw new InternalServerErrorException();
     }
   }
 
@@ -67,7 +100,34 @@ export class UsersService {
     }
   }
 
-  async validateUser(loginUserDto: LoginUserDto): Promise<AppUser | undefined> {
+  //todo: recheck every function in this file
+
+  /**
+   * Looking for a user matching the email string passed as parameter.
+   * @param email 
+   * @returns an AppUser
+   * @throws NotFound if no user was found with this email
+   * @throws InternalServerError if we fail to use the db.
+   */
+  async getUserByEmail(email: string): Promise<AppUser> {
+    let user: AppUser | undefined;
+    try {
+      user = await db
+      .selectFrom('user')
+      .select(['avatarUrl', 'bio', 'createdAt', 'email', 'firstname', 'id', 'lastname', 'username'])
+      .where('email', '=', email)
+      .executeTakeFirst();
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
+    if (!user)
+      throw new NotFoundException();
+    return user;
+  }
+
+  //TODO : test la connexion, user not found, invalid password...
+  async validateUser(loginUserDto: LoginUserDto): Promise<AppUser> {
     try {
       const user = await db
       .selectFrom('user')
@@ -77,12 +137,14 @@ export class UsersService {
 
       const result = await bcrypt.compare(loginUserDto.password, user.password);
       if (!result)
-        return ;
+        throw new UnauthorizedException();
 
       const {password, ...appUser} = user;
       return appUser;
     } catch (error) {
-      return ;
+      if (error instanceof UnauthorizedException || error instanceof NotFoundException)
+        throw new UnauthorizedException;
+      throw new InternalServerErrorException();
     }
   }
 
