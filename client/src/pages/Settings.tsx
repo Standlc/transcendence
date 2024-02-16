@@ -29,19 +29,19 @@ export const Settings = () => {
                         onClick={() => handleClick("Mon Compte")}
                         className="mb-1  text-left hover:bg-discord-light-grey rounded"
                     >
-                        <span className="ml-2">Mon compte</span>
+                        <span className="ml-2 block py-2">Mon compte</span>
                     </button>
                     <button
                         onClick={() => handleClick("Profils")}
                         className="mb-1 text-left hover:bg-discord-light-grey rounded"
                     >
-                        <span className="ml-2">Profils</span>
+                        <span className="ml-2 block py-2 ">Profils</span>
                     </button>
                     <button
                         onClick={() => handleClick("Deconnetion")}
                         className="mb-1 text-left hover:bg-discord-light-grey rounded"
                     >
-                        <span className="ml-2">Deconnection</span>
+                        <span className="ml-2 block py-2">Deconnection</span>
                     </button>
                 </div>
             </div>
