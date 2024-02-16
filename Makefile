@@ -97,8 +97,8 @@ purge:	clean
 			echo -n "Warning ! You are going to delete every docker container and image on your pc, are you sure to continue ? [y/N]\n"
 			read choice; \
 			if [ "$$choice" = "y" ]; then \
-				docker volume rm $(VOLUME) 2>/dev/null; \
-				echo -n "🗑️  '$(VOLUME)' has been deleted.\n"; \
+				docker volume rm $$(docker volume ls -q) 2>/dev/null; \
+				echo -n "🗑️  Every volume has been deleted.\n"; \
 				docker builder prune -a -f; \
 				echo -n "🗑️  'Builder cache' has been deleted.\n"; \
 				docker buildx prune -a -f; \
