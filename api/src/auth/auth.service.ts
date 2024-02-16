@@ -3,6 +3,7 @@ import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { LoginUserDto } from 'src/users/dto/login-user.dto';
 import { AppUser } from 'src/types/clientSchema';
+import { userFromIntra } from './oauth.strategy';
 
 @Injectable()
 export class AuthService {
@@ -13,8 +14,16 @@ export class AuthService {
    * @param loginUserDto
    * @returns AppUser or null
    */
-  async validateUser(loginUserDto: LoginUserDto): Promise<AppUser | undefined> {
+  async validateUser(loginUserDto: LoginUserDto): Promise<AppUser> {
     return await this.usersService.validateUser(loginUserDto);
+  }
+
+  async validateEmail(email: string): Promise<AppUser> {
+    return await this.usersService.getUserByEmail(email);
+  }
+
+  async registerOauth(intraUser: userFromIntra): Promise<boolean> {
+    return await this.usersService.createOauthUser(intraUser);
   }
 
   /**

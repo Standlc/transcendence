@@ -15,7 +15,7 @@ export class UsersController {
    * @param body
    * @returns 'success' if the user register, otherwise 'error' is returned.
    */
-  @ApiCreatedResponse({type: 'success'})
+  @ApiCreatedResponse()
   @Post('register')
   async createUser(@Body() body: CreateUsersDto): Promise<string> {
     return await this.usersService.createUser(body);
