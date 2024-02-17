@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, NotAcceptableException, UnauthorizedException, UnprocessableEntityException } from "@nestjs/common";
+import { Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { Strategy } from "passport-oauth2";
 import { AuthService } from "./auth.service";
@@ -139,8 +139,8 @@ export class Oauth2Strategy extends PassportStrategy(Strategy) {
     super({
       authorizationURL: 'https://api.intra.42.fr/oauth/authorize',
       tokenURL: 'https://api.intra.42.fr/oauth/token',
-      clientID: 'u-s4t2ud-bfc3bd01981c3981040a3dad1e9dd27fb360884521e5e00d29a603717305c64a',
-      clientSecret: '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',
+      clientID: process.env.CLIENT_ID,
+      clientSecret: process.env.API_KEY,
       callbackURL: 'http://localhost:3000/api/auth/redirect',
       scope: 'public'
     }); //config
@@ -182,7 +182,7 @@ export class Oauth2Strategy extends PassportStrategy(Strategy) {
     try {
       user = await this.authService.validateEmail(intraUser.email);
     } catch (error) {
-      if (error instanceof InternalServerErrorException) {
+      if (!(error instanceof NotFoundException)) {
         console.log(error);
         throw error;
       }
@@ -195,9 +195,14 @@ export class Oauth2Strategy extends PassportStrategy(Strategy) {
           throw "Fail to create a user";
       } catch (error) {
         console.log(error);
-        throw new UnauthorizedException();
+        throw error;
       }
-      user = await this.authService.validateEmail(intraUser.email);
+      try {
+        user = await this.authService.validateEmail(intraUser.email);
+      } catch (error) {
+        console.log(error);
+        throw error;
+      }
     }
     return user;
   }
