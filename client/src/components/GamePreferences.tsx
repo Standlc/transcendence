@@ -1,162 +1,131 @@
-import {
-  ArrowDropDownRounded,
-  ArrowDropUpRounded,
-  VolumeUpRounded,
-} from "@mui/icons-material";
-import { GamePreferencesType, GameStylesType } from "../types/game";
-import { PublicGameRequestDto } from "../../../api/src/types/games/gameRequestsDto";
-import { useContext, useEffect, useState } from "react";
-import { GameSocketContext } from "../ContextsProviders/GameSocketContext";
-import { GAME_STYLES } from "../utils/game/gameBackgrounds";
-import { useMutation } from "@tanstack/react-query";
-import axios from "axios";
-import { WsError } from "../../../api/src/types/games/socketPayloadTypes";
-import { ErrorContext } from "../ContextsProviders/ErrorContext";
+import { Tune } from "@mui/icons-material";
+import { BALL_STYLES, BOARD_STYLES, GAME_POINTS } from "../types/game";
+import { useContext } from "react";
+import { GameSettingsContext } from "../ContextsProviders/GameSettingsContext";
+import { useSound } from "../utils/game/useSoundEffects";
 
-export default function GamePreferences({
-  preferences,
-  setPreferences,
-  setIsSearchingGame,
-}: {
-  preferences: GamePreferencesType;
-  setPreferences: React.Dispatch<React.SetStateAction<GamePreferencesType>>;
-  setIsSearchingGame: React.Dispatch<React.SetStateAction<boolean>>;
-}) {
-  const socket = useContext(GameSocketContext);
-  const { setError } = useContext(ErrorContext);
-
-  const findGame = useMutation({
-    mutationKey: ["findMatch", preferences],
-    mutationFn: async () => {
-      setIsSearchingGame(true);
-      const payload: PublicGameRequestDto = {
-        points: preferences.points,
-        powerUps: preferences.powerUps,
-      };
-      const res = await axios.post<any>("/api/game-requests", payload);
-      return res.data;
-    },
-  });
-
-  const updatePreferences = (field: keyof GamePreferencesType, value: any) => {
-    preferences[field] = value as never;
-    setPreferences({
-      ...preferences,
-    });
-    console.log(preferences);
-    localStorage.setItem("gamePreferences", JSON.stringify(preferences));
-  };
-
-  useEffect(() => {
-    const handleSocketError = (error: WsError) => {
-      setIsSearchingGame(false);
-      setError({
-        message: "Could not join the game",
-      });
-    };
-
-    socket.on("error", handleSocketError);
-    return () => {
-      socket.off("error", handleSocketError);
-      socket.emit("cancelGameRequest");
-    };
-  }, [socket]);
+export default function GamePreferences({ hide }: { hide: () => void }) {
+  const { gameSettings, upadteGameSetting } = useContext(GameSettingsContext);
+  const soundEffect = useSound("/pong_wall_hit_sound.mp3");
 
   return (
-    <div
-      style={
-        {
-          // backgroundColor: GAME_STYLES[preferences.style].bg,
-        }
-      }
-      className="z-[1] absolute flex items-center justify-center top-0 h-full w-full bg-zinc-900"
-    >
-      <Setting>
-        <VolumeUpRounded />
-      </Setting>
+    <div className="flex max-h-full flex-col gap-5 flex-[2] p-5 bg-white bg-opacity-5 rounded-lg">
+      <div className="font-[900] text-2xl flex items-center gap-2">
+        <Tune />
+        <span>Game Settings</span>
+      </div>
 
-      <Setting>10</Setting>
-      <Setting>🦄</Setting>
-      {/* <button
-        onClick={() => findGame.mutate()}
-        className="hover:-translate-y-[1px] active:translate-y-0 py-2 px-5 rounded-md bg-indigo-600 font-title font-[900] text-2xl shadow-button"
-      >
-        Play
-      </button> */}
-      {/* 
-      <div className="font-title flex flex-col gap-3">
-        <DropDownOptions title="Gameplay">
+      <div className="flex flex-col gap-3">
+        <span className="text-sm opacity-50 font-extrabold">GAMEPLAY</span>
+        <Setting
+          title="Sound Effects"
+          onClick={() => {
+            soundEffect.play();
+            upadteGameSetting("soundEffects", !gameSettings.soundEffects);
+          }}
+        >
           <div
-            aria-selected={preferences.powerUps}
-            onClick={() => updatePreferences("powerUps", !preferences.powerUps)}
-            className="aria-selected:bg-indigo-600 aria-selected:bg-opacity-10 aria-selected:shadow-[inset_0_0_0_2px_rgb(79,70,229,0.5)] flex hover:bg-white hover:bg-opacity-10 cursor-pointer items-center justify-between rounded-md bg-transparent py-2 px-4 transition-shadow"
+            aria-selected={gameSettings.soundEffects}
+            className="aria-selected:text-green-500 text-red-500"
           >
-            <span>Power ups</span>
+            {gameSettings.soundEffects ? "On" : "Off"}
           </div>
-        </DropDownOptions>
+        </Setting>
 
-        <DropDownOptions title="Points">
-          {[3, 20, 1000].map((value) => {
-            return (
-              <div
-                key={value}
-                aria-selected={value === preferences.points}
-                onClick={() => updatePreferences("points", value)}
-                className={`hover:bg-opacity-10 hover:bg-white aria-selected:bg-indigo-600 aria-selected:bg-opacity-10 aria-selected:shadow-[inset_0_0_0_2px_rgb(79,70,229,0.5)] transition-shadow flex cursor-pointer items-center justify-center flex-1 py-2 rounded-lg`}
-              >
-                {value}
-              </div>
-            );
-          })}
-        </DropDownOptions>
+        <Setting
+          title="Power Ups"
+          onClick={() => {
+            upadteGameSetting("powerUps", !gameSettings.powerUps);
+          }}
+        >
+          <div
+            aria-selected={gameSettings.powerUps}
+            className="aria-selected:text-green-500 text-red-500"
+          >
+            {gameSettings.powerUps ? "On" : "Off"}
+          </div>
+        </Setting>
 
-        <DropDownOptions title="Background">
-          {Object.keys(GAME_STYLES).map((key, i) => {
-            return (
-              <div
-                aria-selected={preferences.style === key}
-                key={i}
-                onClick={() => updatePreferences("style", key)}
-                style={{
-                  backgroundColor: GAME_STYLES[key as GameStylesType].bg,
-                }}
-                className="flex overflow-hidden cursor-pointer before:content-[''] before:w-[50%] before:bg-[rgba(0,0,0,0.2)] aspect-square rounded-lg flex-1 max-w-[40px] transition-shadow aria-selected:shadow-[inset_0_0_0_2px_rgb(79,70,229,0.5)]"
-              ></div>
-            );
-          })}
-        </DropDownOptions>
-      </div> */}
+        <Setting
+          title="Points"
+          onClick={() => {
+            const index = GAME_POINTS.indexOf(gameSettings.points);
+            const nextIndex = index + 1 >= GAME_POINTS.length ? 0 : index + 1;
+            upadteGameSetting("points", GAME_POINTS[nextIndex]);
+          }}
+        >
+          {gameSettings.points}
+        </Setting>
+
+        <span className="text-sm opacity-50 font-extrabold mt-2">STYLE</span>
+        <Setting
+          title="Board"
+          onClick={() => {
+            const index = BOARD_STYLES.indexOf(gameSettings.style);
+            const nextIndex = index + 1 >= BOARD_STYLES.length ? 0 : index + 1;
+            upadteGameSetting("style", BOARD_STYLES[nextIndex]);
+          }}
+        >
+          {gameSettings.style}
+        </Setting>
+
+        <Setting
+          title="Ball"
+          onClick={() => {
+            const index = BALL_STYLES.indexOf(gameSettings.ballStyle);
+            const nextIndex = index + 1 >= BALL_STYLES.length ? 0 : index + 1;
+            upadteGameSetting("ballStyle", BALL_STYLES[nextIndex]);
+          }}
+        >
+          {gameSettings.ballStyle}
+        </Setting>
+      </div>
+
+      <button
+        onClick={hide}
+        className="bg-white bg-opacity-0 rounded-md opacity-50 hover:opacity-100 font-extrabold self-end justify-self-end mt-auto"
+      >
+        Done
+      </button>
     </div>
   );
 }
 
-const Setting = ({ children }: { children: any }) => {
+const Setting = ({
+  title,
+  onClick,
+  children,
+}: {
+  title: string;
+  onClick: () => void;
+  children: any;
+}) => {
   return (
-    <div className="flex cursor-pointer items-center rounded-md justify-center w-[35px] h-[35px] hover:bg-indigo-600">
-      {children}
+    <div
+      onClick={onClick}
+      className="flex select-none justify-between cursor-pointer items-center rounded-md hover:bg-opacity-15 active:translate-y-[1px] p-5 shadow-inset bg-white bg-opacity-5"
+    >
+      <span className="font-extrabold">{title}</span>
+      <div className="font-extrabold">{children}</div>
     </div>
   );
 };
 
-export function DropDownOptions({
-  title,
-  children,
-}: {
-  title: string;
-  children: any;
-}) {
-  const [isShown, setIsShown] = useState(false);
-
-  return (
-    <div className="flex flex-col gap-2">
-      <div
-        onClick={() => setIsShown(!isShown)}
-        className="cursor-pointer flex justify-between"
-      >
-        <span className="font-title font-[900] text-xl">{title}</span>
-        {isShown ? <ArrowDropUpRounded /> : <ArrowDropDownRounded />}
-      </div>
-      <div className="flex gap-2 flex-wrap">{isShown && children}</div>
-    </div>
-  );
-}
+// const OnOffSwitch = ({ isOn }: { isOn: boolean }) => {
+//   return (
+//     <div className="flex text-sm font-[700] items-center">
+//       <div
+//         aria-selected={!isOn}
+//         className="px-[5px] bg-red-500 aria-selected:opacity-100 opacity-10"
+//       >
+//         Off
+//       </div>
+//       <div
+//         // aria-selected={isOn}
+//         className="px-[5px] bg-indigo-600 aria-selected:opacity-100 opacity-100"
+//       >
+//         On
+//       </div>
+//     </div>
+//   );
+// };

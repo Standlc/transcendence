@@ -1,7 +1,9 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
+  Get,
   NotFoundException,
   Post,
   Request,
@@ -12,6 +14,7 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { UsersService } from 'src/users/users.service';
 import { GameInviteResponseType } from 'src/types/games/apiInputTypes';
 import {
+  AppGameRequest,
   PrivateGameRequestDto,
   PublicGameRequestDto,
 } from 'src/types/games/gameRequestsDto';
@@ -29,6 +32,9 @@ export class GameRequestsController {
     @Body() body: PublicGameRequestDto,
     @Request() req: Request & { user: { id: number } },
   ) {
+    if (body.points > 42 || body.points < 10) {
+      throw new BadRequestException();
+    }
     const userId: number = req.user.id;
     await this.gameRequests.delete(userId);
     await this.gameRequests.handleFindMatch(body, userId);
@@ -57,6 +63,16 @@ export class GameRequestsController {
     } catch (error) {
       throw new NotFoundException();
     }
+  }
+
+  @Get('')
+  async getGameRequest(@Request() req): Promise<AppGameRequest | undefined> {
+    const userId: number = req.user.id;
+    const gameRequest = await this.gameRequests.getUserCurrentGameRequest(
+      userId,
+      true,
+    );
+    return gameRequest;
   }
 
   @Delete('/')

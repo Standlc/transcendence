@@ -1,41 +1,60 @@
-import { memo, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { UserContext } from "../../ContextsProviders/UserContext";
-import { GameSocketContext } from "../../ContextsProviders/GameSocketContext";
 import {
+  MutableRefObject,
+  memo,
+  useContext,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  BallType,
   GameStateType,
   ObjectType,
+  PlayerType,
 } from "../../../../api/src/types/games/pongGameTypes";
-import { WsPlayerMove } from "../../../../api/src/types/games/socketPayloadTypes";
 import {
   CANVAS_H,
   CANVAS_W,
-} from "../../../../api/src/pong/gameLogic/gamePositions";
-import { SoundEffects } from "./GameSoundEffects";
-import { PowerUp } from "./PowerUp";
-
-const SERVER_FPP = 15;
-const VELOCITY_RATIO = 1;
-
-const MOVE_MAP: Record<string, "up" | "down"> = {
-  ArrowUp: "up",
-  ArrowDown: "down",
-};
+} from "../../../../api/src/pong/gameLogic/constants";
+import {
+  BALL_HIT_TYPE,
+  bounceBallAndMovePaddles,
+} from "../../../../api/src/pong/gameLogic/bounceBall";
+import { useSoundEffects } from "../../utils/game/useSoundEffects";
+import { POWER_UPS_EMOJIS } from "../../utils/game/sprites";
+import { BALL_STYLES_IMAGES } from "../../utils/game/ballStyles";
+import { GameSettingsContext } from "../../ContextsProviders/GameSettingsContext";
+import { boundingBoxIntersection } from "../../../../api/src/pong/gameLogic/collisions";
 
 interface props {
-  game: GameStateType;
-  gameId?: number;
+  gameRef: MutableRefObject<GameStateType>;
   isPaused: boolean;
 }
 
-const GameCanvas = memo(({ game, gameId, isPaused }: props) => {
-  const socket = useContext(GameSocketContext);
-  const { user } = useContext(UserContext);
+const GameCanvas = memo(({ gameRef, isPaused }: props) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [currMove, setCurrMove] = useState<"stop" | "up" | "down">("stop");
-  const isUserAPlayer = useMemo(
-    () => game.playerOne.id === user.id || game.playerTwo.id === user.id,
-    [user.id, game.playerOne.id, game.playerTwo.id]
-  );
+  const { gameSettings } = useContext(GameSettingsContext);
+  const [ballImg, setBallImg] = useState<HTMLImageElement | null>(null);
+  const soundEffects = useSoundEffects();
+  const ballRotation = useRef(0);
+  const playerOnePowerUpFrame = useRef(0);
+  const playerTwoPowerUpFrame = useRef(0);
+  const somePlayerScored = useRef(false);
+
+  useLayoutEffect(() => {
+    if (gameSettings.ballStyle !== "Classic") {
+      const img = new Image();
+      img.onload = () => {
+        setBallImg(img);
+      };
+      const imgUrl = BALL_STYLES_IMAGES[gameSettings.ballStyle];
+      if (imgUrl) {
+        img.src = imgUrl;
+      }
+    } else {
+      setBallImg(null);
+    }
+  }, [gameSettings.ballStyle]);
 
   const drawRect = (
     ctx: CanvasRenderingContext2D,
@@ -46,62 +65,89 @@ const GameCanvas = memo(({ game, gameId, isPaused }: props) => {
     ctx.fillRect(obj.x, obj.y, obj.w, obj.h);
   };
 
+  const drawPowerUp = (
+    ctx: CanvasRenderingContext2D,
+    player: PlayerType,
+    frameRef: MutableRefObject<number>
+  ) => {
+    if (player.powerUp && !player.powerUp.isCollected) {
+      const { powerUp } = player;
+      ctx.font = `${powerUp.h}px Arial`;
+      const index = Math.floor(frameRef.current / 10);
+      ctx.fillText(POWER_UPS_EMOJIS[index], powerUp.x, powerUp.y + powerUp.h);
+      frameRef.current++;
+      if (Math.floor(frameRef.current / 10) >= POWER_UPS_EMOJIS.length) {
+        frameRef.current = 0;
+      }
+    }
+  };
+
+  const drawBall = (ctx: CanvasRenderingContext2D, ball: BallType) => {
+    ctx.fillStyle = "white";
+    ctx.translate(ball.x + ball.w / 2, ball.y + ball.h / 2);
+    ctx.rotate((ballRotation.current * Math.PI) / 180);
+    if (ballImg) {
+      const factor = 0.85;
+      ctx.drawImage(
+        ballImg,
+        -ball.w / (2 * factor),
+        -ball.h / (2 * factor),
+        ball.w / factor,
+        ball.h / factor
+      );
+    } else {
+      ctx.fillRect(-ball.w / 2, -ball.h / 2, ball.w, ball.h);
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    if (ball.aY) {
+      ballRotation.current += 30;
+    } else {
+      ballRotation.current = 0;
+    }
+  };
+
   const drawGame = (
     canvas: HTMLCanvasElement,
     ctx: CanvasRenderingContext2D,
     game: GameStateType
   ) => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawMiddleSeparation(ctx);
-    ctx.fillStyle = "white";
-    drawRect(ctx, game.ball, "white");
+    drawPowerUp(ctx, game.playerOne, playerOnePowerUpFrame);
+    drawPowerUp(ctx, game.playerTwo, playerTwoPowerUpFrame);
+    drawBall(ctx, game.ball);
     drawRect(ctx, game.playerOne, "white");
     drawRect(ctx, game.playerTwo, "white");
   };
 
-  const drawMiddleSeparation = (ctx: CanvasRenderingContext2D) => {
-    const posX = CANVAS_W / 2;
+  const handlePowerUpSound = (player: PlayerType) => {
+    if (!player.powerUp || player.powerUp.isCollected) return;
 
-    ctx.strokeStyle = "rgba(255,255,255,0.25)";
-    ctx.translate(0, 17);
-    ctx.beginPath();
-    ctx.setLineDash([34, 34]);
-    ctx.lineWidth = 8;
-    ctx.moveTo(posX, 0);
-    ctx.lineTo(posX, CANVAS_H);
-    ctx.stroke();
-    ctx.translate(0, -17);
+    if (boundingBoxIntersection(player, player.powerUp)) {
+      soundEffects.powerUp();
+      player.powerUp.isCollected = true;
+    }
   };
 
-  const movePaddle = (paddle: ObjectType, deltaTime: number) => {
-    const newPosY =
-      paddle.y + paddle.vY * SERVER_FPP * deltaTime * VELOCITY_RATIO;
+  const handleSoundEffects = (game: GameStateType, bounceType: number) => {
+    const { ball, playerOne, playerTwo } = game;
 
-    if (newPosY <= 0) {
-      paddle.y = 0;
-    } else if (newPosY + paddle.h > CANVAS_H) {
-      paddle.y = CANVAS_H - paddle.h;
+    if (ball.x <= 0 || ball.x + ball.w >= CANVAS_W) {
+      if (!somePlayerScored.current) soundEffects.score();
+      somePlayerScored.current = true;
     } else {
-      paddle.y = newPosY;
+      somePlayerScored.current = false;
+      if (bounceType === BALL_HIT_TYPE.WALL) {
+        soundEffects.wallHit();
+      } else if (bounceType === BALL_HIT_TYPE.PADDLE) {
+        soundEffects.paddleHit();
+      }
     }
+    handlePowerUpSound(playerOne);
+    handlePowerUpSound(playerTwo);
   };
 
-  function bounceBallVertically(ball: ObjectType) {
-    if (ball.y <= 0) {
-      ball.y = -ball.y * 2;
-      ball.vY *= -1;
-    } else if (ball.y + ball.h >= CANVAS_H) {
-      ball.y -= (ball.y + ball.h - CANVAS_H) * 2;
-      ball.vY *= -1;
-    }
-  }
-
-  const moveObject = (object: ObjectType, deltaTime: number) => {
-    object.x += object.vX * SERVER_FPP * deltaTime * VELOCITY_RATIO;
-    object.y += object.vY * SERVER_FPP * deltaTime * VELOCITY_RATIO;
-  };
-
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -112,17 +158,16 @@ const GameCanvas = memo(({ game, gameId, isPaused }: props) => {
 
     const draw = () => {
       animationFrameId = requestAnimationFrame((now) => {
-        const { ball, playerOne, playerTwo } = game;
+        if (!gameRef.current) return;
         const deltaTime = prev ? (now - prev) / 1000 : 0;
         prev = now;
-        moveObject(ball, deltaTime);
-        movePaddle(playerOne, deltaTime);
-        movePaddle(playerTwo, deltaTime);
-        bounceBallVertically(game.ball);
-        drawGame(canvas, ctx, game);
-        if (!isPaused) {
-          draw();
+
+        drawGame(canvas, ctx, gameRef.current);
+        const bounceType = bounceBallAndMovePaddles(gameRef.current, deltaTime);
+        if (gameSettings.soundEffects) {
+          handleSoundEffects(gameRef.current, bounceType);
         }
+        if (!isPaused) draw();
       });
     };
     draw();
@@ -130,51 +175,15 @@ const GameCanvas = memo(({ game, gameId, isPaused }: props) => {
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [canvasRef.current, socket, game, isPaused]);
-
-  useEffect(() => {
-    if (!isUserAPlayer || !gameId || isPaused) return;
-    const payload: WsPlayerMove = { gameId, move: currMove };
-    socket.emit("playerMove", payload);
-  }, [currMove, socket, isUserAPlayer, gameId, isPaused]);
-
-  useEffect(() => {
-    if (!isUserAPlayer || !gameId || isPaused) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-        setCurrMove(MOVE_MAP[e.key]);
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (
-        (e.key === "ArrowUp" && currMove === "up") ||
-        (e.key === "ArrowDown" && currMove === "down")
-      ) {
-        setCurrMove("stop");
-      }
-    };
-
-    addEventListener("keydown", handleKeyDown);
-    addEventListener("keyup", handleKeyUp);
-    return () => {
-      removeEventListener("keydown", handleKeyDown);
-      removeEventListener("keyup", handleKeyUp);
-    };
-  }, [currMove, isUserAPlayer, isPaused]);
+  }, [isPaused, gameSettings.soundEffects, soundEffects, ballImg]);
 
   return (
-    <>
-      <canvas
-        ref={canvasRef}
-        height={CANVAS_H}
-        width={CANVAS_W}
-        className="[image-rendering:pixelated] h-full w-full"
-      />
-      <PowerUp powerUp={game.powerUp} />
-      <SoundEffects ballVelocityX={game.ball.vX} ballVelocityY={game.ball.vY} />
-    </>
+    <canvas
+      ref={canvasRef}
+      height={CANVAS_H}
+      width={CANVAS_W}
+      className="[image-rendering:pixelated] h-full w-full"
+    />
   );
 });
 

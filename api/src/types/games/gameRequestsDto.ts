@@ -12,6 +12,14 @@ export type PrivateGameRequestDto = {
   targetId: number;
 };
 
+export type AppGameRequest = {
+  createdAt: Date;
+  points: number;
+  powerUps: boolean;
+  targetId: number | null;
+  userId: number;
+};
+
 // export type GameRequestType = GameRequestDto & {
 //   userId: number;
 //   targetId?: number;

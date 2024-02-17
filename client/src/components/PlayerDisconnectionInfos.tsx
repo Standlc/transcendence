@@ -4,6 +4,7 @@ import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
 import { UserContext } from "../ContextsProviders/UserContext";
 import { AppGame } from "../../../api/src/types/games/returnTypes";
 import { WsPlayerDisconnection } from "../../../api/src/types/games/socketPayloadTypes";
+import { PlayerQuickInfos } from "./GameFinishedCard";
 
 export default function PlayerDisconnectionInfos({
   disconnectionInfo,
@@ -15,8 +16,7 @@ export default function PlayerDisconnectionInfos({
   const { user } = useContext(UserContext);
 
   const players = useMemo(() => {
-    if (!gameRecord.playerOne || !gameRecord.playerTwo)
-      return undefined;
+    if (!gameRecord.playerOne || !gameRecord.playerTwo) return undefined;
     if (disconnectionInfo.userId === gameRecord.playerOne?.id) {
       return {
         disconnected: gameRecord.playerOne,
@@ -34,28 +34,46 @@ export default function PlayerDisconnectionInfos({
   }
 
   return (
-    <div className="font-title flex-col gap-5 bg-opacity-100 p-5 flex items-center justify-center border-solid border-[rgb(255,255,255,0.2)] rounded-lg">
-      <div className="text-2xl font-title flex items-end rounded-lg">
-        <div className="mr-3">
-          <Avatar
-            imgUrl={players.disconnected.avatarUrl}
-            size="md"
-            userId={players.disconnected.id}
-          />
+    <div className="font-title flex-col gap-5 p-5 flex items-center justify-center rounded-lg">
+      <div className="text-3xl font-title flex flex-col items-center gap-5 rounded-lg">
+        <div className="font-extrabold mb-2">
+          <span className="mr-2">{players.disconnected.username}</span>
+          <span>left the game</span>
         </div>
-
-        <span className="font-[700] mr-2">{players.disconnected.username}</span>
-        <span className="font-[700]">left the game</span>
       </div>
 
-      <div className="flex justify-start gap-2 text-white opacity-50">
-        <span className="text-xl font-title">
+      <div className="flex flex-col gap-5 justify-center w-full">
+        <PlayerQuickInfos
+          player={gameRecord.playerOne}
+          winnerId={players.other.id}
+          isDisconnected={players.disconnected.id === gameRecord.playerOne?.id}
+        />
+
+        <span className="flex absolute items-center gap-2 self-center font-gameFont text-xl">
+          <span>{gameRecord.playerOne?.score ?? "Unkown"}</span>
+          <span className="text-xs">-</span>
+          <span>{gameRecord.playerTwo?.score ?? "Unkown"}</span>
+        </span>
+
+        <PlayerQuickInfos
+          player={gameRecord.playerTwo}
+          winnerId={players.other.id}
+          isDisconnected={players.disconnected.id === gameRecord.playerTwo?.id}
+          style={{
+            flexDirection: "row-reverse",
+            alignItems: "end",
+          }}
+        />
+      </div>
+
+      <div className="flex flex-col items-center justify-start gap-2 text-white mt-2">
+        <span className="text-3xl font-extrabold">
           {players.other.id === user.id
-            ? "You win"
+            ? "You win "
             : players.other.username + " wins "}
           in
         </span>
-        <span className="text-xl font-title">
+        <span className="text-7xl font-extrabold">
           <InfiniteSlotMachine state={disconnectionInfo.secondsUntilEnd} />
         </span>
       </div>
