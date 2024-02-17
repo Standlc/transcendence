@@ -20,7 +20,7 @@ export class AuthController {
    */
   @Get('oauth')
   @UseGuards(OauthGuard)
-  async login() {
+  login() {
     return ;
   }
 
