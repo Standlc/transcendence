@@ -3,9 +3,10 @@ import { db } from 'src/database';
 import { CreateUsersDto } from './dto/create-users.dto';
 import * as bcrypt from 'bcrypt';
 import { AppUser, ListUsers } from 'src/types/clientSchema';
-import { LoginUserDto } from './dto/login-user.dto';
 import { userFromIntra } from 'src/auth/oauth.strategy';
 import { randomBytes } from 'crypto';
+import { User } from 'src/types/schema';
+import { Selectable } from 'kysely';
 
 @Injectable()
 export class UsersService {
@@ -60,21 +61,29 @@ export class UsersService {
     }
   }
 
-  async getUserById(userId: number): Promise<AppUser | undefined> {
+  /**
+   * Look for userId in the db
+   * @param userId 
+   * @returns AppUser
+   */
+  async getUserById(userId: number): Promise<AppUser> {
+    let user: Selectable<User> | undefined;
     try {
       //? Fetch the databse and search for a user with userId
-      const user = await db
+      user = await db
       .selectFrom('user')
       .selectAll()
       .where('id', '=', userId)
-      .executeTakeFirstOrThrow();
-
-      //? Create a AppUser containing every field, except password.
-      const {password, ...appUser} = user;
-      return appUser;
+      .executeTakeFirst();
     } catch (error) {
-      return undefined;
+      console.log(error);
+      throw new InternalServerErrorException();
     }
+    if (!user)
+      throw new NotFoundException();
+    //? Create a AppUser containing every field, except password.
+    const {password, ...appUser} = user;
+    return appUser;
   }
 
   async findUsersByName(substring: string): Promise<AppUser[] | null> {
@@ -100,8 +109,6 @@ export class UsersService {
     }
   }
 
-  //todo: recheck every function in this file
-
   /**
    * Looking for a user matching the email string passed as parameter.
    * @param email 
@@ -126,16 +133,24 @@ export class UsersService {
     return user;
   }
 
-  //TODO : test la connexion, user not found, invalid password...
-  async validateUser(loginUserDto: LoginUserDto): Promise<AppUser> {
+  /**
+   * Look for the username in the db, compare the password, return user,
+   * without password if the password match.
+   * @param name 
+   * @param pass 
+   * @returns AppUser
+   */
+  async validateUser(name: string, pass: string): Promise<AppUser> {
     try {
       const user = await db
       .selectFrom('user')
       .selectAll()
-      .where('username', '=', loginUserDto.username)
-      .executeTakeFirstOrThrow();
+      .where('username', '=', name)
+      .executeTakeFirst();
+      if (!user)
+        throw new NotFoundException();
 
-      const result = await bcrypt.compare(loginUserDto.password, user.password);
+      const result = await bcrypt.compare(pass, user.password);
       if (!result)
         throw new UnauthorizedException();
 
