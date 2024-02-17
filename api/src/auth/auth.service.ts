@@ -18,10 +18,20 @@ export class AuthService {
     return await this.usersService.validateUser(loginUserDto);
   }
 
+  /**
+   * Validate if the email we receive exist in our db.
+   * @param email 
+   * @returns AppUser -> pass throw if no AppUser was found.
+   */
   async validateEmail(email: string): Promise<AppUser> {
     return await this.usersService.getUserByEmail(email);
   }
 
+  /**
+   * Wrap userService createOauthUser
+   * @param intraUser 
+   * @returns true or false
+   */
   async registerOauth(intraUser: userFromIntra): Promise<boolean> {
     return await this.usersService.createOauthUser(intraUser);
   }
