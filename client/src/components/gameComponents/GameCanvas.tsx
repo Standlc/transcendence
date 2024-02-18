@@ -31,14 +31,14 @@ interface props {
   isPaused: boolean;
 }
 
+const POWER_UP_FRAME_CHANGE_RATE_MS = 333;
+
 const GameCanvas = memo(({ gameRef, isPaused }: props) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { gameSettings } = useContext(GameSettingsContext);
   const [ballImg, setBallImg] = useState<HTMLImageElement | null>(null);
   const soundEffects = useSoundEffects();
-  const ballRotation = useRef(0);
-  const playerOnePowerUpFrame = useRef(0);
-  const playerTwoPowerUpFrame = useRef(0);
+  const timeSinceGameStartMs = useRef(0);
   const somePlayerScored = useRef(false);
 
   useLayoutEffect(() => {
@@ -65,27 +65,25 @@ const GameCanvas = memo(({ gameRef, isPaused }: props) => {
     ctx.fillRect(obj.x, obj.y, obj.w, obj.h);
   };
 
-  const drawPowerUp = (
-    ctx: CanvasRenderingContext2D,
-    player: PlayerType,
-    frameRef: MutableRefObject<number>
-  ) => {
+  const drawPowerUp = (ctx: CanvasRenderingContext2D, player: PlayerType) => {
     if (player.powerUp && !player.powerUp.isCollected) {
       const { powerUp } = player;
+      const index = Math.floor(
+        (timeSinceGameStartMs.current %
+          (POWER_UPS_EMOJIS.length * POWER_UP_FRAME_CHANGE_RATE_MS)) /
+          POWER_UP_FRAME_CHANGE_RATE_MS
+      );
       ctx.font = `${powerUp.h}px Arial`;
-      const index = Math.floor(frameRef.current / 10);
       ctx.fillText(POWER_UPS_EMOJIS[index], powerUp.x, powerUp.y + powerUp.h);
-      frameRef.current++;
-      if (Math.floor(frameRef.current / 10) >= POWER_UPS_EMOJIS.length) {
-        frameRef.current = 0;
-      }
     }
   };
 
   const drawBall = (ctx: CanvasRenderingContext2D, ball: BallType) => {
     ctx.fillStyle = "white";
     ctx.translate(ball.x + ball.w / 2, ball.y + ball.h / 2);
-    ctx.rotate((ballRotation.current * Math.PI) / 180);
+    if (ball.aY) {
+      ctx.rotate((timeSinceGameStartMs.current * 0.5 * Math.PI) / 180);
+    }
     if (ballImg) {
       const factor = 0.85;
       ctx.drawImage(
@@ -99,12 +97,6 @@ const GameCanvas = memo(({ gameRef, isPaused }: props) => {
       ctx.fillRect(-ball.w / 2, -ball.h / 2, ball.w, ball.h);
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-    if (ball.aY) {
-      ballRotation.current += 30;
-    } else {
-      ballRotation.current = 0;
-    }
   };
 
   const drawGame = (
@@ -113,8 +105,8 @@ const GameCanvas = memo(({ gameRef, isPaused }: props) => {
     game: GameStateType
   ) => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawPowerUp(ctx, game.playerOne, playerOnePowerUpFrame);
-    drawPowerUp(ctx, game.playerTwo, playerTwoPowerUpFrame);
+    drawPowerUp(ctx, game.playerOne);
+    drawPowerUp(ctx, game.playerTwo);
     drawBall(ctx, game.ball);
     drawRect(ctx, game.playerOne, "white");
     drawRect(ctx, game.playerTwo, "white");
@@ -159,15 +151,23 @@ const GameCanvas = memo(({ gameRef, isPaused }: props) => {
     const draw = () => {
       animationFrameId = requestAnimationFrame((now) => {
         if (!gameRef.current) return;
-        const deltaTime = prev ? (now - prev) / 1000 : 0;
+        const deltaTimeMs = prev ? now - prev : 0;
         prev = now;
 
         drawGame(canvas, ctx, gameRef.current);
-        const bounceType = bounceBallAndMovePaddles(gameRef.current, deltaTime);
+        const bounceType = bounceBallAndMovePaddles(
+          gameRef.current,
+          deltaTimeMs / 1000
+        );
+
         if (gameSettings.soundEffects) {
           handleSoundEffects(gameRef.current, bounceType);
         }
-        if (!isPaused) draw();
+
+        if (!isPaused) {
+          draw();
+          timeSinceGameStartMs.current += deltaTimeMs;
+        }
       });
     };
     draw();

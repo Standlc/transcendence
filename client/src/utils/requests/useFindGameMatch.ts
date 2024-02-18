@@ -53,8 +53,10 @@ export const useFindGameMatch = (preferences: PublicGameRequestDto) => {
   useEffect(() => {
     if (!currentGameRequest.isError && currentGameRequest.data) {
       setIsFindingGame(true);
+    } else {
+      setIsFindingGame(false);
     }
-  }, [currentGameRequest]);
+  }, [currentGameRequest.isError, currentGameRequest.data]);
 
   useEffect(() => {
     const handleGameStart = (gameId: string) => {

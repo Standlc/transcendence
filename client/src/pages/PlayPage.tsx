@@ -70,7 +70,7 @@ export default function PlayPage() {
     <div className="flex justify-center min-h-[100vh] p-5 gap-10 w-[100vw]">
       <div className="flex flex-col min-h-[100vh] p-5 gap-10 max-w-[1100px] w-full">
         <div className="relative flex gap-5 flex-wrap justify-center">
-          <div className="flex-[3] relative flex justify-center w-fit group">
+          <div className="flex-[3] relative flex justify-center w-fit group items-center">
             <GameLayout>
               <button
                 onClick={() => setShowSettings(!showSettings)}

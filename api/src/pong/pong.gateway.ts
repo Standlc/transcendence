@@ -223,9 +223,9 @@ export class PongGateway {
 
     const handlePlayersConnectivity = (now: number) => {
       const { playerOne, playerTwo } = gameState.game;
-      if (now - playerOne.lastPingTime > PLAYER_PING_INTERVAL + 500) {
+      if (now - playerOne.lastPingTime >= PLAYER_PING_INTERVAL + 500) {
         this.handlePlayerDisconnection(playerOne, gameState);
-      } else if (now - playerTwo.lastPingTime > PLAYER_PING_INTERVAL + 500) {
+      } else if (now - playerTwo.lastPingTime >= PLAYER_PING_INTERVAL + 500) {
         this.handlePlayerDisconnection(playerTwo, gameState);
       }
     };

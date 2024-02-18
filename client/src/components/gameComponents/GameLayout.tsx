@@ -81,7 +81,7 @@ export default function GameLayout({
 
 const TableLegs = memo(() => {
   return (
-    <div className="w-full min-h-[70px] flex justify-center items-center -z-10">
+    <div className="w-full min-h-[70px] h-[70px] flex justify-center items-center -z-10">
       <div className="bg-[rgb(20,20,20)] h-full w-[15px]"></div>
       <div className="bg-[rgb(20,20,20)] h-[8px] w-[75%]"></div>
       <div className="bg-[rgb(20,20,20)] h-full w-[15px]"></div>

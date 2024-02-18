@@ -18,6 +18,10 @@ export const usePingServer = ({
   const [isDisconnected, setIsDisconnected] = useState(false);
 
   useEffect(() => {
+    setIsDisconnected(false);
+  }, [gameRecord?.id]);
+
+  useEffect(() => {
     if (!isUserAPlayer || !gameRecord?.id || isOver) return;
     let timeoutId: NodeJS.Timeout | undefined = undefined;
 
@@ -25,8 +29,10 @@ export const usePingServer = ({
       const payload: WsGameIdType = { gameId: gameRecord.id };
       socket.emit("ping", payload);
       timeoutId = setTimeout(() => {
+        if (!isDisconnected) {
+          addError({ message: "You got disconnected from the game" });
+        }
         setIsDisconnected(true);
-        addError({ message: "You got disconnected from the game" });
       }, 500);
     }, PLAYER_PING_INTERVAL);
 
@@ -42,7 +48,7 @@ export const usePingServer = ({
       clearInterval(intervalId);
       clearTimeout(timeoutId);
     };
-  }, [socket, isUserAPlayer, gameRecord?.id, isOver]);
+  }, [socket, isDisconnected, isUserAPlayer, gameRecord?.id, isOver]);
 
   return isDisconnected;
 };
