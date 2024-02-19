@@ -22,7 +22,7 @@ import { GameFinishedCard } from "../components/GameFinishedCard";
 import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
 import { createGamePositions } from "../../../api/src/pong/gameLogic/gamePositions";
 import { useGameControls } from "../utils/game/useGameControls";
-import GamePreferences from "../components/GamePreferences";
+import GamePreferences from "../components/gameSettings/GameSettings";
 import { usePingServer } from "../utils/game/usePingServer";
 
 export default function GamePage() {
@@ -169,7 +169,7 @@ export default function GamePage() {
 
   return (
     <div className="flex justify-center h-[100vh] p-5 gap-5 w-[100vw] font-title">
-      <div className="flex flex-col gap-5 max-w-[1100px] justify-center items-center w-fit">
+      <div className="max-w-[1100px] contents">
         {gameRecord.data && gameRecord.data.winnerId && !showGameSettings && (
           <ModalLayout>
             <GameFinishedCard
@@ -197,7 +197,7 @@ export default function GamePage() {
           )}
 
         {!!startCountdown && (
-          <div className="animate-fadein bg-black bg-opacity-80 fixed h-full w-full z-10 flex items-center justify-center">
+          <div className="animate-fadein bg-black bg-opacity-80 fixed top-0 left-0 h-full w-full z-10 flex items-center justify-center">
             <div className="p-5 text-8xl font-gameFont flex items-center justify-center animate-scalein">
               <InfiniteSlotMachine state={startCountdown ?? 0} />
             </div>
@@ -205,13 +205,15 @@ export default function GamePage() {
         )}
 
         {gameRecord.data ? (
-          <GameLayout
-            gameRecord={gameRecord.data}
-            playersPingRtt={playersPingRtt}
-            isDisconnected={isPlayerDisconnected}
-          >
-            <GameCanvas gameRef={gameRef} isPaused={isPaused} />
-          </GameLayout>
+          <div className="flex pt-[calc(40px+1.25rem)]">
+            <GameLayout
+              gameRecord={gameRecord.data}
+              playersPingRtt={playersPingRtt}
+              isDisconnected={isPlayerDisconnected}
+            >
+              <GameCanvas gameRef={gameRef} isPaused={isPaused} />
+            </GameLayout>
+          </div>
         ) : (
           <Spinner isLoading={true} />
         )}

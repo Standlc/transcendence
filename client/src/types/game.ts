@@ -20,11 +20,15 @@ export const BOARD_STYLES = [
 export type GAME_POINTS_TYPE = (typeof GAME_POINTS)[number];
 export type BOARD_STYLES_TYPE = (typeof BOARD_STYLES)[number];
 export type BALL_STYLES_TYPE = (typeof BALL_STYLES)[number];
+export type GameSoundEffectsSettingType = {
+  volume: number;
+  isOn: boolean;
+};
 
 export interface GamePreferencesType {
   points: GAME_POINTS_TYPE;
   powerUps: boolean;
-  soundEffects: boolean;
+  soundEffects: GameSoundEffectsSettingType;
   style: BOARD_STYLES_TYPE;
   ballStyle: BALL_STYLES_TYPE;
 }

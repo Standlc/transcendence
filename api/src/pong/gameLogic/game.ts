@@ -11,7 +11,6 @@ import {
   BALL_SIZE,
   CANVAS_H,
   CANVAS_W,
-  FPP,
   INTERVAL_S,
   INTERVAL_MS,
   BALL_ACCELERATION,
@@ -30,9 +29,10 @@ import { handlePowerUps, placeNewPowerUps } from './powerUps';
 
 export async function startGameInterval(
   game: GameType,
-  gameEndHandler: (isGameEnd: boolean) => Promise<void>,
-  scoreHandler: (player: PlayerType) => Promise<void>,
+  gameStateUpdateHandler: () => void,
+  scoreHandler: (player: PlayerType) => void,
   handlePlayersConnectivity: (now: number) => void,
+  gameEndHandler: () => void,
 ) {
   game.game.ball.nextBounceVelocity = {
     x: generateRandom(BALL_VELOCITY_X, BALL_VELOCITY_X_MAX),
@@ -46,22 +46,23 @@ export async function startGameInterval(
   game.intervalId = setInterval(async () => {
     if (game.isPaused) return;
 
-    const isEnd = checkIsWinner(game);
-    if (isEnd) {
+    if (checkIsWinner(game)) {
+      gameEndHandler();
       clearInterval(game.intervalId);
+      return;
     }
 
-    await gameEndHandler(isEnd);
+    gameStateUpdateHandler();
 
     const playerThatScored = checkIfPlayerScored(game);
     updateNextFrameGameState(game);
 
     if (playerThatScored) {
-      await scoreHandler(playerThatScored);
       resetBall(game.game.ball);
       setTimeout(() => {
         throwBall(game);
       }, THROW_BALL_TIMEMOUT);
+      scoreHandler(playerThatScored);
     }
 
     if (game.hasPowerUps) {
@@ -70,7 +71,7 @@ export async function startGameInterval(
     const now = Date.now();
     game.nextUpdateTime = now + INTERVAL_MS;
     handlePlayersConnectivity(now);
-  }, 1000 / FPP);
+  }, INTERVAL_MS);
 }
 
 function resetBall(ball: BallType) {

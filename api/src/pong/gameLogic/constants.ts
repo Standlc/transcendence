@@ -20,9 +20,9 @@ export const POWER_UP_SIZE = 20;
 // BALL
 export const BALL_VELOCITY_X_FIRST_THROW = 400;
 export const BALL_VELOCITY_Y_FIRST_THROW = 400;
-export const BALL_VELOCITY_X = 1000;
+export const BALL_VELOCITY_X = 1100;
 export const BALL_VELOCITY_X_MAX = 1200;
-export const BALL_VELOCITY_Y = 500;
+export const BALL_VELOCITY_Y = 600;
 export const BALL_ACCELERATION = 800;
 // PADDLE
 export const PADDLE_VELOCITY_Y = 1100;

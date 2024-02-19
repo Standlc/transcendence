@@ -7,7 +7,7 @@ import {
 } from "react";
 import { GameSocketContext } from "../ContextsProviders/GameSocketContext";
 import GameLayout from "../components/gameComponents/GameLayout";
-import GamePreferences from "../components/GamePreferences";
+import GamePreferences from "../components/gameSettings/GameSettings";
 import LiveGames from "../components/LiveGames";
 import Leaderboard from "../components/Leaderboard";
 import GameCanvas from "../components/gameComponents/GameCanvas";
@@ -69,12 +69,12 @@ export default function PlayPage() {
   return (
     <div className="flex justify-center min-h-[100vh] p-5 gap-10 w-[100vw]">
       <div className="flex flex-col min-h-[100vh] p-5 gap-10 max-w-[1100px] w-full">
-        <div className="relative flex gap-5 flex-wrap justify-center">
-          <div className="flex-[3] relative flex justify-center w-fit group items-center">
+        <div className="flex gap-5 flex-wrap justify-center">
+          <div className="flex-[3] relative flex justify-center group">
             <GameLayout>
               <button
                 onClick={() => setShowSettings(!showSettings)}
-                className="absolute animate-slow-spin top-3 right-3 p-1 flex before:absolute before:top-0 before:left-0 before:content-[''] before:h-[100%] before:w-[100%] before:rounded-full before:bg-white before:opacity-20"
+                className="absolute z-[2] animate-slow-spin top-3 right-3 p-1 flex before:absolute before:top-0 before:left-0 before:content-[''] before:h-[100%] before:w-[100%] before:rounded-full before:bg-white before:opacity-20"
               >
                 <SettingsRounded />
               </button>
@@ -83,7 +83,7 @@ export default function PlayPage() {
                 onClick={() => {
                   findGame.mutate();
                 }}
-                className="absolute flex flex-col items-center boder-[5px] border-[rgba(255,255,255,0.1)] justify-center gap-1 mt-0 hover:-translate-y-[1px] active:translate-y-0 py-3 px-4 rounded-xl bg-indigo-500 text-white font-[900] text-2xl brightness-110 shadow-[0_6px_0_0_rgba(0,0,0,0.6)]"
+                className="absolute z-[2] flex flex-col items-center boder-[5px] border-[rgba(255,255,255,0.1)] justify-center gap-1 mt-0 hover:-translate-y-[1px] active:translate-y-0 py-3 px-4 rounded-xl bg-indigo-500 text-white font-[900] text-2xl brightness-110 shadow-[0_6px_0_0_rgba(0,0,0,0.6)]"
               >
                 <div className="flex gap-2 items-center">
                   {!isFindingGame && (

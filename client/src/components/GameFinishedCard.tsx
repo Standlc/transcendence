@@ -2,7 +2,7 @@ import { AppGame, AppPlayer } from "../../../api/src/types/games/returnTypes";
 import { Avatar } from "../UIKit/Avatar";
 import { memo, useMemo } from "react";
 import { EmojiEventsRounded } from "@mui/icons-material";
-import { useGamePreferences } from "../utils/useGamePreferences";
+import { useGamePreferences } from "../utils/game/useGamePreferences";
 import { useFindGameMatch } from "../utils/requests/useFindGameMatch";
 import { Link } from "react-router-dom";
 import { useIsUserAPlayer } from "../utils/game/useIsUserAPlayer";

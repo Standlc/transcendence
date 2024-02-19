@@ -6,7 +6,7 @@ import { Socket, io } from "socket.io-client";
 import { ErrorContext } from "../ContextsProviders/ErrorContext";
 import { ErrorModal } from "./ErrorModal";
 import { GameSettingsContext } from "../ContextsProviders/GameSettingsContext";
-import { useGamePreferences } from "../utils/useGamePreferences";
+import { useGamePreferences } from "../utils/game/useGamePreferences";
 import { useErrorQueue } from "../utils/useErrorQueue";
 
 export default function PrivateLayout({ user }: { user: AppUser }) {

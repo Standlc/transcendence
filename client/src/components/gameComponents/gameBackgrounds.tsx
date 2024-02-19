@@ -13,9 +13,9 @@ const BASKETBALL_COURT_WOOD = [
 
 export const BasketballCourt = () => {
   return (
-    <div className="absolute -z-10 h-full w-full overflow-hidden flex items-center justify-center">
-      <div className="-z-10 flex items-center absolute h-[70%] w-[30%] rounded-r-full bg-white bg-opacity-0 left-0 [outline:2px_solid_rgba(255,255,255,0.6)]">
-        <div className="-z-10 absolute h-[29%] aspect-square bg-red-800 bg-opacity-60 left-0 [outline:2px_solid_rgba(255,255,255,0.6)]">
+    <div className="absolute h-full w-full overflow-hidden flex items-center justify-center">
+      <div className=" flex items-center absolute h-[70%] w-[30%] rounded-r-full bg-white bg-opacity-0 left-0 [outline:2px_solid_rgba(255,255,255,0.6)]">
+        <div className=" absolute h-[29%] aspect-square bg-red-800 bg-opacity-60 left-0 [outline:2px_solid_rgba(255,255,255,0.6)]">
           <div className="absolute h-full aspect-square translate-x-[50%] rounded-full [outline:2px_solid_rgba(255,255,255,0.6)]"></div>
         </div>
       </div>
@@ -38,12 +38,12 @@ export const BasketballCourt = () => {
           )}
       </div>
 
-      <div className="-z-10 absolute h-[20%] aspect-square rounded-full bg-red-800 bg-opacity-50 [outline:2px_solid_rgba(255,255,255,0.6)]"></div>
+      <div className=" absolute h-[20%] aspect-square rounded-full bg-red-800 bg-opacity-50 [outline:2px_solid_rgba(255,255,255,0.6)]"></div>
 
-      <div className="-z-10 absolute h-full w-[2px] bg-white bg-opacity-60"></div>
+      <div className=" absolute h-full w-[2px] bg-white bg-opacity-60"></div>
 
-      <div className="-z-10 flex items-center absolute h-[70%] w-[30%] rounded-l-full bg-white bg-opacity-0 right-0 [outline:2px_solid_rgba(255,255,255,0.6)]">
-        <div className="-z-10 absolute h-[29%] aspect-square bg-red-800 bg-opacity-50 right-0 [outline:2px_solid_rgba(255,255,255,0.6)]">
+      <div className=" flex items-center absolute h-[70%] w-[30%] rounded-l-full bg-white bg-opacity-0 right-0 [outline:2px_solid_rgba(255,255,255,0.6)]">
+        <div className=" absolute h-[29%] aspect-square bg-red-800 bg-opacity-50 right-0 [outline:2px_solid_rgba(255,255,255,0.6)]">
           <div className="absolute h-full aspect-square translate-x-[-50%] rounded-full [outline:2px_solid_rgba(255,255,255,0.6)]"></div>
         </div>
       </div>
@@ -53,7 +53,7 @@ export const BasketballCourt = () => {
 
 const TennisCourt = () => {
   return (
-    <div className="flex flex-col absolute -z-10 h-full w-full overflow-hidden items-center justify-center">
+    <div className="flex flex-col absolute  h-full w-full overflow-hidden items-center justify-center">
       <div className="w-full border-b-[2px] bg-black bg-opacity-15 h-[10%] border-[rgba(255,255,255,0.6)]"></div>
       <div className="h-full w-[50%] flex items-center">
         <div className="bg-white bg-opacity-60 w-[2px] h-full"></div>
@@ -67,7 +67,7 @@ const TennisCourt = () => {
 
 const SoccerCourt = () => {
   return (
-    <div className="flex flex-col absolute -z-10 h-full w-full overflow-hidden items-center justify-center">
+    <div className="flex flex-col absolute  h-full w-full overflow-hidden items-center justify-center">
       <div className="absolute flex h-full w-full">
         {Array(5)
           .fill(0)
@@ -107,7 +107,7 @@ const SoccerCourt = () => {
 
 const BilliardsCourt = () => {
   return (
-    <div className="flex flex-col absolute -z-10 h-full w-full overflow-hidden items-center justify-center p-[20px]">
+    <div className="flex flex-col absolute  h-full w-full overflow-hidden items-center justify-center p-[20px]">
       <div className="h-full w-full flex justify-center bg-[#23583b] p-[20px]">
         <div className="h-full w-[2px] flex flex-col">
           <DashedLine />
@@ -128,11 +128,11 @@ const BilliardsCourt = () => {
 
 const ClassicCourt = () => {
   return (
-    <div className="flex flex-col absolute -z-10 h-full w-full overflow-hidden items-center justify-center">
-      <div className="absolute -z-10 h-full w-full overflow-hidden flex items-center justify-center">
-        <div className="-z-10 absolute h-[100%] aspect-square rounded-full bg-black opacity-10 left-0 -translate-x-[80%]"></div>
-        <div className="-z-10 absolute h-[40%] aspect-square rounded-full bg-black opacity-10 "></div>
-        <div className="-z-10 absolute h-[100%] aspect-square rounded-full bg-black opacity-10 right-0 translate-x-[80%]"></div>
+    <div className="flex flex-col absolute  h-full w-full overflow-hidden items-center justify-center">
+      <div className="absolute  h-full w-full overflow-hidden flex items-center justify-center">
+        <div className=" absolute h-[100%] aspect-square rounded-full bg-black opacity-10 left-0 -translate-x-[80%]"></div>
+        <div className=" absolute h-[40%] aspect-square rounded-full bg-black opacity-10 "></div>
+        <div className=" absolute h-[100%] aspect-square rounded-full bg-black opacity-10 right-0 translate-x-[80%]"></div>
       </div>
       <div className="h-full w-[2px] flex flex-col">
         <DashedLine />

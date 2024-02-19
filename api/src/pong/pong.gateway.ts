@@ -92,12 +92,12 @@ export class PongGateway {
     // console.log('NEW CONNECTION:', client.id, 'with userId', client.data.id);
   }
 
-  handleDisconnect(client: Socket) {
+  async handleDisconnect(client: Socket) {
     const userId = this.extractUserId(client);
     // console.log('DISCONNECTION:', client.id, 'with userId', client.data.id);
-    try {
-      this.gameRequestsService.delete(userId);
-    } catch (error) {}
+    // try {
+    //   await this.gameRequestsService.delete(userId);
+    // } catch (error) {}
   }
 
   @SubscribeMessage('leaveGame')
@@ -126,7 +126,6 @@ export class PongGateway {
       clearInterval(game.disconnectionIntervalId);
       game.userDisconnectedId = undefined;
       game.isPaused = false;
-      player.isConnected = true;
     }
     player.lastPingTime = now;
   }
@@ -140,7 +139,7 @@ export class PongGateway {
     if (!player) return;
 
     const pingTime = Date.now();
-    this.reconnectPlayerToGame(game, player, pingTime);
+    player.lastPingTime = pingTime;
     this.server
       .timeout(100)
       .to(client.id)
@@ -174,21 +173,16 @@ export class PongGateway {
     } catch (error) {
       this.deleteRoom(gameState.roomId);
       try {
-        this.gamesService.delete(gameRecord.id);
+        await this.gamesService.delete(gameRecord.id);
       } catch (error) {
         this.sendTo(gameState.roomId, 'error', {
           message: 'Some error occured while deleting the game.',
         });
       }
+      return;
     }
 
-    try {
-      await this.runGame(gameState);
-    } catch (error) {
-      this.sendTo(gameState.roomId, 'error', {
-        message: 'Some error occured while running the game.',
-      });
-    }
+    this.runGame(gameState);
   }
 
   joinUsersToGameRoom(roomId: string, userIds: Tuple<number>) {
@@ -209,15 +203,31 @@ export class PongGateway {
     await this.sendGameStartCountdown(gameState);
     gameState.isPaused = false;
 
-    const handleGameEnd = async (isGameEnd: boolean) => {
+    const handleEmitGameState = () => {
       this.sendTo(gameState.roomId, 'updateGameState', gameState.game);
-      if (isGameEnd) {
+    };
+
+    const handleGameEnd = async () => {
+      try {
         await this.handleGameEnd(gameState);
+      } catch (error) {
+        this.sendTo(gameState.roomId, 'error', {
+          message: 'Error while setting game as finished.',
+        });
       }
     };
 
     const handlePlayerScore = async (player: PlayerType) => {
-      await this.updatePlayerScore(gameState, player, player.score + 1);
+      try {
+        await this.updatePlayerScore(gameState, player, player.score + 1);
+      } catch (error) {
+        this.sendTo(gameState.roomId, 'error', {
+          message: 'Error while setting game as finished.',
+        });
+      }
+      await new Promise((resolve) =>
+        setTimeout(() => resolve(undefined), 1000),
+      );
       this.sendLiveGameUpdate(gameState);
     };
 
@@ -230,11 +240,12 @@ export class PongGateway {
       }
     };
 
-    await startGameInterval(
+    startGameInterval(
       gameState,
-      handleGameEnd,
+      handleEmitGameState,
       handlePlayerScore,
       handlePlayersConnectivity,
+      handleGameEnd,
     );
   }
 
@@ -242,27 +253,28 @@ export class PongGateway {
     clearInterval(gameState.disconnectionIntervalId);
     gameState.userDisconnectedId = player.id;
     gameState.isPaused = true;
-    player.isConnected = false;
 
     let timeout = DISCONNECTION_END_GAME_TIMEMOUT;
     this.sendTo(gameState.roomId, 'playerDisconnection', {
       secondsUntilEnd: timeout,
       userId: player.id,
     });
-    9;
     gameState.disconnectionIntervalId = setInterval(async () => {
       timeout -= 1;
       if (!timeout) {
+        const connectedPlayer = getOtherPlayer(gameState.game, player.id);
         try {
-          const connectedPlayer = getOtherPlayer(gameState.game, player.id);
           await this.updatePlayerScore(
             gameState,
             connectedPlayer,
             gameState.points,
           );
           await this.handleGameEnd(gameState);
-        } catch (error) {}
-        return;
+        } catch (error) {
+          this.sendTo(gameState.roomId, 'error', {
+            message: 'Error while setting game as finished.',
+          });
+        }
       }
       this.sendTo(gameState.roomId, 'playerDisconnection', {
         secondsUntilEnd: timeout,
@@ -385,15 +397,6 @@ export class PongGateway {
     const whichPlayer =
       player.id === game.game.playerOne.id ? 'playerOne' : 'playerTwo';
     await this.gamesService.updatePlayerScore(game.gameId, whichPlayer, score);
-  }
-
-  findGame(callBack: (gameState: GameType) => boolean) {
-    for (const [key, value] of this.games) {
-      if (callBack(value)) {
-        return value;
-      }
-    }
-    return null;
   }
 
   emitNewLiveGame(game: GameType) {

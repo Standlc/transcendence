@@ -1,37 +1,23 @@
 import { Tune } from "@mui/icons-material";
-import { BALL_STYLES, BOARD_STYLES, GAME_POINTS } from "../types/game";
+import { BALL_STYLES, BOARD_STYLES, GAME_POINTS } from "../../types/game";
 import { useContext } from "react";
-import { GameSettingsContext } from "../ContextsProviders/GameSettingsContext";
-import { useSound } from "../utils/game/useSoundEffects";
+import { GameSettingsContext } from "../../ContextsProviders/GameSettingsContext";
+import { VolumeKnob } from "./VolumeKnob";
 
 export default function GamePreferences({ hide }: { hide: () => void }) {
   const { gameSettings, upadteGameSetting } = useContext(GameSettingsContext);
-  const soundEffect = useSound("/pong_wall_hit_sound.mp3");
 
   return (
-    <div className="flex max-h-full flex-col gap-5 flex-[2] p-5 bg-white bg-opacity-5 rounded-lg">
+    <div className="flex max-h-full flex-col gap-5 flex-[2] p-5 bg-white bg-opacity-5 rounded-lg min-w-80">
       <div className="font-[900] text-2xl flex items-center gap-2">
         <Tune />
         <span>Game Settings</span>
       </div>
 
       <div className="flex flex-col gap-3">
-        <span className="text-sm opacity-50 font-extrabold">GAMEPLAY</span>
-        <Setting
-          title="Sound Effects"
-          onClick={() => {
-            soundEffect.play();
-            upadteGameSetting("soundEffects", !gameSettings.soundEffects);
-          }}
-        >
-          <div
-            aria-selected={gameSettings.soundEffects}
-            className="aria-selected:text-green-500 text-red-500"
-          >
-            {gameSettings.soundEffects ? "On" : "Off"}
-          </div>
-        </Setting>
-
+        <span className="text-sm opacity-50 font-extrabold">
+          MATCHING PREFERENCES
+        </span>
         <Setting
           title="Power Ups"
           onClick={() => {
@@ -45,7 +31,6 @@ export default function GamePreferences({ hide }: { hide: () => void }) {
             {gameSettings.powerUps ? "On" : "Off"}
           </div>
         </Setting>
-
         <Setting
           title="Points"
           onClick={() => {
@@ -56,7 +41,6 @@ export default function GamePreferences({ hide }: { hide: () => void }) {
         >
           {gameSettings.points}
         </Setting>
-
         <span className="text-sm opacity-50 font-extrabold mt-2">STYLE</span>
         <Setting
           title="Board"
@@ -68,7 +52,6 @@ export default function GamePreferences({ hide }: { hide: () => void }) {
         >
           {gameSettings.style}
         </Setting>
-
         <Setting
           title="Ball"
           onClick={() => {
@@ -79,6 +62,9 @@ export default function GamePreferences({ hide }: { hide: () => void }) {
         >
           {gameSettings.ballStyle}
         </Setting>
+
+        <span className="text-sm opacity-50 font-extrabold mt-2">SOUND</span>
+        <VolumeKnob soundEffectsSetting={gameSettings.soundEffects} />
       </div>
 
       <button

@@ -21,10 +21,11 @@ import {
   bounceBallAndMovePaddles,
 } from "../../../../api/src/pong/gameLogic/bounceBall";
 import { useSoundEffects } from "../../utils/game/useSoundEffects";
-import { POWER_UPS_EMOJIS } from "../../utils/game/sprites";
 import { BALL_STYLES_IMAGES } from "../../utils/game/ballStyles";
 import { GameSettingsContext } from "../../ContextsProviders/GameSettingsContext";
 import { boundingBoxIntersection } from "../../../../api/src/pong/gameLogic/collisions";
+
+export const POWER_UPS_EMOJIS = ["🦄", "🔮", "🎰", "🎲", "🌈"];
 
 interface props {
   gameRef: MutableRefObject<GameStateType>;
@@ -36,8 +37,8 @@ const POWER_UP_FRAME_CHANGE_RATE_MS = 333;
 const GameCanvas = memo(({ gameRef, isPaused }: props) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { gameSettings } = useContext(GameSettingsContext);
+  const soundEffects = useSoundEffects(gameSettings.soundEffects.volume);
   const [ballImg, setBallImg] = useState<HTMLImageElement | null>(null);
-  const soundEffects = useSoundEffects();
   const timeSinceGameStartMs = useRef(0);
   const somePlayerScored = useRef(false);
 
@@ -160,7 +161,7 @@ const GameCanvas = memo(({ gameRef, isPaused }: props) => {
           deltaTimeMs / 1000
         );
 
-        if (gameSettings.soundEffects) {
+        if (gameSettings.soundEffects.isOn) {
           handleSoundEffects(gameRef.current, bounceType);
         }
 
@@ -175,14 +176,14 @@ const GameCanvas = memo(({ gameRef, isPaused }: props) => {
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [isPaused, gameSettings.soundEffects, soundEffects, ballImg]);
+  }, [isPaused, soundEffects, gameSettings.soundEffects.isOn, ballImg]);
 
   return (
     <canvas
       ref={canvasRef}
       height={CANVAS_H}
       width={CANVAS_W}
-      className="[image-rendering:pixelated] h-full w-full"
+      className="[image-rendering:pixelated] max-h-full max-w-full z-[1]"
     />
   );
 });

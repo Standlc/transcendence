@@ -37,7 +37,6 @@ export type BallType = ObjectType & {
 export type PlayerType = ObjectType & {
   id: number;
   speed: number;
-  isConnected: boolean;
   score: number;
   powerUp?: PowerUpType | undefined;
   pingRtt: number;

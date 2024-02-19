@@ -1,20 +1,25 @@
 import { useMemo } from "react";
 
-export const useSound = (url: string) => {
-  const sound = useMemo(() => new Audio(url), []);
+export const useSound = (url: string, volume: number) => {
+  const sound = useMemo(() => new Audio(url), [url]);
+  sound.volume = volume / 4;
   return sound;
 };
 
-export const useSoundEffects = () => {
-  const wallHitSound1 = useSound("/pong_wall_hit_sound.mp3");
-  const paddleHitSound = useSound("/pong_paddle_hit_sound.mp3");
-  const gameOverSound = useSound("/pong_game_over_sound2.mp3");
-  const powerUpSound = useSound("/pong_powerup_sound.mp3");
+export const useSoundEffects = (volume: number) => {
+  const wallHitSound1 = useSound("/pong_wall_hit_sound.mp3", volume);
+  const paddleHitSound = useSound("/pong_paddle_hit_sound.mp3", volume);
+  const gameOverSound = useSound("/pong_game_over_sound2.mp3", volume);
+  const powerUpSound = useSound("/pong_powerup_sound.mp3", volume);
 
-  return {
-    wallHit: () => wallHitSound1.play(),
-    paddleHit: () => paddleHitSound.play(),
-    score: () => gameOverSound.play(),
-    powerUp: () => powerUpSound.play(),
-  };
+  const sounds = useMemo(() => {
+    return {
+      wallHit: () => wallHitSound1.play(),
+      paddleHit: () => paddleHitSound.play(),
+      score: () => gameOverSound.play(),
+      powerUp: () => powerUpSound.play(),
+    };
+  }, [wallHitSound1, paddleHitSound, gameOverSound, powerUpSound]);
+
+  return sounds;
 };
