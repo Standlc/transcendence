@@ -1,6 +1,6 @@
-import { Controller, UseGuards, Request, Get, Res, UseFilters } from '@nestjs/common';
+import { Controller, UseGuards, Request, Get,  Post, Res, UseFilters } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { ApiBody, ApiDefaultResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiQuery, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { ApiBody, ApiDefaultResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiQuery, ApiTags, ApiUnauthorizedResponse, ApiCreatedResponse } from '@nestjs/swagger';
 import { LocalAuthGuard } from './local-auth.guard';
 import { Response, Response as ResponseType } from 'express';
 import { AppUser } from 'src/types/clientSchema';
@@ -61,7 +61,7 @@ export class AuthController {
   //#region login
 
   /**
-   * GET /api/auth/login
+   * POST /api/auth/login
    * This is the route the user will visit to authenticate using an username
    * with a passord
    */
@@ -76,7 +76,7 @@ export class AuthController {
       }
     }
   })
-  @ApiOkResponse({
+  @ApiCreatedResponse({
     description: "User logged in, a cookie will be added with a jwt token",
     schema: {
       type: 'object',
@@ -96,7 +96,7 @@ export class AuthController {
   @ApiUnauthorizedResponse({description: "User credential is invalid"})
   @ApiInternalServerErrorResponse({ description: "Whenever the backend fail in some point, probably an error with the db." })
   @UseGuards(LocalAuthGuard)
-  @Get('login')
+  @Post('login')
   async loginWithPassword(@Request() req, @Res({ passthrough: true }) res: ResponseType): Promise<AppUser> {
     const token: string = await this.authService.login(req.user.id);
     let date = new Date();
