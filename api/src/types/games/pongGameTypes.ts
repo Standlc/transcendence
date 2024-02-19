@@ -4,31 +4,43 @@ export interface GameType {
   points: number;
   isPublic: boolean;
   hasPowerUps: boolean;
-  lastPlayerToHitTheBall: number;
-  userIdBeingDisconnected?: number;
+  userDisconnectedId?: number;
   disconnectionIntervalId: any;
   roomId: string;
   gameId: number;
   isPaused: boolean;
+  nextUpdateTime: number;
 }
 
 export interface GameStateType {
-  ball: ObjectType;
+  ball: BallType;
   playerOne: PlayerType;
   playerTwo: PlayerType;
-  powerUp?: PowerUpType;
 }
+
+export type VectorType = {
+  x: number;
+  y: number;
+};
 
 export type PowerUpType = ObjectType & {
   type: 1 | 2 | 3;
+  isCollected: boolean;
+  activeTimeLeft: number;
+};
+
+export type BallType = ObjectType & {
+  nextBounceVelocity: VectorType;
+  aY: number;
 };
 
 export type PlayerType = ObjectType & {
   id: number;
-  powerUp?: number;
   speed: number;
-  isConnected: boolean;
   score: number;
+  powerUp?: PowerUpType | undefined;
+  pingRtt: number;
+  lastPingTime: number;
 };
 
 export interface ObjectType {
@@ -39,11 +51,6 @@ export interface ObjectType {
   vX: number;
   vY: number;
 }
-
-export const PLAYER_SIDES = {
-  LEFT: 1,
-  RIGHT: 2,
-};
 
 export const POWER_UPS = {
   BIGGER_PADDLE: 1,

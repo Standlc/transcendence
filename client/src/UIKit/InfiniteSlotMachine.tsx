@@ -63,7 +63,7 @@ const InfiniteSlotMachine = memo(({ state }: { state: number }) => {
     wrapperRef.current.style.width = "auto";
     const wAfter = wrapperRef.current.getBoundingClientRect().width;
     wrapperRef.current.style.width = `${wBefore}px`;
-    
+
     const animationId = requestAnimationFrame(() => {
       if (wrapperRef.current) {
         wrapperRef.current.style.width = `${wAfter}px`;
@@ -101,12 +101,12 @@ const InfiniteSlotMachine = memo(({ state }: { state: number }) => {
     <div className={`flex h-full flex-col overflow-hidden`}>
       <div
         ref={wrapperRef}
-        className={`relative flex h-[100%] flex-none flex-col items-center opacity-90 [transition:transform_0.2s,width_0.2s]`}
+        className={`relative flex h-[100%] flex-none flex-col items-center [transition:transform_0.2s,width_0.2s]`}
       >
         <span className="text-inherit opacity-0">{stateCopy}</span>
         <span
           ref={slot1}
-          className={`text-inherit absolute flex h-full select-none items-center justify-center`}
+          className={`text-inherit absolute flex h-full select-none items-center justify-center opacity-100`}
         >
           {slot1Value}
         </span>

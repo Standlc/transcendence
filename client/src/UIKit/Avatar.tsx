@@ -1,5 +1,4 @@
 import { Person } from "@mui/icons-material";
-import { Avatar as AvatarIcon } from "@mui/material";
 
 const COLORS = [
   "#309d51",
@@ -15,8 +14,8 @@ const avatarSizes = {
   xs: 18,
   sm: 30,
   md: 40,
-  lg: 55,
-  xl: 80,
+  lg: 65,
+  xl: 85,
   "2xl": 160,
 };
 

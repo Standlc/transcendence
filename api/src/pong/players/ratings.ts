@@ -1,10 +1,10 @@
 import { Tuple } from 'src/types/games/socketPayloadTypes';
 
-export const C = 400;
-export const K = 32;
+export const C = 500;
+export const K = 64;
 
 export const getExponentialRating = (rating: number) => {
-  return 10 ** (rating / C);
+  return 5 ** (rating / C);
 };
 
 export const getPlayerExpectedOutcome = (

@@ -12,12 +12,7 @@ import { WsAuthGuard } from 'src/auth/ws-auth.guard';
 import { PlayersService } from './players/players.service';
 import { Game, PublicGameRequest } from 'src/types/schema';
 import { Selectable } from 'kysely';
-import {
-  DISCONNECTION_END_GAME_TIMEMOUT,
-  initialize,
-  movePlayerPaddle,
-  startGameInterval,
-} from './gameLogic/game';
+import { initialize, startGameInterval } from './gameLogic/game';
 import {
   GameStateType,
   GameType,
@@ -31,6 +26,11 @@ import {
   WsPlayerMove,
 } from 'src/types/games/socketPayloadTypes';
 import { getOtherPlayer, getWinnerId } from './gameLogic/utils';
+import {
+  DISCONNECTION_END_GAME_TIMEMOUT,
+  PLAYER_PING_INTERVAL,
+} from './gameLogic/constants';
+import { handlePlayerMove } from './gameLogic/paddle';
 
 const getPlayer = (
   game: GameStateType,
@@ -89,100 +89,64 @@ export class PongGateway {
   }
 
   handleConnection(client: Socket) {
-    // console.log(this.server.sockets);
     // console.log('NEW CONNECTION:', client.id, 'with userId', client.data.id);
   }
 
-  handleDisconnect(client: Socket) {
+  async handleDisconnect(client: Socket) {
     const userId = this.extractUserId(client);
     // console.log('DISCONNECTION:', client.id, 'with userId', client.data.id);
-    this.gameRequestsService.delete(userId);
+    // try {
+    //   await this.gameRequestsService.delete(userId);
+    // } catch (error) {}
   }
 
   @SubscribeMessage('leaveGame')
   handleDisconnectionEvent(client: Socket, data: WsGameIdType) {
-    const userId = this.extractUserId(client);
-    const game = this.games.get(data.gameId);
-    if (game) {
-      const { player, otherPlayer } = getPlayer(game.game, 'id', userId);
-      if (!player || !player.isConnected) {
-        return;
-      }
-      player.isConnected = false;
-      if (otherPlayer.isConnected) {
-        this.handlePlayerDisconnection(player, game);
-      }
-    }
-  }
-
-  @SubscribeMessage('cancelGameRequest')
-  cancelGameRequest(client: Socket) {
-    const userId = this.extractUserId(client);
-    this.gameRequestsService.delete(userId);
-  }
-
-  handlePlayerDisconnection(player: PlayerType, gameState: GameType) {
-    let secondsUntilEnd = DISCONNECTION_END_GAME_TIMEMOUT;
-
-    gameState.userIdBeingDisconnected = player.id;
-    clearInterval(gameState.disconnectionIntervalId);
-    gameState.disconnectionIntervalId = setInterval(async () => {
-      gameState.isPaused = true;
-
-      if (!secondsUntilEnd) {
-        try {
-          const connectedPlayer = getOtherPlayer(gameState.game, player.id);
-          await this.updatePlayerScore(
-            gameState,
-            connectedPlayer,
-            gameState.points,
-          );
-          await this.handleGameEnd(gameState);
-        } catch (error) {
-          console.log(error);
-          // -> return error
-        }
-        return;
-      }
-      const payload = {
-        secondsUntilEnd,
-        userId: player.id,
-      };
-      this.sendTo(gameState.roomId, 'playerDisconnection', payload);
-      secondsUntilEnd -= 1;
-    }, 1000);
+    client.leave(data.gameId.toString());
   }
 
   @SubscribeMessage('joinRoom')
   joinGameRoom(client: Socket, data: WsGameIdType) {
     const userId = this.extractUserId(client);
-    const gameState = this.games.get(data.gameId);
-    if (!gameState) return;
+    const game = this.games.get(data.gameId);
+    if (!game) return;
 
-    const { player, otherPlayer } = getPlayer(gameState.game, 'id', userId);
+    const { player } = getPlayer(game.game, 'id', userId);
     if (player) {
-      if (player.id === gameState.userIdBeingDisconnected) {
-        gameState.userIdBeingDisconnected = undefined;
-        this.clearAllGameIntervals(gameState);
-      }
-
-      player.isConnected = true;
-      gameState.isPaused = !otherPlayer.isConnected;
-      // the other player left while this one was disconnected
-      if (!otherPlayer.isConnected && !gameState.userIdBeingDisconnected) {
-        this.handlePlayerDisconnection(otherPlayer, gameState);
-      }
+      this.reconnectPlayerToGame(game, player, Date.now());
     }
 
-    if (gameState.isPublic || player) {
+    if (game.isPublic || player) {
       client.join(data.gameId.toString());
-      this.sendTo(client.id, 'updateGameState', gameState.game);
-      this.sendTo(gameState.roomId, 'pause', { isPaused: gameState.isPaused });
     }
   }
 
-  clearAllGameIntervals(gameState: GameType) {
-    clearInterval(gameState.disconnectionIntervalId);
+  reconnectPlayerToGame(game: GameType, player: PlayerType, now: number) {
+    if (game.userDisconnectedId === player.id) {
+      clearInterval(game.disconnectionIntervalId);
+      game.userDisconnectedId = undefined;
+      game.isPaused = false;
+    }
+    player.lastPingTime = now;
+  }
+
+  @SubscribeMessage('ping')
+  handlePing(client: Socket, data: WsGameIdType) {
+    const userId = this.extractUserId(client);
+    const game = this.games.get(data.gameId);
+    if (!game) return;
+    const { player } = getPlayer(game.game, 'id', userId);
+    if (!player) return;
+
+    const pingTime = Date.now();
+    player.lastPingTime = pingTime;
+    this.server
+      .timeout(100)
+      .to(client.id)
+      .emit('pong', () => {
+        const delay = Date.now() - pingTime;
+        player.pingRtt = delay;
+      });
   }
 
   sendPrivateGameInvite(invite: Selectable<PublicGameRequest>) {
@@ -200,68 +164,136 @@ export class PongGateway {
   async startGame(gameRecord: Selectable<Game>) {
     const gameState = initialize(gameRecord);
     this.games.set(gameState.gameId, gameState);
-    this.joinUsersToGameRoom(gameState.roomId, [
-      gameRecord.playerOneId,
-      gameRecord.playerTwoId,
-    ]);
 
     try {
-      await this.runGame(gameState);
+      this.joinUsersToGameRoom(gameState.roomId, [
+        gameRecord.playerOneId,
+        gameRecord.playerTwoId,
+      ]);
     } catch (error) {
-      console.log(error);
-      // -> return error
+      this.deleteRoom(gameState.roomId);
+      try {
+        await this.gamesService.delete(gameRecord.id);
+      } catch (error) {
+        this.sendTo(gameState.roomId, 'error', {
+          message: 'Some error occured while deleting the game.',
+        });
+      }
+      return;
     }
+
+    this.runGame(gameState);
   }
 
   joinUsersToGameRoom(roomId: string, userIds: Tuple<number>) {
     userIds.forEach((userId) => {
       const userSockets = this.findAllSocketsByUserId(userId);
-      console.log('userSockets count:', userSockets?.length, 'userId:', userId);
       if (!userSockets) {
-        this.emitError(userId === userIds[0] ? userIds[1] : userIds[0], {
-          message: `User with userId: ${userId} is not connected.`,
-        });
-        return;
+        const message = `Player with id: ${userId} is not connected.`;
+        this.sendTo(roomId, 'error', { message });
+        throw new Error(message);
       }
-      userSockets.forEach((socket) => {
-        this.sendTo(socket.id, 'gameStart', roomId);
-        socket.join(roomId);
-      });
+      userSockets.forEach((socket) => socket.join(roomId));
     });
   }
 
   async runGame(gameState: GameType) {
     this.emitNewLiveGame(gameState);
-    this.sendTo(gameState.roomId, 'updateGameState', gameState.game);
+    this.sendTo(gameState.roomId, 'gameStart', gameState.roomId);
     await this.sendGameStartCountdown(gameState);
+    gameState.isPaused = false;
 
-    const handleGameEnd = async (isGameEnd: boolean) => {
+    const handleEmitGameState = () => {
       this.sendTo(gameState.roomId, 'updateGameState', gameState.game);
-      if (isGameEnd) {
+    };
+
+    const handleGameEnd = async () => {
+      try {
         await this.handleGameEnd(gameState);
+      } catch (error) {
+        this.sendTo(gameState.roomId, 'error', {
+          message: 'Error while setting game as finished.',
+        });
       }
     };
 
-    const handleScore = async (player: PlayerType) => {
-      await this.updatePlayerScore(gameState, player, player.score + 1);
+    const handlePlayerScore = async (player: PlayerType) => {
+      try {
+        await this.updatePlayerScore(gameState, player, player.score + 1);
+      } catch (error) {
+        this.sendTo(gameState.roomId, 'error', {
+          message: 'Error while setting game as finished.',
+        });
+      }
+      await new Promise((resolve) =>
+        setTimeout(() => resolve(undefined), 1000),
+      );
       this.sendLiveGameUpdate(gameState);
     };
 
-    await startGameInterval(gameState, handleGameEnd, handleScore);
+    const handlePlayersConnectivity = (now: number) => {
+      const { playerOne, playerTwo } = gameState.game;
+      if (now - playerOne.lastPingTime >= PLAYER_PING_INTERVAL + 500) {
+        this.handlePlayerDisconnection(playerOne, gameState);
+      } else if (now - playerTwo.lastPingTime >= PLAYER_PING_INTERVAL + 500) {
+        this.handlePlayerDisconnection(playerTwo, gameState);
+      }
+    };
+
+    startGameInterval(
+      gameState,
+      handleEmitGameState,
+      handlePlayerScore,
+      handlePlayersConnectivity,
+      handleGameEnd,
+    );
+  }
+
+  handlePlayerDisconnection(player: PlayerType, gameState: GameType) {
+    clearInterval(gameState.disconnectionIntervalId);
+    gameState.userDisconnectedId = player.id;
+    gameState.isPaused = true;
+
+    let timeout = DISCONNECTION_END_GAME_TIMEMOUT;
+    this.sendTo(gameState.roomId, 'playerDisconnection', {
+      secondsUntilEnd: timeout,
+      userId: player.id,
+    });
+    gameState.disconnectionIntervalId = setInterval(async () => {
+      timeout -= 1;
+      if (!timeout) {
+        const connectedPlayer = getOtherPlayer(gameState.game, player.id);
+        try {
+          await this.updatePlayerScore(
+            gameState,
+            connectedPlayer,
+            gameState.points,
+          );
+          await this.handleGameEnd(gameState);
+        } catch (error) {
+          this.sendTo(gameState.roomId, 'error', {
+            message: 'Error while setting game as finished.',
+          });
+        }
+      }
+      this.sendTo(gameState.roomId, 'playerDisconnection', {
+        secondsUntilEnd: timeout,
+        userId: player.id,
+      });
+    }, 1000);
   }
 
   async sendGameStartCountdown(game: GameType): Promise<void> {
     await new Promise((resolve) => {
       let countdown = 3;
       const intervalId = setInterval(() => {
+        this.sendTo(game.roomId, 'startCountdown', countdown);
         if (countdown === 0) {
-          this.sendTo(game.roomId, 'startCountdown', countdown);
           clearInterval(intervalId);
           resolve(undefined);
-          return;
+        } else {
+          countdown--;
         }
-        this.sendTo(game.roomId, 'startCountdown', countdown);
-        countdown--;
       }, 1000);
     });
   }
@@ -284,7 +316,7 @@ export class PongGateway {
   }
 
   async handleGameEnd(game: GameType) {
-    this.clearAllGameIntervals(game);
+    clearInterval(game.disconnectionIntervalId);
     clearInterval(game.intervalId);
 
     const winnerId = getWinnerId(game);
@@ -304,11 +336,12 @@ export class PongGateway {
     const userId = this.extractUserId(client);
     const game = this.games.get(data.gameId);
     if (!game || game.isPaused) return;
-
     const { player } = getPlayer(game.game, 'id', userId);
     if (!player) return;
 
-    movePlayerPaddle(player, data.move);
+    handlePlayerMove(game.nextUpdateTime, player, data.move, () =>
+      this.sendTo(game.roomId, 'playerMoveUpdate', player),
+    );
   }
 
   sendLiveGameEnd(
@@ -366,15 +399,6 @@ export class PongGateway {
     await this.gamesService.updatePlayerScore(game.gameId, whichPlayer, score);
   }
 
-  findGame(callBack: (gameState: GameType) => boolean) {
-    for (const [key, value] of this.games) {
-      if (callBack(value)) {
-        return value;
-      }
-    }
-    return null;
-  }
-
   emitNewLiveGame(game: GameType) {
     const payload: WsGameIdType = { gameId: game.gameId };
     this.sendToAll('liveGame', payload);
@@ -416,6 +440,10 @@ export class PongGateway {
 
   sendToAll<T extends string>(ev: T, payload: EmitPayloadType<T>) {
     this.server.emit(ev as string, payload);
+  }
+
+  deleteRoom(roomId: string) {
+    this.server.in(roomId).socketsLeave(roomId);
   }
 
   extractUserId(client: Socket) {

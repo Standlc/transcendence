@@ -6,8 +6,8 @@ export const getOtherPlayer = (game: GameStateType, userId: number) => {
 
 export const getWinnerId = (gameState: GameType) => {
   const { playerOne, playerTwo } = gameState.game;
-  if (gameState.userIdBeingDisconnected !== undefined) {
-    return getOtherPlayer(gameState.game, gameState.userIdBeingDisconnected).id;
+  if (gameState.userDisconnectedId !== undefined) {
+    return getOtherPlayer(gameState.game, gameState.userDisconnectedId).id;
   }
   if (playerOne.score > playerTwo.score) {
     return playerOne.id;

@@ -92,4 +92,13 @@ export class GameRequestsService {
       this.gameServer.startGame(gameRecord);
     }
   }
+
+  async getUserCurrentGameRequest(userId: number, isPublic: boolean) {
+    return await db
+      .selectFrom('publicGameRequest')
+      .where('userId', '=', userId)
+      .$if(isPublic, (eb) => eb.where('targetId', 'is', null))
+      .selectAll()
+      .executeTakeFirst();
+  }
 }

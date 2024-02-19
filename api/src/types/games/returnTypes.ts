@@ -1,18 +1,6 @@
 export type AppGame = {
-  playerOne: {
-    score: number;
-    id: number;
-    rating: number;
-    username: string;
-    avatarUrl: string | null;
-  } | null;
-  playerTwo: {
-    id: number;
-    score: number;
-    rating: number;
-    username: string;
-    avatarUrl: string | null;
-  } | null;
+  playerOne: AppPlayer | null;
+  playerTwo: AppPlayer | null;
   winnerId: number | null;
   createdAt: Date;
   id: number;
@@ -20,3 +8,11 @@ export type AppGame = {
   powerUps: boolean;
   isPublic: boolean;
 };
+
+export type AppPlayer = {
+  id: number;
+  score: number;
+  rating: number;
+  username: string;
+  avatarUrl: string | null;
+}
