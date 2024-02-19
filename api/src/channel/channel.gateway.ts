@@ -150,8 +150,6 @@ export class ChannelGateway
   //
   //
   //
-  // !!! TODO == sends from muted user
-  // !!! TODO == test banned
   @SubscribeMessage('createChannelMessage')
   async handleMessage(
     @ConnectedSocket() socket: Socket,
@@ -171,7 +169,9 @@ export class ChannelGateway
     } catch (error) {
       socket.leave(String(payload.channelId));
       this.connectedUsersService.removeUserWithSocketId(socket.id);
-      throw new UnauthorizedException('User is banned');
+      throw new UnauthorizedException(
+        `User is banned from channel ${payload.channelId}`,
+      );
     }
 
     // Do not disconnect the muted user, just don't send the message
@@ -429,7 +429,7 @@ export class ChannelGateway
   //
   //
   //
-  // !!! test
+  // !!! tested
   @SubscribeMessage('unblockUser')
   async hadleUnblockUser(
     @ConnectedSocket() socket: Socket,

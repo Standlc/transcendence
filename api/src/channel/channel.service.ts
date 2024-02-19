@@ -62,24 +62,10 @@ export class ChannelService {
       throw new NotFoundException('Channel not found');
     }
 
-    try {
-      const isMember = await db
-        .selectFrom('channelMember')
-        .select('userId')
-        .where('userId', '=', userId)
-        .where('channelId', '=', channelId)
-        .executeTakeFirst();
-
-      if (!isMember || isMember.userId !== userId) {
-        throw new NotFoundException('User is not a member of the channel');
-      }
-    } catch (error) {
-      console.error('Error getting messages:', error);
-      if (error instanceof NotFoundException) throw error;
-      throw new InternalServerErrorException();
+    if ((await this.isChannelMember(userId, channelId)) === false) {
+      throw new NotFoundException('User is not a member of the channel');
     }
 
-    // !!! to test this part
     try {
       await this.userIsBanned(userId, channelId);
     } catch (error) {
@@ -110,11 +96,11 @@ export class ChannelService {
             .on('mutedUser.channelId', '=', channelId)
             .on('mutedUser.mutedEnd', '>', new Date()),
         )
-        // .leftJoin('blockedUser', (join) =>
-        //   join
-        //     .onRef('blockedUser.blockedId', '=', 'channelMessage.senderId')
-        //     .on('blockedUser.blockedById', '=', userId),
-        // ) // !!! TODO
+        .leftJoin('blockedUser', (join) =>
+          join
+            .onRef('blockedUser.blockedId', '=', 'channelMessage.senderId')
+            .on('blockedUser.blockedById', '=', userId),
+        )
         .select([
           'channelMessage.channelId',
           'channelMessage.content',
@@ -128,10 +114,9 @@ export class ChannelService {
           'mutedUser.userId as isMuted',
           'mutedUser.mutedEnd',
           'channel.channelOwner',
-          // 'blockedUser.blockedId', // !!! TODO
+          'blockedUser.blockedId',
         ])
         .execute();
-
 
       const result: MessageWithSenderInfo[] = messages.map((message) => ({
         channelId: message.channelId,
@@ -146,7 +131,7 @@ export class ChannelService {
         mutedEnd: message.mutedEnd,
         avatarUrl: message.avatarUrl,
         username: message.username || 'no username',
-        // blockedById: message.senderIsBlocked, !!! TODO
+        senderIsBlocked: Boolean(message.blockedId),
       })) as unknown as MessageWithSenderInfo[];
 
       if (result.length === 0) {
@@ -986,7 +971,6 @@ export class ChannelService {
   //
   // !!! tested
   async addAdministrator(payload: ActionOnUser): Promise<void> {
-    // !!! add everywhere
     if (
       (await this.isChannelMember(payload.userId, payload.channelId)) ===
         false ||
