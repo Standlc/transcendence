@@ -26,7 +26,7 @@ import {
 } from '@nestjs/common';
 import { WsAuthGuard } from 'src/auth/ws-auth.guard';
 
-@WebSocketGateway({
+@WebSocketGateway(5050, {
   namespace: 'channel',
   cors: {
     origin: '*',

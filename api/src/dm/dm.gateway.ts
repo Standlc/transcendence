@@ -17,7 +17,7 @@ import { Server, Socket } from 'socket.io';
 import { ConnectToDm, DirectMessageContent } from 'src/types/channelsSchema';
 import { WsAuthGuard } from 'src/auth/ws-auth.guard';
 
-@WebSocketGateway({
+@WebSocketGateway(5050, {
   namespace: 'dm',
   cors: {
     origin: '*',
