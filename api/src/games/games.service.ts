@@ -155,39 +155,7 @@ export class GamesService {
     return game;
   }
 
-  // playerTwoScore: (eb) => eb('playerTwoScore', '+', 1),
-
-  // async completeGamesInfos(games: LiveGameType[]) {
-  //   const gameIds = games.map((game) => game.players.map((p) => p.id)).flat();
-  //   const playersInfos = await this.getPlayersInfos(gameIds);
-
-  //   return games.map((game) => {
-  //     const gameWithInfo: LiveGameDto = {
-  //       players: [],
-  //       id: game.id,
-  //     };
-  //     game.players.forEach((player) => {
-  //       const playerInfo = playersInfos.find((p) => p.id === player.id);
-  //       if (playerInfo) {
-  //         gameWithInfo.players.push({
-  //           ...playerInfo,
-  //           score: player.score,
-  //         });
-  //       }
-  //     });
-  //     return gameWithInfo;
-  //   });
-  // }
-
-  // async getPlayersInfos(playersIds: number[]) {
-  //   if (!playersIds.length) {
-  //     return [];
-  //   }
-  //   const playersInfos = await db
-  //     .selectFrom('user')
-  //     .where('id', 'in', playersIds)
-  //     .select(['rating', 'id', 'avatarUrl', 'username'])
-  //     .execute();
-  //   return playersInfos;
-  // }
+  async delete(gameId: number) {
+    await db.deleteFrom('game').where('id', '=', gameId).execute();
+  }
 }

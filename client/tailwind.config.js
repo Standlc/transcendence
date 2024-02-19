@@ -4,7 +4,8 @@ export default {
   theme: {
     extend: {
       boxShadow: {
-        button: "0 5px 2px -3px rgba(0,0,0,0.5)",
+        button: "0 5px 0px 0px rgba(0,0,0,0.5)",
+        inset: "inset 0 -4px 0px 0px rgba(0,0,0,0.6)",
         card: "0 10px 5px -5px rgb(0 0 0 / 0.3)",
         "card-xl": "0 20px 8px -10px rgb(0 0 0 / 0.3)",
       },
@@ -49,10 +50,42 @@ export default {
             transform: "scale(1)",
           },
         },
+        "move-left-right": {
+          "0%": {
+            transform: "translate(-100%)",
+          },
+          "50%": {
+            transform: "translate(100%)",
+          },
+          "100%": {
+            transform: "translate(-100%)",
+          },
+        },
+        showUpAndLeave: {
+          "0%": {
+            transform: "translate(0%, 200%)",
+          },
+          "10%": {
+            transform: "translateY(200%)",
+          },
+          "30%": {
+            transform: "translateY(0%)",
+          },
+          "90%": {
+            transform: "translateY(0%)",
+          },
+          "100%": {
+            transform: "translateY(200%)",
+          },
+        },
       },
       animation: {
-        fadein: "fadein 0.3s cubic-bezier(0.7, -0.0, 0, 1)",
-        scalein: "scalein 0.3s cubic-bezier(0.7, -0.0, 0, 1)",
+        fadein: "fadein 0.3s cubic-bezier(0.7, 0, 0, 1)",
+        scalein: "scalein 0.3s cubic-bezier(0.7, 0, 0, 1)",
+        "slow-spin": "spin 6s linear infinite",
+        "move-left-right":
+          "move-left-right 3s cubic-bezier(0.7, 0, 0, 1) infinite",
+        showUpAndLeave: "showUpAndLeave 4s cubic-bezier(0.7, 0, 0, 1) infinite",
       },
     },
   },

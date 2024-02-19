@@ -30,7 +30,7 @@ export default function LiveGames() {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["liveGames"], (prev: (typeof data)[]) =>
-        prev ? [...prev, data] : data
+        prev ? [data, ...prev] : data
       );
     },
     mutationKey: ["newLiveGame"],
@@ -112,41 +112,33 @@ export const GameInfo = ({ game }: { game: AppGame }) => {
   return (
     <div
       onClick={() => navigate(`/play/${game.id}`)}
-      className="flex items-center odd:bg-white odd:bg-opacity-5 gap-3 justify-around px-5 py-3 hover:bg-white hover:bg-opacity-10 cursor-pointer rounded-md"
+      className="flex items-center font-extrabold odd:bg-white odd:bg-opacity-5 gap-3 justify-around px-5 py-3 hover:bg-white hover:bg-opacity-10 cursor-pointer rounded-md"
     >
       <div className="flex items-center gap-3 flex-1">
         <Avatar imgUrl={undefined} size="md" userId={playerOne?.id ?? 0} />
-        <div className="flex items-center gap-2">
-          <span className="text-base font-title font-bold">
-            {playerOne?.username ?? "Unkown"}
-          </span>
-          <div className="text-sm font-title text-indigo-400 font-bold rounded-md px-2 py-[2px] bg-indigo-400 bg-opacity-10">
-            {playerOne?.rating ?? "Unkown"}
-          </div>
+        <span className="text-base">{playerOne?.username ?? "Unkown"}</span>
+        <div className="text-sm text-indigo-400 rounded-md px-2 py-[2px] bg-indigo-400 bg-opacity-10">
+          {playerOne?.rating ?? "Unkown"}
         </div>
 
-        <div className="font-gameFont text-lg justify-self-end flex-1 flex justify-end">
+        <div className="text-lg font-gameFont justify-self-end flex-1 flex justify-end">
           <InfiniteSlotMachine state={playerOne?.score ?? 0} />
         </div>
       </div>
 
-      <span className="font-gameFont text-sm">-</span>
+      <span className="text-sm">-</span>
 
       <div className="flex items-center gap-3 flex-1 justify-end">
-        <div className="font-gameFont text-lg flex-1 flex justify-start">
+        <div className="text-lg font-gameFont flex-1 flex justify-start">
           <InfiniteSlotMachine state={playerTwo?.score ?? 0} />
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="text-sm font-title text-indigo-400 font-bold rounded-md px-2 py-[2px] bg-indigo-400 bg-opacity-10">
-            {playerTwo?.rating ?? "Unkown"}
-          </div>
-          <span className="text-base font-title font-bold">
-            {playerTwo?.username ?? "Unkown"}
-          </span>
+        <div className="text-sm text-indigo-400 rounded-md px-2 py-[2px] bg-indigo-400 bg-opacity-10">
+          {playerTwo?.rating ?? "Unkown"}
         </div>
-        <Avatar imgUrl={undefined} size="md" userId={playerTwo?.id ?? 0} />
+        <span className="text-base">{playerTwo?.username ?? "Unkown"}</span>
       </div>
+      <Avatar imgUrl={undefined} size="md" userId={playerTwo?.id ?? 0} />
     </div>
   );
 };
