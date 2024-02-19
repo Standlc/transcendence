@@ -18,7 +18,6 @@ import {
   MuteUser,
 } from 'src/types/channelsSchema';
 import * as bcrypt from 'bcrypt';
-import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class ChannelService {
@@ -35,11 +34,12 @@ export class ChannelService {
           content: message.content,
           senderId: message.senderId,
         })
-        .execute();
+        .executeTakeFirstOrThrow();
 
       console.log('Msg added');
     } catch (error) {
       console.error('Error creating message:', error);
+      throw new InternalServerErrorException();
     }
   }
 
@@ -70,15 +70,21 @@ export class ChannelService {
         .where('channelId', '=', channelId)
         .executeTakeFirst();
 
-      if (!isMember) {
+      if (!isMember || isMember.userId !== userId) {
         throw new NotFoundException('User is not a member of the channel');
       }
     } catch (error) {
       console.error('Error getting messages:', error);
+      if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException();
     }
 
-    // !!! TODO user is banned UnauthorizedException
+    // !!! to test this part
+    try {
+      await this.userIsBanned(userId, channelId);
+    } catch (error) {
+      throw error;
+    }
 
     try {
       const messages = await db
@@ -104,6 +110,11 @@ export class ChannelService {
             .on('mutedUser.channelId', '=', channelId)
             .on('mutedUser.mutedEnd', '>', new Date()),
         )
+        // .leftJoin('blockedUser', (join) =>
+        //   join
+        //     .onRef('blockedUser.blockedId', '=', 'channelMessage.senderId')
+        //     .on('blockedUser.blockedById', '=', userId),
+        // ) // !!! TODO
         .select([
           'channelMessage.channelId',
           'channelMessage.content',
@@ -117,17 +128,10 @@ export class ChannelService {
           'mutedUser.userId as isMuted',
           'mutedUser.mutedEnd',
           'channel.channelOwner',
+          // 'blockedUser.blockedId', // !!! TODO
         ])
         .execute();
 
-      // !!! TODO add this part for each user
-      const blockedById = await db
-        .selectFrom('blockedUser')
-        .select('blockedById')
-        .where('blockedId', '=', userId)
-        .execute();
-
-      console.log('blockedById:', blockedById);
 
       const result: MessageWithSenderInfo[] = messages.map((message) => ({
         channelId: message.channelId,
@@ -142,7 +146,7 @@ export class ChannelService {
         mutedEnd: message.mutedEnd,
         avatarUrl: message.avatarUrl,
         username: message.username || 'no username',
-        blockedById: blockedById,
+        // blockedById: message.senderIsBlocked, !!! TODO
       })) as unknown as MessageWithSenderInfo[];
 
       if (result.length === 0) {
@@ -152,6 +156,7 @@ export class ChannelService {
       return result as unknown as MessageWithSenderInfo[];
     } catch (error) {
       console.error('Error getting messages:', error);
+      if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException();
     }
   }
@@ -603,11 +608,13 @@ export class ChannelService {
     try {
       mutedUser = await db
         .selectFrom('mutedUser')
-        .select(['userId', 'mutedEnd'])
+        .select(['userId', 'channelId', 'mutedEnd'])
         .where('channelId', '=', channelMessage.channelId)
         .where('userId', '=', channelMessage.senderId)
         .where('mutedEnd', '>', new Date())
         .execute();
+
+      console.log(mutedUser);
     } catch (error) {
       throw new InternalServerErrorException();
     }
@@ -638,14 +645,39 @@ export class ChannelService {
   //
   //
   //
+  async isChannelMember(userId: number, channelId: number): Promise<boolean> {
+    try {
+      const member = await db
+        .selectFrom('channelMember')
+        .select('userId')
+        .where('userId', '=', userId)
+        .where('channelId', '=', channelId)
+        .executeTakeFirst();
+
+      if (!member || member.userId == null) {
+        console.log(`User ${userId} is not member of the channel ${channelId}`);
+        return false;
+      }
+      console.log(`User ${userId} is member of the channel ${channelId}`);
+      return true;
+    } catch (error) {
+      throw new InternalServerErrorException();
+    }
+  }
+
+  //
+  //
+  //
   async userIsAdmin(userId: number, channelId: number): Promise<boolean> {
     try {
-      await db
+      const admin = await db
         .selectFrom('channelAdmin')
         .select('userId')
         .where('userId', '=', userId)
         .where('channelId', '=', channelId)
-        .executeTakeFirstOrThrow(); // !!! to test
+        .executeTakeFirst();
+
+      if (!admin || admin.userId == null) return false;
 
       return true;
     } catch (error) {
@@ -658,12 +690,14 @@ export class ChannelService {
   //
   async userIsOwner(userId: number, channelId: number): Promise<boolean> {
     try {
-      await db
+      const owner = await db
         .selectFrom('channel')
         .select('channelOwner')
         .where('channelOwner', '=', userId)
         .where('id', '=', channelId)
-        .executeTakeFirstOrThrow(); // !!! to test
+        .executeTakeFirst();
+
+      if (!owner || owner.channelOwner == null) return false;
 
       return true;
     } catch (error) {
@@ -675,6 +709,15 @@ export class ChannelService {
   //
   //
   async banUser(payload: ActionOnUser): Promise<void> {
+    if (
+      (await this.isChannelMember(payload.userId, payload.channelId)) ===
+        false ||
+      (await this.isChannelMember(payload.targetUserId, payload.channelId)) ===
+        false
+    ) {
+      return;
+    }
+
     if (payload.targetUserId === payload.userId) {
       throw new UnauthorizedException('User cannot ban itself');
     }
@@ -685,8 +728,11 @@ export class ChannelService {
       throw new UnauthorizedException('User is not an admin');
     }
 
-    if ((await this.userIsOwner(payload.userId, payload.channelId)) === true)
+    if (
+      (await this.userIsOwner(payload.targetUserId, payload.channelId)) === true
+    )
       throw new UnauthorizedException('User cannot ban the channel owner');
+
     try {
       await db
         .insertInto('bannedUser')
@@ -704,7 +750,17 @@ export class ChannelService {
   //
   //
   //
+  // !!! tested
   async unbanUser(payload: ActionOnUser): Promise<void> {
+    if (
+      (await this.isChannelMember(payload.userId, payload.channelId)) ===
+        false ||
+      (await this.isChannelMember(payload.targetUserId, payload.channelId)) ===
+        false
+    ) {
+      return;
+    }
+
     if (payload.targetUserId === payload.userId) {
       throw new UnauthorizedException('User cannot unban itself');
     }
@@ -715,7 +771,9 @@ export class ChannelService {
       throw new UnauthorizedException('User is not an admin');
     }
 
-    if ((await this.userIsOwner(payload.userId, payload.channelId)) === true)
+    if (
+      (await this.userIsOwner(payload.targetUserId, payload.channelId)) === true
+    )
       throw new UnauthorizedException('User cannot unban the channel owner');
 
     try {
@@ -732,7 +790,17 @@ export class ChannelService {
   //
   //
   //
+  // !!! tested
   async muteUser(payload: MuteUser): Promise<void> {
+    if (
+      (await this.isChannelMember(payload.userId, payload.channelId)) ===
+        false ||
+      (await this.isChannelMember(payload.targetUserId, payload.channelId)) ===
+        false
+    ) {
+      return;
+    }
+
     if (payload.targetUserId === payload.userId) {
       throw new UnauthorizedException('User cannot mute itself');
     }
@@ -743,19 +811,54 @@ export class ChannelService {
       throw new UnauthorizedException('User is not an admin');
     }
 
-    if ((await this.userIsOwner(payload.userId, payload.channelId)) === true)
+    if (
+      (await this.userIsOwner(payload.targetUserId, payload.channelId)) === true
+    )
       throw new UnauthorizedException('User cannot mute the channel owner');
 
     try {
-      await db
-        .insertInto('mutedUser')
-        .values({
-          channelId: payload.channelId,
-          mutedEnd: payload.muteEnd,
-          userId: payload.userId,
-        })
-        .execute();
+      let mutedUserExists = await db
+        .selectFrom('mutedUser')
+        .select(['userId', 'channelId', 'mutedEnd'])
+        .where('userId', '=', payload.targetUserId)
+        .where('channelId', '=', payload.channelId)
+        .executeTakeFirst();
+
+      if (
+        mutedUserExists &&
+        mutedUserExists.mutedEnd !== null &&
+        mutedUserExists.mutedEnd <= new Date()
+      ) {
+        await db
+          .deleteFrom('mutedUser')
+          .where('userId', '=', payload.targetUserId)
+          .where('channelId', '=', payload.channelId)
+          .execute();
+        console.log('User was unmuted, time of mute passed');
+        mutedUserExists = undefined;
+      }
+
+      if (!mutedUserExists) {
+        if (payload.muteEnd === null) {
+          const now = new Date();
+          payload.muteEnd = new Date(now.getTime() + 5 * 60 * 1000);
+          console.log(
+            'MuteEnd was set to null, so user is muted for 5 minutes',
+          );
+        }
+        await db
+          .insertInto('mutedUser')
+          .values({
+            channelId: payload.channelId,
+            mutedEnd: payload.muteEnd,
+            userId: payload.targetUserId,
+          })
+          .execute();
+      } else {
+        console.log('User is already muted in the channel');
+      }
     } catch (error) {
+      console.log(error);
       throw new InternalServerErrorException();
     }
   }
@@ -763,7 +866,17 @@ export class ChannelService {
   //
   //
   //
+  // !!! change throw exceptions to return everywhere because of socket disconnection ?
   async unmuteUser(payload: ActionOnUser): Promise<void> {
+    if (
+      (await this.isChannelMember(payload.userId, payload.channelId)) ===
+        false ||
+      (await this.isChannelMember(payload.targetUserId, payload.channelId)) ===
+        false
+    ) {
+      return;
+    }
+
     if (payload.targetUserId === payload.userId) {
       throw new UnauthorizedException('User cannot unmute itself');
     }
@@ -774,7 +887,9 @@ export class ChannelService {
       throw new UnauthorizedException('User is not an admin');
     }
 
-    if ((await this.userIsOwner(payload.userId, payload.channelId)) === true)
+    if (
+      (await this.userIsOwner(payload.targetUserId, payload.channelId)) === true
+    )
       throw new UnauthorizedException('User cannot unmute the channel owner');
 
     try {
@@ -788,66 +903,109 @@ export class ChannelService {
     }
   }
 
-  // !!!  need to implement an autodelete function to clean 'mutedUser'
-  //      when the mutedEnd time comes
-  // !!! is this the best way to do it ?
-  @Cron(CronExpression.EVERY_SECOND) // !!! TODO = need to be sure about his one
-  async autoUnmuteUser(): Promise<void> {
-    try {
-      await db
-        .deleteFrom('mutedUser')
-        .where('mutedEnd', '<', new Date())
-        .execute();
+  //
+  //
+  //
+  // !!! tested
+  async blockUser(payload: BlockUser): Promise<void> {
+    if (payload.targetUserId === payload.userId) {
+      console.log('User cannot block itself');
+      return;
+    }
 
-      console.log(`Auto unmute done.`);
+    try {
+      await this.userExists(payload.userId);
+      await this.userExists(payload.targetUserId);
     } catch (error) {
-      console.error('Auto unmute error', error);
+      console.log('User do not exist');
+      return;
+    }
+
+    try {
+      const isAlreadyBlocked = await db
+        .selectFrom('blockedUser')
+        .where('blockedById', '=', payload.userId)
+        .where('blockedId', '=', payload.targetUserId)
+        .executeTakeFirst();
+
+      if (isAlreadyBlocked) {
+        console.log(
+          `User ${payload.userId} already blocked user ${payload.targetUserId}`,
+        );
+        return;
+      }
+
+      await db
+        .insertInto('blockedUser')
+        .values({
+          blockedById: payload.userId,
+          blockedId: payload.targetUserId,
+        })
+        .execute();
+      console.log(
+        `User ${payload.userId} blocked user ${payload.targetUserId}`,
+      );
+    } catch (error) {
       throw new InternalServerErrorException();
     }
-  }
-
-  //
-  //
-  //
-  async blockUser(payload: BlockUser): Promise<void> {
-    await db
-      .insertInto('blockedUser')
-      .values({
-        blockedById: payload.userId,
-        blockedId: payload.targetUserId,
-      })
-      .execute();
   }
 
   //
   //
   //
   async unblockUser(payload: BlockUser): Promise<void> {
-    await db
-      .deleteFrom('blockedUser')
-      .where('blockedById', '=', payload.userId)
-      .where('blockedId', '=', payload.targetUserId)
-      .execute();
+    if (payload.targetUserId === payload.userId) {
+      console.log('User cannot unblock itself');
+      return;
+    }
+
+    try {
+      await this.userExists(payload.userId);
+      await this.userExists(payload.targetUserId);
+    } catch (error) {
+      console.log('User do not exist');
+      return;
+    }
+
+    try {
+      await db
+        .deleteFrom('blockedUser')
+        .where('blockedById', '=', payload.userId)
+        .where('blockedId', '=', payload.targetUserId)
+        .execute();
+      console.log(
+        `User ${payload.userId} unblocked user ${payload.targetUserId}`,
+      );
+    } catch (error) {
+      throw new InternalServerErrorException();
+    }
   }
 
   //
   //
   //
+  // !!! tested
   async addAdministrator(payload: ActionOnUser): Promise<void> {
-    try {
-      await this.userIsAdmin(payload.userId, payload.channelId);
-    } catch {
-      throw new UnauthorizedException('User is not an admin');
+    // !!! add everywhere
+    if (
+      (await this.isChannelMember(payload.userId, payload.channelId)) ===
+        false ||
+      (await this.isChannelMember(payload.targetUserId, payload.channelId)) ===
+        false
+    ) {
+      return;
     }
 
-    try {
-      if (
-        (await this.userIsAdmin(payload.targetUserId, payload.channelId)) ===
-        true
-      )
-        throw new UnauthorizedException('User is already an admin');
-    } catch {
-      throw new InternalServerErrorException();
+    if ((await this.userIsAdmin(payload.userId, payload.channelId)) === false) {
+      console.log('User is not an admin');
+      return;
+    }
+
+    if (
+      (await this.userIsAdmin(payload.targetUserId, payload.channelId)) === true
+    ) {
+      console.log('User is already an admin');
+      return;
     }
 
     try {
@@ -858,6 +1016,9 @@ export class ChannelService {
           userId: payload.targetUserId,
         })
         .execute();
+      console.log(
+        `Admin ${payload.userId} promoted user ${payload.targetUserId} to admin`,
+      );
     } catch (error) {
       throw new InternalServerErrorException();
     }
@@ -866,21 +1027,36 @@ export class ChannelService {
   //
   //
   //
+  // !!! tested
   async removeAdministrator(payload: ActionOnUser): Promise<void> {
-    try {
-      await this.userIsAdmin(payload.userId, payload.channelId);
-    } catch {
-      throw new UnauthorizedException('User is not an admin');
+    if (
+      (await this.isChannelMember(payload.userId, payload.channelId)) ===
+        false ||
+      (await this.isChannelMember(payload.targetUserId, payload.channelId)) ===
+        false
+    ) {
+      return;
     }
 
-    try {
-      if (
-        (await this.userIsAdmin(payload.targetUserId, payload.channelId)) ===
-        false
-      )
-        throw new UnauthorizedException('Target user is not an admin');
-    } catch {
-      throw new InternalServerErrorException();
+    if ((await this.userIsAdmin(payload.userId, payload.channelId)) === false) {
+      console.log('User is not an admin');
+      return;
+    }
+
+    if (
+      (await this.userIsAdmin(payload.targetUserId, payload.channelId)) ===
+      false
+    ) {
+      console.log('Target user is not an admin');
+      return;
+    }
+
+    if (
+      (await this.userIsOwner(payload.targetUserId, payload.channelId)) === true
+    ) {
+      console.log(
+        `User ${payload.userId} cannot remove channel owner admin priviledges`,
+      );
     }
 
     try {
@@ -889,11 +1065,15 @@ export class ChannelService {
         .where('userId', '=', payload.targetUserId)
         .where('channelId', '=', payload.channelId)
         .execute();
+      console.log(
+        `Admin ${payload.userId} removed user's ${payload.targetUserId} admin priviledges`,
+      );
     } catch (error) {
       throw new InternalServerErrorException();
     }
   }
 
+  //
   //
   //
   // !!! to test
@@ -916,6 +1096,7 @@ export class ChannelService {
   //
   //
   //
+  // !!! to test
   async isOnlyOneMember(channelId: number): Promise<boolean> {
     try {
       const members = await db
@@ -932,6 +1113,7 @@ export class ChannelService {
   //
   //
   //
+  // !!! to test
   async hasAdmins(channelId: number): Promise<boolean> {
     try {
       const admins = await db
@@ -948,6 +1130,7 @@ export class ChannelService {
   //
   //
   //
+  // !!! to test
   async setFirstAdminAsOwner(channelId: number): Promise<void> {
     try {
       const newOwner = await db
@@ -971,6 +1154,7 @@ export class ChannelService {
   //
   //
   //
+  // !!! to test
   async setFirstMemberAsOwner(channelId: number): Promise<void> {
     try {
       const newOwner = await db
@@ -991,6 +1175,7 @@ export class ChannelService {
     }
   }
 
+  //
   //
   //
   // !!! to test
@@ -1014,6 +1199,7 @@ export class ChannelService {
   //
   //
   //
+  // !!! to test
   async quitChannelAsAdmin(payload: ConnectToChannel) {
     try {
       await db
@@ -1029,6 +1215,7 @@ export class ChannelService {
   //
   //
   //
+  // !!! to test
   async quitChannelAsMember(payload: ConnectToChannel) {
     try {
       await db
@@ -1043,7 +1230,7 @@ export class ChannelService {
 
   //
   //
-  // !!! needed for private channels later
+  //
   async usersAreFriends(userId: number, friendId: number): Promise<boolean> {
     try {
       await db
@@ -1070,6 +1257,8 @@ export class ChannelService {
         .where('id', '=', channelId)
         .executeTakeFirstOrThrow();
 
+      if (channelPwd.password === null && password !== null) return true;
+
       const match = await bcrypt.compare(
         password,
         channelPwd.password as string,
@@ -1080,6 +1269,7 @@ export class ChannelService {
       throw new InternalServerErrorException();
     }
   }
+
   //
   //
   //
@@ -1109,5 +1299,25 @@ export class ChannelService {
     } catch (error) {
       throw new InternalServerErrorException();
     }
+  }
+
+  //
+  //
+  //
+  async kickUser(payload: ActionOnUser): Promise<void> {
+    if (payload.targetUserId === payload.userId) {
+      throw new UnauthorizedException('User cannot kick itself');
+    }
+
+    try {
+      await this.userIsAdmin(payload.userId, payload.channelId);
+    } catch {
+      throw new UnauthorizedException('User is not an admin');
+    }
+
+    if (
+      (await this.userIsOwner(payload.targetUserId, payload.channelId)) === true
+    )
+      throw new UnauthorizedException('User cannot kick the channel owner');
   }
 }

@@ -32,7 +32,7 @@ export interface MessageWithSenderInfo {
   isAdmin: boolean;
   isBanned: boolean;
   isMuted: boolean;
-  isBlockedByUserIds: number[];
+  senderIsBlocked: boolean;
 }
 
 export interface DmWithSenderInfo {
@@ -68,7 +68,7 @@ export interface MuteUser {
   userId: number;
   targetUserId: number;
   channelId: number;
-  muteEnd: Date;
+  muteEnd: Date | null;
 }
 
 export interface BlockUser {

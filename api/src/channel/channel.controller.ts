@@ -86,11 +86,8 @@ export class UserController {
           isMuted: {
             type: 'boolean',
           },
-          isBlockedByUserIds: {
-            type: 'array',
-            items: {
-              type: 'number',
-            },
+          senderIsBlocked: {
+            type: 'boolean',
           },
         },
       },

@@ -1,5 +1,5 @@
 import {
-  NotFoundException,
+  InternalServerErrorException,
   UnprocessableEntityException,
   UseGuards,
 } from '@nestjs/common';
@@ -49,22 +49,6 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleConnection(@ConnectedSocket() socket: Socket) {
     console.log(`Client connected: ${socket.id}`);
-
-    // !!! to test later
-    // try {
-    //   socket.requestCount = 0;
-    //   // Checks the request connection count every second, limit = 100
-    //   setInterval(() => {
-    //     if (socket.requestCount && socket.requestCount > 100) {
-    //       console.error('Rate limit exceeded: socket disconnected');
-    //       socket.disconnect();
-    //     } else {
-    //       socket.requestCount = 0;
-    //     }
-    //   }, 1000);
-    // } catch (error) {
-    //   console.error(error);
-    // }
   }
 
   handleDisconnect(socket: Socket) {
@@ -86,13 +70,13 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
       await this.dmService.userExists(payload.userId);
     } catch (error) {
       socket.disconnect();
-      throw new NotFoundException('User not found');
+      throw error;
     }
 
     try {
       await this.dmService.conversationExists(payload.conversationId);
     } catch (error) {
-      throw new NotFoundException('Conversation not found');
+      throw error;
     }
 
     try {
@@ -156,6 +140,7 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
     } catch (error) {
       console.error(error);
+      if (error instanceof InternalServerErrorException) throw error;
       throw new UnprocessableEntityException('Cannot send message');
     }
   }

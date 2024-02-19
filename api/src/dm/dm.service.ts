@@ -109,11 +109,13 @@ export class DmService {
           eb.or([eb('user1_id', '=', userId), eb('user2_id', '=', userId)]),
         )
         .execute();
-      if (!allConv)
+      if (!allConv || allConv.length === 0) {
         throw new NotFoundException('No conversations found for this user');
+      }
+
       return allConv as unknown as Conversation[];
     } catch (error) {
-      console.error(error);
+      if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException();
     }
   }
@@ -254,7 +256,7 @@ export class DmService {
         .selectFrom('user')
         .select('id')
         .where('id', '=', userId)
-        .execute();
+        .executeTakeFirstOrThrow();
       console.log('User exists', userId);
     } catch (error) {
       throw new NotFoundException('User not found');
