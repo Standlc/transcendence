@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException, UnprocessableEntityException } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { Strategy } from "passport-oauth2";
 import { AuthService } from "./auth.service";
@@ -6,6 +6,7 @@ import { HttpService } from "@nestjs/axios";
 import { AxiosError, AxiosResponse } from "axios";
 import { catchError, firstValueFrom } from "rxjs";
 import { AppUser } from "src/types/clientSchema";
+import { randomInt } from "crypto";
 
 export interface userFromIntra {
   email: string,
@@ -189,13 +190,17 @@ export class Oauth2Strategy extends PassportStrategy(Strategy) {
     }
     if (!user) {
       // ? Create a user in our database
-      try {
-        const result: boolean = await this.authService.registerOauth(intraUser);
-        if (!result)
-          throw "Fail to create a user";
-      } catch (error) {
-        console.log(error);
-        throw error;
+      let isAccountCreated: boolean = false;
+      while (!isAccountCreated) {
+        try {
+          await this.authService.registerOauth(intraUser);
+          isAccountCreated = true;
+        } catch (error) {
+          if (error instanceof UnprocessableEntityException)
+            intraUser.username = intraUser.username + randomInt(1000);
+          else
+            throw error;
+        }
       }
       try {
         user = await this.authService.validateEmail(intraUser.email);

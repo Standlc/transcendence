@@ -54,7 +54,7 @@ export class UsersService {
     try {
       user = await db
       .selectFrom('user')
-      .selectAll()
+      .select(['avatarUrl', 'bio', 'createdAt', 'email', 'firstname', 'id', 'lastname', 'rating', 'username'])
       .where('username', '=', createUsersDto.username)
       .executeTakeFirstOrThrow()
     } catch (error) {
@@ -70,13 +70,27 @@ export class UsersService {
    * They will be able to change the password if they want to connect without
    * oauth though.
    * @param intraUser 
-   * @returns True if we correctly create a new user, false otherwise
    * @throws InternalServerError if the db fail
+   * @throws UnprocessableEntity if the username is already taken
    */
-  async createOauthUser(intraUser: userFromIntra): Promise<boolean> {
+  async createOauthUser(intraUser: userFromIntra) {
+    try {
+      const result = await db
+      .selectFrom('user')
+      .selectAll()
+      .where('username', '=', intraUser.username)
+      .executeTakeFirst()
+      if (result)
+        throw new UnprocessableEntityException("Username already taken");
+    } catch (error) {
+      console.log(error);
+      if (error instanceof UnprocessableEntityException)
+        throw error;
+      throw new InternalServerErrorException();
+    }
     try {
       const hashedPassword = await bcrypt.hash(randomBytes(32), 10);
-      const result = await db
+      await db
       .insertInto('user')
       .values({
         email: intraUser.email,
@@ -87,9 +101,6 @@ export class UsersService {
         password: hashedPassword
       })
       .executeTakeFirst();
-      if (result.numInsertedOrUpdatedRows === 0n)
-        return false;
-      return true;
     } catch (error) {
       throw new InternalServerErrorException();
     }

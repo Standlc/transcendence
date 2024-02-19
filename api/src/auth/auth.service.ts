@@ -32,7 +32,7 @@ export class AuthService {
    * @param intraUser 
    * @returns true or false
    */
-  async registerOauth(intraUser: userFromIntra): Promise<boolean> {
+  async registerOauth(intraUser: userFromIntra) {
     return await this.usersService.createOauthUser(intraUser);
   }
 
