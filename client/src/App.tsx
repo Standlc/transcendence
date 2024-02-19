@@ -14,7 +14,7 @@ import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { LiveGamesPage } from "./pages/LiveGamesPage";
-import { AuthProvider } from "./components/RequireAuth/AuthProvider";
+import { AuthProvider, useAuth } from "./components/RequireAuth/AuthProvider";
 import { Dashboard } from "./pages/Dashboard";
 import { Register } from "./pages/Register";
 import { Friends } from "./pages/Friends";
@@ -22,11 +22,14 @@ import { Login } from "./pages/Login";
 import { Settings } from "./pages/Settings";
 
 function App() {
+    const { loginResponse } = useAuth();
     const queryClient = useQueryClient();
     const [credentials, setCredentials] = useState({
         username: "",
         password: "",
     });
+
+    const userId = loginResponse?.id || 0;
 
     const getUser = useQuery({
         queryKey: ["user"],
@@ -64,7 +67,7 @@ function App() {
                 router={createBrowserRouter(
                     createRoutesFromElements(
                         <>
-                            <Route element={<PrivateLayout />}>
+                            <Route element={<PrivateLayout user={userId} />}>
                                 <Route index path="/" element={<Login />} />
                                 <Route path="/play" element={<PlayPage />} />
                                 <Route path="/play/:gameId" element={<GamePage />} />

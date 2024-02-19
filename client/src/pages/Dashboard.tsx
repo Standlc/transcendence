@@ -4,7 +4,6 @@ import { Chatbox } from "../components/Chatbox";
 import { NavBar } from "../components/Navbar/Navbar";
 import { useAuth } from "../components/RequireAuth/AuthProvider";
 import { Friends } from "./Friends";
-import { Chat } from "../components/Chat/Chat";
 
 export const Dashboard = () => {
     const { loginResponse } = useAuth();

@@ -78,7 +78,7 @@ input:focus {
 
 .navbar {
     height: 100vh;
-
+    display: flex;
     flex-direction: column;
     width: 95px;
     min-width: 95px;

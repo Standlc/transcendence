@@ -15,10 +15,10 @@ export const NavBar = () => {
             {buttons.map((buttonText, index) => (
                 <button
                     key={index}
-                    className={`mt-4 p-2 rounded-full bg-not-quite-black ${
+                    className={`mt-4 ml-[20px] p-2 rounded-full  ${
                         activeButton === buttonText
                             ? "rounded-lg bg-blurple hover:bg-blurple"
-                            : "hover:rounded-lg hover:bg-blurple"
+                            : "bg-not-quite-black hover:rounded-lg hover:bg-blurple"
                     }`}
                     style={{ height: "50px", width: "50px" }}
                     onClick={() => handleClick(buttonText)}
@@ -26,7 +26,7 @@ export const NavBar = () => {
                     {buttonText}
                 </button>
             ))}
-            {/* <button onClick={() => navigate("/play")}>play</button> */}
+            <button onClick={() => navigate("/play")}>play</button>
         </div>
     );
 };
