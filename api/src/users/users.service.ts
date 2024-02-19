@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException, UnprocessableEntityException } from '@nestjs/common';
 import { db } from 'src/database';
 import { CreateUsersDto } from './dto/create-users.dto';
 import * as bcrypt from 'bcrypt';
@@ -10,12 +10,21 @@ import { Selectable } from 'kysely';
 
 @Injectable()
 export class UsersService {
-  async createUser(createUsersDto: CreateUsersDto): Promise<string> {
+  /**
+   * Create a user in the database using createUserDto values
+   * @param createUsersDto 
+   * @returns AppUser
+   * @throws InternalServerError
+   * @throws UnprocessableEntity
+   */
+  async createUser(createUsersDto: CreateUsersDto): Promise<AppUser> {
+    if (createUsersDto.username == "" || !createUsersDto.username) {
+      console.log("Tried to register without a username");
+      throw new UnprocessableEntityException("Empty username");
+    }
     try {
       const hashedPassword = await bcrypt.hash(createUsersDto.password, 10);
-      if (createUsersDto.username == "")
-        throw "Empty username";
-      await db
+       const result = await db
       .insertInto('user')
       .values({
         username: createUsersDto.username,
@@ -23,11 +32,27 @@ export class UsersService {
         firstname: createUsersDto.firstname,
         lastname: createUsersDto.lastname
       })
-      .executeTakeFirstOrThrow();
-      return 'success';
+      .executeTakeFirst();
+      if (!result.numInsertedOrUpdatedRows || result.numInsertedOrUpdatedRows <= 0n)
+        throw new UnprocessableEntityException("Username already taken");
     } catch (error) {
-      return 'error';
+      console.log(error);
+      if (error instanceof UnprocessableEntityException)
+        throw error;
+      throw new InternalServerErrorException();
     }
+    let user: AppUser | undefined;
+    try {
+      user = await db
+      .selectFrom('user')
+      .selectAll()
+      .where('username', '=', createUsersDto.username)
+      .executeTakeFirstOrThrow()
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
+    return user;
   }
 
   /**
@@ -65,6 +90,8 @@ export class UsersService {
    * Look for userId in the db
    * @param userId 
    * @returns AppUser
+   * @throws InternalServerError
+   * @throws NotFound
    */
   async getUserById(userId: number): Promise<AppUser> {
     let user: Selectable<User> | undefined;
@@ -86,27 +113,57 @@ export class UsersService {
     return appUser;
   }
 
-  async findUsersByName(substring: string): Promise<AppUser[] | null> {
+  /**
+   * Looking for any user with a substring of there username that match the substring parameter.
+   * @param substring 
+   * @returns An array of User that match the substring
+   * @throws InternalServerError
+   * @throws NotFound
+   */
+  async findUsersByName(substring: string): Promise<AppUser[]> {
     //? Fetch the database and search for any user containing a substring in the username field.
     //? Create an array of AppUser containing every field except password of any user that matches the substring.
-    const user: AppUser[] | null = await db
-    .selectFrom('user')
-    .select(['username', 'bio', 'avatarUrl', 'firstname', 'lastname', 'createdAt', 'email', 'id', 'rating'])
-    .where('username', 'like', '%' + substring + '%')
-    .execute();
+    let user: AppUser[]
+    try {
+      user = await db
+      .selectFrom('user')
+      .select(['username', 'bio', 'avatarUrl', 'firstname', 'lastname', 'createdAt', 'email', 'id', 'rating'])
+      .where('username', 'like', '%' + substring + '%')
+      .execute();
+    }
+    catch(error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
+    if (!user)
+      throw new NotFoundException();
     return user;
   }
 
-  async getUserByName(username: string): Promise<AppUser | undefined> {
-    const user = await db
-    .selectFrom('user')
-    .selectAll()
-    .where('username', '=', username)
-    .executeTakeFirst();
-    if (user) {
-      const {password, ...appUser} = user;
-      return appUser;
+  /**
+   * Return AppUser that match the username in the database.
+   * @param username 
+   * @returns AppUser
+   * @throws InternalServerError
+   * @throws NotFound
+   */
+  async getUserByName(username: string): Promise<AppUser> {
+    let user: Selectable<User> | undefined;
+    try {
+      user = await db
+      .selectFrom('user')
+      .selectAll()
+      .where('username', '=', username)
+      .executeTakeFirst();
     }
+    catch(error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
+    if (!user)
+      throw new NotFoundException();
+    const {password, ...appUser} = user;
+    return appUser;
   }
 
   /**
@@ -121,7 +178,7 @@ export class UsersService {
     try {
       user = await db
       .selectFrom('user')
-      .select(['avatarUrl', 'bio', 'createdAt', 'email', 'firstname', 'id', 'lastname', 'username'])
+      .select(['avatarUrl', 'bio', 'createdAt', 'email', 'firstname', 'id', 'lastname', 'username', 'rating'])
       .where('email', '=', email)
       .executeTakeFirst();
     } catch (error) {
@@ -139,6 +196,8 @@ export class UsersService {
    * @param name 
    * @param pass 
    * @returns AppUser
+   * @throws Unauthorized
+   * @throws InternalServerError
    */
   async validateUser(name: string, pass: string): Promise<AppUser> {
     try {
@@ -163,15 +222,20 @@ export class UsersService {
     }
   }
 
-  async getUserList(): Promise<ListUsers[] | null> {
+  /**
+   * Get every user in the database.
+   * @returns An array of ListUsers
+   * @throws InternalServerError
+   */
+  async getUserList(): Promise<ListUsers[]> {
     try {
       let userList: ListUsers[] = await db
       .selectFrom('user')
-      .select(['id', 'username', 'avatarUrl', 'rating'])
+      .select(['id', 'username', 'avatarUrl'])
       .execute();
       return userList;
     } catch (error) {
-      return null;
+      throw new InternalServerErrorException();
     }
   }
 }
