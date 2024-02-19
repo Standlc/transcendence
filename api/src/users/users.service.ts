@@ -23,6 +23,19 @@ export class UsersService {
       throw new UnprocessableEntityException("Empty username");
     }
     try {
+      const result = await db
+      .selectFrom('user')
+      .selectAll()
+      .where('username', '=', createUsersDto.username)
+      .executeTakeFirst()
+      if (result)
+        throw new UnprocessableEntityException("Username already taken");
+    } catch (error) {
+      if (error instanceof UnprocessableEntityException)
+        throw error;
+      throw new InternalServerErrorException();
+    }
+    try {
       const hashedPassword = await bcrypt.hash(createUsersDto.password, 10);
        const result = await db
       .insertInto('user')
@@ -33,12 +46,8 @@ export class UsersService {
         lastname: createUsersDto.lastname
       })
       .executeTakeFirst();
-      if (!result.numInsertedOrUpdatedRows || result.numInsertedOrUpdatedRows <= 0n)
-        throw new UnprocessableEntityException("Username already taken");
     } catch (error) {
       console.log(error);
-      if (error instanceof UnprocessableEntityException)
-        throw error;
       throw new InternalServerErrorException();
     }
     let user: AppUser | undefined;
