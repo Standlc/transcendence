@@ -8,7 +8,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
     
-    response.redirect('http://localhost:3000/login?code=' + exception.name);
+    response.redirect((process.env.FRONTEND_URL ? process.env.FRONTEND_URL : '') + '/login?code=' + exception.name);
   }
 }
 

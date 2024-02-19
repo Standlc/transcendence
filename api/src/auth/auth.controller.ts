@@ -53,7 +53,7 @@ export class AuthController {
     let date = new Date();
     date.setDate(date.getDate() + 7);
     res.cookie('token', token, {expires: date});
-    res.redirect('http://localhost:3000/');
+    res.redirect(process.env.FRONTEND_URL ? process.env.FRONTEND_URL : '');
   }
 
     //#endregion
