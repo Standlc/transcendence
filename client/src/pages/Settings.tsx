@@ -3,6 +3,7 @@ import { MonCompte } from "./Settings/subComponents/MyAccount";
 
 export const Settings = () => {
     const [currentPage, setCurrentPage] = useState("");
+    const [activeButton, setActiveButton] = useState(null);
 
     const handleClick = (page: string) => {
         setCurrentPage(page);
@@ -22,9 +23,9 @@ export const Settings = () => {
         <div className="flex  w-full h-screen">
             <div className="w-[900px] max-w-[650px] min-w-[650px] bg-discord-greyple block text-xl">
                 <div className="settings text-left">
-                    <button className=" text-greyple mt-[200px] mr-[90px]">
+                    <span className=" text-greyple mt-[200px] mr-[90px]">
                         PARAMETRES UTILISATEUR
-                    </button>
+                    </span>
                     <button
                         onClick={() => handleClick("Mon Compte")}
                         className="mb-1  text-left hover:bg-discord-light-grey rounded"
