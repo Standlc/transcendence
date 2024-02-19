@@ -10,6 +10,8 @@ import { GamesModule } from './games/Games.module';
 import { PlayersModule } from './pong/players/players.module';
 import { FriendsService } from './friends/friends.service';
 import { FriendsModule } from './friends/friends.module';
+import { ChannelModule } from './channel/channel.module';
+import { DmModule } from './dm/dm.module';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { FriendsModule } from './friends/friends.module';
     PongGameModule,
     PlayersModule,
     FriendsModule,
+    ChannelModule,
+    DmModule,
   ],
   controllers: [AppController],
   providers: [AppService, OnlineGateway, FriendsService],
