@@ -2,19 +2,13 @@ import { AppGame, AppPlayer } from "../../../api/src/types/games/returnTypes";
 import { Avatar } from "../UIKit/Avatar";
 import { memo, useMemo } from "react";
 import { EmojiEventsRounded } from "@mui/icons-material";
-import { useGamePreferences } from "../utils/game/useGamePreferences";
-import { useFindGameMatch } from "../utils/requests/useFindGameMatch";
 import { Link } from "react-router-dom";
 import { useIsUserAPlayer } from "../utils/game/useIsUserAPlayer";
+import { FindGameMatchButton } from "./FindGameMatchButton";
 
 export const GameFinishedCard = memo(
   ({ game, showSettings }: { game: AppGame; showSettings: () => void }) => {
-    const [preferences] = useGamePreferences();
     const isUserAPlayer = useIsUserAPlayer({ gameRecord: game });
-    const { findGame, isFindingGame } = useFindGameMatch({
-      points: preferences.points,
-      powerUps: preferences.powerUps,
-    });
 
     const { playerOne, playerTwo } = game;
     const winner = useMemo(
@@ -49,27 +43,10 @@ export const GameFinishedCard = memo(
           </div>
 
           <div className="flex flex-col gap-2">
-            <button
-              onClick={() => findGame.mutate()}
-              className="flex flex-col items-center justify-center gap-1 mt-3 hover:-translate-y-[1px] active:translate-y-[1px] py-4 px-7 rounded-lg bg-indigo-600 font-[900] text-2xl shadow-button mb-[5px]"
-            >
-              <div className="flex flex-col gap-1">
-                <span>
-                  {!isFindingGame
-                    ? isUserAPlayer
-                      ? "New game"
-                      : "Play"
-                    : "Finding a game"}
-                </span>
-                {isFindingGame && (
-                  <div className="h-[3px] w-[100%] overflow-hidden flex justify-center">
-                    <div className="h-full w-[70%] animate-move-left-right bg-white opacity-50"></div>
-                  </div>
-                )}
-              </div>
-            </button>
-
-            <div className="flex gap-2 w-full">
+            <FindGameMatchButton>
+              <span>{isUserAPlayer ? "New Game" : "Play Online"}</span>
+            </FindGameMatchButton>
+            <div className="flex gap-2 w-full mt-1">
               <Link
                 to={"/play"}
                 className="bg-white flex-1 text-center bg-opacity-10 text-opacity-100 rounded-md py-2 font-extrabold text-base active:translate-y-[1px]"

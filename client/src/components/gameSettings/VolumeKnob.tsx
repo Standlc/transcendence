@@ -14,14 +14,15 @@ export const VolumeKnob = ({
   const [newVolume, setNewVolume] = useState(soundEffectsSetting.volume);
 
   const updateSoundVolume = (mouseX: number) => {
-    if (!knob.current) return;
+    if (!knob.current) return newVolume;
     const { left, width } = knob.current?.getBoundingClientRect();
 
-    let newVolume = (mouseX - left) / width;
-    newVolume = newVolume > 1 ? 1 : newVolume;
-    newVolume = newVolume < 0 ? 0 : newVolume;
+    let volume = (mouseX - left) / width;
+    volume = volume > 1 ? 1 : volume;
+    volume = volume < 0 ? 0 : volume;
 
-    setNewVolume(newVolume);
+    setNewVolume(volume);
+    return volume;
   };
 
   useEffect(() => {
@@ -54,14 +55,15 @@ export const VolumeKnob = ({
       onMouseDown={(e) => {
         e.preventDefault();
         setIsClicked(true);
-        updateSoundVolume(e.pageX);
+        const volume = updateSoundVolume(e.pageX);
         upadteGameSetting("soundEffects", {
-          isOn: newVolume > 0 ? true : false,
-          volume: newVolume,
+          isOn: volume > 0 ? true : false,
+          volume: volume,
         });
       }}
       style={{
-        opacity: soundEffectsSetting.isOn ? 1 : 0.3,
+        opacity:
+          soundEffectsSetting.isOn && soundEffectsSetting.volume > 0 ? 1 : 0.3,
       }}
       className="py-2 -my-2 transition-opacity"
     >

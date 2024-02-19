@@ -14,8 +14,8 @@ import GameCanvas from "../components/gameComponents/GameCanvas";
 import { ArrowLink } from "../UIKit/ArrowLink";
 import { createGamePositions } from "../../../api/src/pong/gameLogic/gamePositions";
 import { PlayArrowRounded, SettingsRounded } from "@mui/icons-material";
-import { useFindGameMatch } from "../utils/requests/useFindGameMatch";
 import { GameSettingsContext } from "../ContextsProviders/GameSettingsContext";
+import { FindGameMatchButton } from "../components/FindGameMatchButton";
 
 export default function PlayPage() {
   const socket = useContext(GameSocketContext);
@@ -26,10 +26,6 @@ export default function PlayPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [privateGameUserId, setPrivateGameUserId] = useState<string>("");
   const { gameSettings } = useContext(GameSettingsContext);
-  const { findGame, isFindingGame } = useFindGameMatch({
-    points: gameSettings.points,
-    powerUps: gameSettings.powerUps,
-  });
 
   useEffect(() => {
     const handlePrivateGameInvite = (data: { userId: number }) => {
@@ -70,7 +66,7 @@ export default function PlayPage() {
     <div className="flex justify-center min-h-[100vh] p-5 gap-10 w-[100vw]">
       <div className="flex flex-col min-h-[100vh] p-5 gap-10 max-w-[1100px] w-full">
         <div className="flex gap-5 flex-wrap justify-center">
-          <div className="flex-[3] relative flex justify-center group">
+          <div className="flex-[3] relative flex justify-center">
             <GameLayout>
               <button
                 onClick={() => setShowSettings(!showSettings)}
@@ -79,26 +75,16 @@ export default function PlayPage() {
                 <SettingsRounded />
               </button>
 
-              <button
-                onClick={() => {
-                  findGame.mutate();
-                }}
-                className="absolute z-[2] flex flex-col items-center boder-[5px] border-[rgba(255,255,255,0.1)] justify-center gap-1 mt-0 hover:-translate-y-[1px] active:translate-y-0 py-3 px-4 rounded-xl bg-indigo-500 text-white font-[900] text-2xl brightness-110 shadow-[0_6px_0_0_rgba(0,0,0,0.6)]"
-              >
-                <div className="flex gap-2 items-center">
-                  {!isFindingGame && (
-                    <PlayArrowRounded style={{ margin: -5, fontSize: 30 }} />
-                  )}
-                  <span>
-                    {!isFindingGame ? "Play Online" : "Finding a game"}
-                  </span>
-                </div>
-                {isFindingGame && (
-                  <div className="h-[3px] w-[100%] overflow-hidden flex justify-center">
-                    <div className="h-full w-[70%] animate-move-left-right bg-white opacity-50"></div>
+              <div className="absolute z-[2] flex flex-col gap-2">
+                <FindGameMatchButton>
+                  <div className="flex gap-3 items-center">
+                    <PlayArrowRounded
+                      style={{ margin: "-7px", fontSize: 30 }}
+                    />
+                    <span>Play Online</span>
                   </div>
-                )}
-              </button>
+                </FindGameMatchButton>
+              </div>
 
               <GameCanvas gameRef={gameRef} isPaused={false} />
             </GameLayout>
