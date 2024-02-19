@@ -6,6 +6,13 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export interface BannedUser {
+  bannedById: number;
+  bannedId: number;
+  channelId: number;
+  createdAt: Generated<Timestamp>;
+}
+
 export interface BlockedUser {
   blockedById: number;
   blockedId: number;
@@ -116,6 +123,7 @@ export interface User {
 }
 
 export interface DB {
+  bannedUser: BannedUser;
   blockedUser: BlockedUser;
   channel: Channel;
   channelAdmin: ChannelAdmin;
