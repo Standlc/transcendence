@@ -26,8 +26,8 @@ export default function PrivateLayout({ user }: { user: number }) {
         if (!gameSocket) return;
         const handleErrors = (err: Error) => {
             gameSocket.disconnect();
-            setGameSocket(undefined);
-            console.log(err);
+            // setGameSocket(undefined);
+            // console.log(err);
         };
 
         const handleServerError = (message: string) => {

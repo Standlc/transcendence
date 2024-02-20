@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 // import qrcode from "./qrcode.png";
 import qrcode from "./qrcode.png";
 import { useAuth } from "../components/RequireAuth/AuthProvider";
+import { get } from "http";
 
 export const Login = () => {
     const navigate = useNavigate();
@@ -21,11 +22,29 @@ export const Login = () => {
 
     // ...state declarations and other code...
 
+    const checkCookie = async () => {
+        try {
+            const response = await fetch("http://localhost:3000/api/auth/token");
+            if (response.ok) {
+                const data = await response.json();
+                console.log("Data received:", data);
+                login(data);
+                console.log("LOGIN", login);
+                navigate("/home"); // Redirect to the home route or dashboard
+                // Handle the received data as needed
+            } else {
+                console.error("Failed to fetch data:", response.status);
+            }
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        }
+    };
+
     const handleSubmit = async (event) => {
         event.preventDefault();
 
         try {
-            const response = await fetch("http://localhost:5000/api/auth/login", {
+            const response = await fetch("http://localhost:3000/api/auth/login", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -47,8 +66,10 @@ export const Login = () => {
             console.error("Network error:", error);
         }
     };
+
     return (
         <div
+            onLoad={checkCookie()}
             className="bg-discord-light-black min-h-screen 
 		w-full flex items-center justify-center"
         >
@@ -108,7 +129,7 @@ export const Login = () => {
                     </div>
                     <button
                         type="submit"
-                        className="text-white bg-blurple hover:bg-blurple-hover font-bold rounded-lg text-s w-full   py-2.5 text-center"
+                        className="text-white mt-3 bg-blurple hover:bg-blurple-hover font-bold rounded-lg text-s w-full   py-2.5 text-center"
                     >
                         Log in
                     </button>
@@ -122,15 +143,23 @@ export const Login = () => {
                 <div className="flex flex-col ml-20 items-center justify-center">
                     {" "}
                     {/* Center QR code vertically and horizontally */}
-                    <img src={qrcode} alt="QR Code" className="w-40 h-40 mb-4" />{" "}
+                    <img src={qrcode} alt="QR Code" className="w-40 h-40 mb-5" />{" "}
                     {/* Adjust width and height as needed */}
                     <div className="text-white text-xl font-bold mb-2">
                         Log in with QR Code
                     </div>
                     <div className="text-greyple text-s ">
-                        Scan this with the Discord mobile <br />
-                        app to log in instantly.
+                        This QR Code is fake <br />
+                        Please don't scan it
                     </div>
+                    <a href="http://localhost:3000/api/auth/oauth">
+                        <button
+                            type="submit"
+                            className="text-white bg-discord-light-black  p-[50px] hover:bg-blurple-hover font-bold rounded-lg text-s w-full py-2.5 text-center"
+                        >
+                            42 Auth
+                        </button>
+                    </a>
                 </div>
             </div>
         </div>

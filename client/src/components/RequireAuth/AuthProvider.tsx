@@ -1,16 +1,19 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
+import { Timestamp } from "../../../../api/src/types/schema";
 
 // Define a TypeScript type for loginResponse
 export interface LoginResponse {
     // Define the properties you expect to receive from the login API response
     // For example, if you expect a 'username' property, you can define it like this:
     username: string;
-    avatarUrl: string;
-    bio: string;
-    createdAt: string;
-    email: string;
+    avatarUrl: string | null;
+    bio: string | null;
+    createdAt: Timestamp;
+    email: string | null;
     id: number;
-    lastname: string;
+    lastname: string | null;
+    firstname: string | null;
+    rating: number;
     // Add other properties as needed
 }
 

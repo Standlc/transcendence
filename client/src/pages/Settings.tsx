@@ -1,22 +1,27 @@
 import { useState } from "react";
 import { MonCompte } from "./Settings/subComponents/MyAccount";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../components/RequireAuth/AuthProvider";
 
 export const Settings = () => {
     const [currentPage, setCurrentPage] = useState("");
     const [activeButton, setActiveButton] = useState(null);
-
+    const navigate = useNavigate();
+    const { loginResponse } = useAuth();
     const handleClick = (page: string) => {
         setCurrentPage(page);
     };
 
     const renderPage = () => {
         if (currentPage === "Mon Compte") {
-            return <MonCompte />;
-        } else if (currentPage === "Profils") {
-            return <div>Profils</div>;
-        } else if (currentPage === "Deconnetion") {
-            return <div>Deconnetion</div>;
+            return <MonCompte loginResponse={loginResponse} />;
         }
+    };
+
+    const logout = async () => {
+        const response = await fetch("http://localhost:3000/api/auth/logout");
+        console.log("LOGOUT", response);
+        navigate("/");
     };
 
     return (
@@ -32,14 +37,14 @@ export const Settings = () => {
                     >
                         <span className="ml-2 block py-2">Mon compte</span>
                     </button>
-                    <button
+                    {/* <button
                         onClick={() => handleClick("Profils")}
                         className="mb-1 text-left hover:bg-discord-light-grey rounded"
                     >
                         <span className="ml-2 block py-2 ">Profils</span>
-                    </button>
+                    </button> */}
                     <button
-                        onClick={() => handleClick("Deconnetion")}
+                        onClick={() => logout()}
                         className="mb-1 text-left hover:bg-discord-light-grey rounded"
                     >
                         <span className="ml-2 block py-2">Deconnection</span>

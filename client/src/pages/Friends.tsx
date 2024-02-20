@@ -81,6 +81,11 @@ export const Friends = () => {
                             ></path>
                         </svg>
                         <div className="ml-2 mt-4 font-bold text-xl ">Amis</div>
+                        <div className="ml-[100px]  mt-[15px]">
+                            <button className="text-white bg-green p-[10px]  rounded-lg text-s w-full py-1 text-center">
+                                Ajouter
+                            </button>
+                        </div>
                     </div>
                     <div className="relative mt-5 ml-5 mr-5">
                         <input

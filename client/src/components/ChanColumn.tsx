@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { LoginResponse } from "./RequireAuth/AuthProvider";
 import defaultAvatar from "./defaultAvatar.png";
+import React from "react";
 
 interface Props {
     loginResponse: LoginResponse | null;
@@ -15,6 +16,34 @@ export const ChanColumn: React.FC<Props> = ({ loginResponse, setCurrentPage }) =
 
     const handleSettingClick = () => {
         navigate("/settings");
+    };
+
+    const putAvatar = () => {
+        if (loginResponse?.avatarUrl) {
+            return (
+                <>
+                    <span className="avatar bg-greyple mt-6">
+                        <img
+                            className="rounded-full"
+                            src={loginResponse.avatarUrl}
+                            alt="avatar"
+                        />
+                    </span>
+                </>
+            );
+        } else {
+            return (
+                <>
+                    <span className="avatar bg-greyple mt-6">
+                        <img
+                            className="rounded-full"
+                            src={defaultAvatar}
+                            alt="avatar"
+                        />
+                    </span>
+                </>
+            );
+        }
     };
 
     return (
@@ -52,9 +81,7 @@ export const ChanColumn: React.FC<Props> = ({ loginResponse, setCurrentPage }) =
                 <span className="bloc text-right">+</span>
             </div>
             <div className="bg-almost-black text-m user-chancolumn">
-                <span className="avatar bg-greyple mt-6">
-                    <img src={defaultAvatar} alt="avatar" />
-                </span>
+                {putAvatar()}
                 <span className=" font-bold mt-3"> {loginResponse?.username} </span>
                 <span className="text-greyple">En ligne</span>
                 <button onClick={handleSettingClick}>setting</button>

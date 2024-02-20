@@ -77,7 +77,7 @@ input:focus {
 }
 
 .navbar {
-    height: 99vh;
+    height: 100vh;
     display: flex;
     flex-direction: column;
     width: 95px;
@@ -88,7 +88,7 @@ input:focus {
     display: flex;
     width: 100%;
     /* flex-direction: row; */
-    height: 99vh;
+    height: 100vh;
 }
 
 .chan-button {
