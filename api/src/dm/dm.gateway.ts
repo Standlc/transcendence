@@ -107,25 +107,6 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  // !!! to test more later
-  @SubscribeMessage('quitConversation')
-  async quitChannel(
-    @ConnectedSocket() socket: Socket,
-    @MessageBody() payload: ConnectToDm,
-  ) {
-    try {
-      socket.leave(payload.conversationId.toString());
-      this.dmService.quitConversation(payload); // delete the user, or the conversation
-      console.log(
-        `User ${payload.userId} quit conversation ${payload.conversationId}`,
-      );
-    } catch (error) {
-      console.error(error);
-      socket.disconnect();
-      throw new UnprocessableEntityException('Unable to quit conversation');
-    }
-  }
-
   @SubscribeMessage('createDirectMessage')
   create(
     @ConnectedSocket() socket: Socket,

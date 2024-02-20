@@ -1,27 +1,26 @@
 import {
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { Conversation } from '../types/schema';
 import { db } from 'src/database';
 import {
-  ConnectToDm,
+  ConversationPromise,
   DirectMessageContent,
   DmWithSenderInfo,
 } from 'src/types/channelsSchema';
-import { DeleteResult } from 'kysely';
+import { FriendsService } from 'src/friends/friends.service';
 
 @Injectable()
 export class DmService {
+  constructor(private friendsService: FriendsService) {}
+
   //
   //
   //
-  async createConversation(
-    user2: number,
-    userId: number,
-  ): Promise<Conversation> {
+  async createConversation(user2: number, userId: number): Promise<string> {
     if (user2 === userId) {
       throw new UnprocessableEntityException(
         'Cannot create conversation with yourself',
@@ -29,30 +28,19 @@ export class DmService {
     }
 
     try {
-      await this.userExists(userId);
       await this.userExists(user2);
     } catch (error) {
       console.error(error);
       throw new NotFoundException('User not found');
     }
 
-    try {
-      await db
-        .selectFrom('friend')
-        .where((eb) =>
-          eb.or([eb('friendId', '=', userId), eb('userId', '=', user2)]),
-        )
-        .where((eb) =>
-          eb.or([eb('friendId', '=', user2), eb('userId', '=', userId)]),
-        )
-        .executeTakeFirstOrThrow();
-    } catch (error) {
-      console.error(error);
+    // !!! to test
+    if ((await this.friendsService.isFriend(userId, user2)) === false) {
       throw new NotFoundException('Users are not friends');
     }
 
     if (await this.getConversationByUserIds(userId, user2)) {
-      throw new UnprocessableEntityException('Conversation already exists');
+      throw new ConflictException('Conversation already exists');
     }
 
     try {
@@ -69,7 +57,7 @@ export class DmService {
       throw new InternalServerErrorException();
     }
 
-    return this.getConversationByUserIds(userId, user2);
+    return `Conversation of user ${userId} and user ${user2} created`;
   }
 
   //
@@ -78,7 +66,7 @@ export class DmService {
   async getConversationByUserIds(
     user1_id: number,
     user2_id: number,
-  ): Promise<Conversation> {
+  ): Promise<ConversationPromise> {
     try {
       const conversationExists = await db
         .selectFrom('conversation')
@@ -90,7 +78,7 @@ export class DmService {
           eb.or([eb('user1_id', '=', user2_id), eb('user2_id', '=', user2_id)]),
         )
         .executeTakeFirst();
-      return conversationExists as unknown as Conversation;
+      return conversationExists as ConversationPromise;
     } catch (error) {
       console.error(error);
       throw new InternalServerErrorException();
@@ -100,7 +88,9 @@ export class DmService {
   //
   //
   //
-  async getAllConversationsOfTheUser(userId: number): Promise<Conversation[]> {
+  async getAllConversationsOfTheUser(
+    userId: number,
+  ): Promise<ConversationPromise[]> {
     try {
       const allConv = await db
         .selectFrom('conversation')
@@ -113,7 +103,7 @@ export class DmService {
         throw new NotFoundException('No conversations found for this user');
       }
 
-      return allConv as unknown as Conversation[];
+      return allConv as ConversationPromise[];
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException();
@@ -123,7 +113,10 @@ export class DmService {
   //
   //
   //
-  async getConversation(id: number, userId: number): Promise<Conversation> {
+  async getConversation(
+    id: number,
+    userId: number,
+  ): Promise<ConversationPromise> {
     try {
       const conversation = await db
         .selectFrom('conversation')
@@ -132,9 +125,10 @@ export class DmService {
         .where((eb) =>
           eb.or([eb('user1_id', '=', userId), eb('user2_id', '=', userId)]),
         )
-        .execute();
+        .executeTakeFirst();
       if (!conversation) throw new NotFoundException('Conversation not found');
-      return conversation as unknown as Conversation;
+
+      return conversation as ConversationPromise;
     } catch (error) {
       console.error(error);
       throw new InternalServerErrorException();
@@ -154,26 +148,15 @@ export class DmService {
         )
         .executeTakeFirst();
 
-      const numDeletedRows = deletedResult[0]?.numDeletedRows || 0;
-      if (numDeletedRows <= 0) {
+      const numDeletedRows = deletedResult.numDeletedRows;
+      if (numDeletedRows === 0n) {
         throw new NotFoundException('Conversation not found');
       }
     } catch (error) {
       console.error(error);
-      throw new InternalServerErrorException();
+      throw error;
     }
-
-    try {
-      await db
-        .deleteFrom('directMessage')
-        .where('conversationId', '=', id)
-        .execute();
-
-      return `Conversation ${id} deleted`;
-    } catch (error) {
-      console.error(error);
-      throw new InternalServerErrorException();
-    }
+    return `Conversation ${id} deleted`;
   }
 
   //
@@ -217,7 +200,7 @@ export class DmService {
         senderId: message.senderId,
         avatarUrl: message.avatarUrl || null,
         username: message.username || null,
-      })) as unknown as DmWithSenderInfo[];
+      })) as DmWithSenderInfo[];
     } catch (error) {
       console.error(error);
       throw new InternalServerErrorException();
@@ -275,48 +258,6 @@ export class DmService {
         .executeTakeFirstOrThrow();
     } catch (error) {
       throw new NotFoundException('Channel not found');
-    }
-  }
-
-  //
-  //
-  //
-  async quitConversation(payload: ConnectToDm) {
-    let userIsDeleted: DeleteResult;
-    try {
-      userIsDeleted = await db
-        .deleteFrom('conversation')
-        .where('id', '=', payload.conversationId)
-        .where((eb) =>
-          eb.or([
-            eb('user1_id', '=', payload.userId),
-            eb('user2_id', '=', payload.userId),
-          ]),
-        )
-        .executeTakeFirst();
-
-      console.log('User is deleted from conversation:', userIsDeleted);
-    } catch (error) {
-      console.error(error);
-      throw new InternalServerErrorException();
-    }
-
-    if (userIsDeleted[0]?.numDeletedRows === 0n) {
-      try {
-        await db
-          .deleteFrom('conversation')
-          .where('id', '=', payload.conversationId)
-          .execute();
-
-        await db
-          .deleteFrom('directMessage')
-          .where('conversationId', '=', payload.conversationId)
-          .execute();
-        console.log('Conversation deleted');
-      } catch (error) {
-        console.error(error);
-        throw new InternalServerErrorException();
-      }
     }
   }
 }

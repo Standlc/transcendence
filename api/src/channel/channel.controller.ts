@@ -257,10 +257,9 @@ export class UserController {
   @Get(':channelId')
   async getChannel(
     @Param('channelId') channelId: number,
-    @Request() req,
   ): Promise<ChannelDataWithoutPassword> {
     console.log('GET: Recieved channelId:', channelId);
-    return this.channelService.getChannel(channelId, req.user.id);
+    return this.channelService.getChannel(channelId);
   }
 
   //
