@@ -13,9 +13,9 @@ import {
   ChannelCreationData,
   ChannelDataWithoutPassword,
   ChannelMessageContent,
-  ConnectToChannel,
   MessageWithSenderInfo,
   MuteUser,
+  QuitChannel,
 } from 'src/types/channelsSchema';
 import * as bcrypt from 'bcrypt';
 
@@ -120,7 +120,7 @@ export class ChannelService {
 
       const result: MessageWithSenderInfo[] = messages.map((message) => ({
         channelId: message.channelId,
-        content: message.content,
+        messageContent: message.content,
         createdAt: message.createdAt as Date,
         messageId: message.messageId as number,
         senderId: message.senderId,
@@ -132,13 +132,13 @@ export class ChannelService {
         avatarUrl: message.avatarUrl,
         username: message.username || 'no username',
         senderIsBlocked: Boolean(message.blockedId),
-      })) as unknown as MessageWithSenderInfo[];
+      })) as MessageWithSenderInfo[];
 
       if (result.length === 0) {
         throw new NotFoundException('No messages found');
       }
 
-      return result as unknown as MessageWithSenderInfo[];
+      return result as MessageWithSenderInfo[];
     } catch (error) {
       console.error('Error getting messages:', error);
       if (error instanceof NotFoundException) throw error;
@@ -198,7 +198,7 @@ export class ChannelService {
         .insertInto('channel')
         .values({
           channelOwner: userId,
-          isPublic: channel.isPublic as unknown as boolean,
+          isPublic: channel.isPublic as unknown as boolean, // !!! to fix
           name: channel.name,
           password: hashedPassword,
           photoUrl: channel.photoUrl,
@@ -253,7 +253,7 @@ export class ChannelService {
         .where('name', '=', channel.name)
         .executeTakeFirst();
       console.log('newChannel:', newChannel);
-      return newChannel as unknown as ChannelDataWithoutPassword;
+      return newChannel as ChannelDataWithoutPassword;
     } catch (error) {
       throw new InternalServerErrorException();
     }
@@ -262,36 +262,18 @@ export class ChannelService {
   //
   //
   //
+  // !!! tested
   async deleteChannel(channelId: number, userId: number): Promise<string> {
-    try {
-      await this.userExists(userId);
-    } catch (error) {
-      throw new NotFoundException('User not found');
-    }
-
     try {
       await this.channelExists(channelId);
     } catch (error) {
       throw new NotFoundException('Channel not found');
     }
 
-    // Verify if the user is the owner of the channel
-    let isOwner: { channelOwner: number } | undefined;
-    try {
-      isOwner = await db
-        .selectFrom('channel')
-        .select('channelOwner')
-        .where('id', '=', channelId)
-        .where('channelOwner', '=', userId)
-        .executeTakeFirst();
-    } catch (error) {
-      throw new InternalServerErrorException();
+    if ((await this.userIsOwner(userId, channelId)) === false) {
+      throw new UnauthorizedException('Only the owner can delete the channel');
     }
 
-    if (!isOwner || isOwner.channelOwner !== userId || isOwner == undefined)
-      throw new UnauthorizedException('Only the owner can delete the channel');
-
-    // Delete the channel, the admins and the users
     try {
       await db.transaction().execute(async (trx) => {
         await trx
@@ -314,7 +296,7 @@ export class ChannelService {
   //
   //
   async updateChannel(
-    id: number,
+    channelId: number,
     channel: Channel,
     userId: number,
   ): Promise<string> {
@@ -325,7 +307,7 @@ export class ChannelService {
     }
 
     try {
-      await this.channelExists(id);
+      await this.channelExists(channelId);
     } catch (error) {
       throw new NotFoundException('Channel not found');
     }
@@ -343,7 +325,7 @@ export class ChannelService {
         .selectFrom('channel')
         .select('name')
         .where('name', '=', channel.name)
-        .where('id', '!=', id)
+        .where('id', '!=', channelId)
         .execute();
     } catch (error) {
       throw new InternalServerErrorException();
@@ -359,7 +341,7 @@ export class ChannelService {
       result = await db
         .selectFrom('channel')
         .select('photoUrl')
-        .where('id', '=', id)
+        .where('id', '=', channelId)
         .executeTakeFirst();
     } catch (error) {
       throw new InternalServerErrorException();
@@ -381,24 +363,12 @@ export class ChannelService {
       throw new UnprocessableEntityException('Invalid photoUrl');
     }
 
-    // only chanOwner can change owner or password
-    let isOwner: { channelOwner: number } | undefined;
-    try {
-      isOwner = await db
-        .selectFrom('channel')
-        .select('channelOwner')
-        .where('id', '=', id)
-        .where('channelOwner', '=', userId)
-        .executeTakeFirst();
-    } catch (error) {
-      throw new InternalServerErrorException();
-    }
-
-    if (isOwner) {
+    // !!! to test
+    if ((await this.userIsOwner(userId, channelId)) === true) {
       // !!! to test
       if (channel.password != null) {
         try {
-          this.verifyPassword(id, channel.password);
+          this.verifyPassword(channelId, channel.password);
         } catch (error) {
           throw new UnauthorizedException('Invalid password');
         }
@@ -417,26 +387,16 @@ export class ChannelService {
             password: hashedPassword,
             photoUrl: channel.photoUrl,
           })
-          .where('id', '=', id)
+          .where('id', '=', channelId)
           .executeTakeFirst();
       } catch (error) {
         throw new InternalServerErrorException();
       }
-      return `Channel ${id} updated`;
+      return `Channel ${channelId} updated`;
     }
 
-    let isAdmin: { userId: number } | undefined;
-    try {
-      isAdmin = await db
-        .selectFrom('channelAdmin')
-        .select('userId')
-        .where('channelId', '=', id)
-        .where('userId', '=', userId)
-        .executeTakeFirst();
-    } catch (error) {
-      throw new InternalServerErrorException();
-    }
-    if (!isAdmin)
+    // !!! to test
+    if ((await this.userIsAdmin(userId, channelId)) === false)
       throw new UnauthorizedException(
         'Only the owner or the admin can update this data',
       );
@@ -448,28 +408,19 @@ export class ChannelService {
             name: channel.name,
             photoUrl: channel.photoUrl,
           })
-          .where('id', '=', id)
+          .where('id', '=', channelId)
           .executeTakeFirst();
       } catch (error) {
         throw new InternalServerErrorException();
       }
     }
-    return `Channel ${id} updated`;
+    return `Channel ${channelId} updated`;
   }
 
   //
   //
   //
-  async getChannel(
-    channelId: number,
-    userId: number,
-  ): Promise<ChannelDataWithoutPassword> {
-    try {
-      await this.userExists(userId);
-    } catch (error) {
-      throw new NotFoundException('User not found');
-    }
-
+  async getChannel(channelId: number): Promise<ChannelDataWithoutPassword> {
     try {
       await this.channelExists(channelId);
     } catch (error) {
@@ -489,7 +440,7 @@ export class ChannelService {
           'name',
           'photoUrl',
         ])
-        .executeTakeFirst()) as unknown as ChannelDataWithoutPassword;
+        .executeTakeFirst()) as ChannelDataWithoutPassword;
     } catch (error) {
       throw new InternalServerErrorException();
     }
@@ -503,7 +454,6 @@ export class ChannelService {
   async getAllChannelsOfTheUser(
     userId: number,
   ): Promise<ChannelDataWithoutPassword[]> {
-    // Take user info
     let user: { avatarUrl: string | null; username: string }[];
     try {
       user = await db
@@ -535,7 +485,7 @@ export class ChannelService {
         ])
         .where('channelMember.userId', '=', userId)
         .where('bannedUser.bannedId', '!=', userId)
-        .execute()) as unknown as ChannelDataWithoutPassword[];
+        .execute()) as ChannelDataWithoutPassword[];
       console.log('channels:', channels);
     } catch (error) {
       throw new InternalServerErrorException();
@@ -1060,27 +1010,36 @@ export class ChannelService {
   //
   //
   //
-  // !!! to test
-  async quitChannel(payload: ConnectToChannel): Promise<void> {
-    try {
-      await this.userIsOwner(payload.userId, payload.channelId);
-    } catch {
+  // !!! tested
+  async quitChannel(payload: QuitChannel): Promise<void> {
+    if ((await this.userIsOwner(payload.userId, payload.channelId)) === true) {
       try {
-        await this.quitChannelAsAdmin(payload);
-      } catch {
-        try {
-          await this.quitChannelAsMember(payload);
-        } catch {
-          throw new InternalServerErrorException();
-        }
+        this.quitChannelAsOwner(payload);
+      } catch (error) {
+        console.log(error);
       }
+      return;
+    }
+
+    if ((await this.userIsAdmin(payload.userId, payload.channelId)) === true) {
+      try {
+        await this.deleteFromChannelAdmin(payload.userId, payload.channelId);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+
+    try {
+      await this.deleteFromChannelMember(payload.userId, payload.channelId);
+    } catch (error) {
+      console.log(error);
     }
   }
 
   //
   //
   //
-  // !!! to test
+  // !!! tested
   async isOnlyOneMember(channelId: number): Promise<boolean> {
     try {
       const members = await db
@@ -1088,6 +1047,7 @@ export class ChannelService {
         .select('userId')
         .where('channelId', '=', channelId)
         .execute();
+      console.log('members.length', members.length);
       return members.length === 1;
     } catch (error) {
       throw new InternalServerErrorException();
@@ -1097,7 +1057,7 @@ export class ChannelService {
   //
   //
   //
-  // !!! to test
+  // !!! tested
   async hasAdmins(channelId: number): Promise<boolean> {
     try {
       const admins = await db
@@ -1105,7 +1065,8 @@ export class ChannelService {
         .select('userId')
         .where('channelId', '=', channelId)
         .execute();
-      return admins.length > 0;
+      console.log('admins.length', admins.length);
+      return admins.length > 1;
     } catch (error) {
       throw new InternalServerErrorException();
     }
@@ -1114,14 +1075,19 @@ export class ChannelService {
   //
   //
   //
-  // !!! to test
-  async setFirstAdminAsOwner(channelId: number): Promise<void> {
+  // !!! tested
+  async setFirstAdminAsOwner(
+    ownerId: number,
+    channelId: number,
+  ): Promise<void> {
     try {
       const newOwner = await db
         .selectFrom('channelAdmin')
         .select('userId')
         .where('channelId', '=', channelId)
+        .where('userId', '!=', ownerId)
         .executeTakeFirstOrThrow();
+      console.log('newOwner id =', newOwner.userId);
 
       await db
         .updateTable('channel')
@@ -1130,6 +1096,7 @@ export class ChannelService {
         })
         .where('id', '=', channelId)
         .executeTakeFirstOrThrow();
+      console.log('Updated owner of channel', channelId);
     } catch (error) {
       throw new InternalServerErrorException();
     }
@@ -1138,14 +1105,20 @@ export class ChannelService {
   //
   //
   //
-  // !!! to test
-  async setFirstMemberAsOwner(channelId: number): Promise<void> {
+  // !!! tested
+  async setFirstMemberAsOwner(
+    ownerId: number,
+    channelId: number,
+  ): Promise<number> {
     try {
       const newOwner = await db
         .selectFrom('channelMember')
         .select('userId')
         .where('channelId', '=', channelId)
+        .where('userId', '!=', ownerId)
         .executeTakeFirstOrThrow();
+
+      console.log('newOwner id =', newOwner.userId);
 
       await db
         .updateTable('channel')
@@ -1154,6 +1127,10 @@ export class ChannelService {
         })
         .where('id', '=', channelId)
         .executeTakeFirstOrThrow();
+
+      console.log('Updated owner of channel', channelId);
+
+      return newOwner.userId;
     } catch (error) {
       throw new InternalServerErrorException();
     }
@@ -1162,35 +1139,18 @@ export class ChannelService {
   //
   //
   //
-  // !!! to test
-  async leaveChannelAsOwner(payload: ConnectToChannel): Promise<void> {
-    //if only one member, delete the channel + admin + member + messages
-    if (await this.isOnlyOneMember(payload.channelId)) {
-      await this.deleteChannel(payload.channelId, payload.userId);
-      return;
-    }
-
-    //if has other admins, set the first admin as the new owner
-    if (await this.hasAdmins(payload.channelId)) {
-      await this.setFirstAdminAsOwner(payload.channelId);
-      return;
-    }
-
-    //if there is no admins, set the first member as the new owner
-    await this.setFirstMemberAsOwner(payload.channelId);
-  }
-
-  //
-  //
-  //
-  // !!! to test
-  async quitChannelAsAdmin(payload: ConnectToChannel) {
+  // !!! tested
+  async deleteFromChannelAdmin(
+    userId: number,
+    channelId: number,
+  ): Promise<void> {
     try {
       await db
         .deleteFrom('channelAdmin')
-        .where('channelId', '=', payload.channelId)
-        .where('userId', '=', payload.userId)
+        .where('channelId', '=', channelId)
+        .where('userId', '=', userId)
         .executeTakeFirstOrThrow();
+      console.log('User deleted from channelAdmin');
     } catch (error) {
       throw new InternalServerErrorException();
     }
@@ -1199,14 +1159,18 @@ export class ChannelService {
   //
   //
   //
-  // !!! to test
-  async quitChannelAsMember(payload: ConnectToChannel) {
+  // !!! tested
+  async deleteFromChannelMember(
+    userId: number,
+    channelId: number,
+  ): Promise<void> {
     try {
       await db
         .deleteFrom('channelMember')
-        .where('channelId', '=', payload.channelId)
-        .where('userId', '=', payload.userId)
+        .where('channelId', '=', channelId)
+        .where('userId', '=', userId)
         .executeTakeFirstOrThrow();
+      console.log('User deleted from channelMember');
     } catch (error) {
       throw new InternalServerErrorException();
     }
@@ -1215,26 +1179,59 @@ export class ChannelService {
   //
   //
   //
-  async usersAreFriends(userId: number, friendId: number): Promise<boolean> {
+  // !!! tested
+  async addNewAdmin(newOwnerId: number, channelId: number): Promise<void> {
     try {
       await db
-        .selectFrom('friend')
-        .select('user1_id')
-        .where(({ eb, or, and }) => or([
-          and([
-            eb('user1_id', '=', userId),
-            eb('user2_id', '=', friendId),
-          ]),
-          and([
-            eb('user1_id', '=', friendId),
-            eb('user2_id', '=', userId),
-          ])
-        ]))
-        .executeTakeFirstOrThrow();
-
-      return true;
+        .insertInto('channelAdmin')
+        .values({
+          userId: newOwnerId,
+          channelId: channelId,
+        })
+        .execute();
     } catch (error) {
       throw new InternalServerErrorException();
+    }
+  }
+
+  //
+  //
+  //
+  // !!! tested
+  async quitChannelAsOwner(payload: QuitChannel): Promise<void> {
+    if ((await this.isOnlyOneMember(payload.channelId)) === true) {
+      console.log('Is only one member');
+      await this.deleteChannel(payload.channelId, payload.userId);
+      console.log('Quit channel as owner = done');
+      return;
+    }
+    console.log('User not alone in channel');
+
+    //if has other admins, set the first admin as the new owner
+    if ((await this.hasAdmins(payload.channelId)) === true) {
+      try {
+        await this.setFirstAdminAsOwner(payload.userId, payload.channelId);
+        await this.deleteFromChannelAdmin(payload.userId, payload.channelId);
+        await this.deleteFromChannelMember(payload.userId, payload.channelId);
+      } catch (error) {
+        console.log(error);
+      }
+      console.log('Owner left, set another admin as owner');
+      return;
+    }
+    console.log('There is no admins other than the owner');
+
+    //if there is no admins, set the first member as the new owner
+    try {
+      const newOwnerId = await this.setFirstMemberAsOwner(
+        payload.userId,
+        payload.channelId,
+      );
+      await this.deleteFromChannelAdmin(payload.userId, payload.channelId);
+      await this.deleteFromChannelMember(payload.userId, payload.channelId);
+      await this.addNewAdmin(newOwnerId, payload.channelId);
+    } catch (error) {
+      console.log(error);
     }
   }
 

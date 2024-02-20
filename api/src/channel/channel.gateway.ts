@@ -1,3 +1,4 @@
+import { FriendsService } from './../friends/friends.service';
 import { ConnectedUsersService } from './connectedUsers/connectedUsers.service';
 import { ChannelService } from './channel.service';
 import {
@@ -16,6 +17,7 @@ import {
   ChannelMessageContent,
   ConnectToChannel,
   MuteUser,
+  QuitChannel,
 } from 'src/types/channelsSchema';
 import {
   BadRequestException,
@@ -40,6 +42,7 @@ export class ChannelGateway
     private channelService: ChannelService,
     private readonly wsGuard: WsAuthGuard,
     private connectedUsersService: ConnectedUsersService,
+    private readonly friendsService: FriendsService,
   ) {}
 
   @WebSocketServer() server: Server;
@@ -99,7 +102,7 @@ export class ChannelGateway
         payload.userId !== payload.channelOwner &&
         payload.isPublic === false
       ) {
-        await this.channelService.usersAreFriends(
+        await this.friendsService.isFriend( // !!! to test
           payload.userId,
           payload.channelOwner,
         );
@@ -240,11 +243,11 @@ export class ChannelGateway
   //
   //
   //
-  // !!! to test
+  // !!! tested
   @SubscribeMessage('quitChannel')
   async handleQuitChannel(
     @ConnectedSocket() socket: Socket,
-    @MessageBody() payload: ConnectToChannel,
+    @MessageBody() payload: QuitChannel,
   ): Promise<void> {
     try {
       this.connectedUsersService.verifyConnection(socket);
@@ -258,11 +261,7 @@ export class ChannelGateway
     } catch (error) {
       socket.disconnect();
       this.connectedUsersService.removeUserWithSocketId(socket.id);
-      throw new UnauthorizedException('User or channel does not exist');
-    }
-
-    if (!payload.channelId) {
-      throw new BadRequestException('No channel id provided');
+      throw error;
     }
 
     try {

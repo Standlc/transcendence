@@ -1,12 +1,4 @@
-import {
-  Channel,
-  ChannelMessage,
-  DirectMessage,
-  Generated,
-  Timestamp,
-} from './schema';
-
-export type ChannelDataWithoutPassword = Omit<Channel, 'password'>;
+import { Channel, ChannelMessage, DirectMessage } from './schema';
 
 export type ChannelCreationData = Omit<
   Channel,
@@ -19,14 +11,23 @@ export type DirectMessageContent = Omit<DirectMessage, 'createdAt' | 'id'>;
 
 export type ChannelMessageContent = Omit<ChannelMessage, 'createdAt' | 'id'>;
 
+export interface ChannelDataWithoutPassword {
+  channelOwner: number;
+  createdAt: Date;
+  id: number;
+  isPublic: boolean;
+  name: string | null;
+  photoUrl: string | null;
+}
+
 // combine User interface and Channel interface
 export interface MessageWithSenderInfo {
   avatarUrl: string | null;
   username: string;
   channelId: number;
   messageContent: string | null;
-  createdAt: Generated<Timestamp>;
-  messageId: Generated<number>;
+  createdAt: Date;
+  messageId: number;
   senderId: number;
   isOwner: boolean;
   isAdmin: boolean;
@@ -38,8 +39,8 @@ export interface MessageWithSenderInfo {
 export interface DmWithSenderInfo {
   content: string | null;
   conversationId: number;
-  createdAt: Generated<Timestamp>;
-  messageId: Generated<number>;
+  createdAt: Date;
+  messageId: number;
   senderId: number;
   avatarUrl: string | null;
   username: string;
@@ -74,4 +75,16 @@ export interface MuteUser {
 export interface BlockUser {
   userId: number;
   targetUserId: number;
+}
+
+export interface ConversationPromise {
+  createdAt: Date;
+  id: number;
+  user1_id: number;
+  user2_id: number;
+}
+
+export interface QuitChannel {
+  channelId: number;
+  userId: number;
 }
