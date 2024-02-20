@@ -1,7 +1,7 @@
 import { useContext, useEffect } from "react";
-import { GameSocketContext } from "../ContextsProviders/GameSocketContext";
+import { SocketsContext } from "../ContextsProviders/SocketsContext";
 import { AppGame } from "../../../api/src/types/games/returnTypes";
-import { Avatar } from "../UIKit/Avatar";
+import { Avatar } from "../UIKit/avatar/Avatar";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -12,7 +12,7 @@ import {
 import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
 
 export default function LiveGames() {
-  const socket = useContext(GameSocketContext);
+  const { gameSocket } = useContext(SocketsContext);
   const queryClient = useQueryClient();
 
   const liveGames = useQuery({
@@ -78,15 +78,15 @@ export default function LiveGames() {
       );
     };
 
-    socket.on("liveGame", handleNewLiveGame);
-    socket.on("liveGameUpdate", handleGameUpdate);
-    socket.on("liveGameEnd", handleLiveGameEnd);
+    gameSocket.on("liveGame", handleNewLiveGame);
+    gameSocket.on("liveGameUpdate", handleGameUpdate);
+    gameSocket.on("liveGameEnd", handleLiveGameEnd);
     return () => {
-      socket.off("liveGame", handleNewLiveGame);
-      socket.off("liveGameUpdate", handleGameUpdate);
-      socket.off("liveGameEnd", handleLiveGameEnd);
+      gameSocket.off("liveGame", handleNewLiveGame);
+      gameSocket.off("liveGameUpdate", handleGameUpdate);
+      gameSocket.off("liveGameEnd", handleLiveGameEnd);
     };
-  }, [socket]);
+  }, [gameSocket]);
 
   return (
     <div className="w-full flex flex-col gap-5">

@@ -1,5 +1,5 @@
 import { AppGame, AppPlayer } from "../../../api/src/types/games/returnTypes";
-import { Avatar } from "../UIKit/Avatar";
+import { Avatar } from "../UIKit/avatar/Avatar";
 import { memo, useMemo } from "react";
 import { EmojiEventsRounded } from "@mui/icons-material";
 import { Link } from "react-router-dom";

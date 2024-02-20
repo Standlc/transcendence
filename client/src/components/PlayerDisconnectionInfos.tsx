@@ -1,5 +1,5 @@
 import { useContext, useMemo } from "react";
-import { Avatar } from "../UIKit/Avatar";
+import { Avatar } from "../UIKit/avatar/Avatar";
 import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
 import { UserContext } from "../ContextsProviders/UserContext";
 import { AppGame } from "../../../api/src/types/games/returnTypes";

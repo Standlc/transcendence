@@ -2,7 +2,7 @@ import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { Insertable, Selectable } from 'kysely';
 import { db } from 'src/database';
 import { GamesService } from 'src/games/games.service';
-import { PongGateway } from 'src/pong/pong.gateway';
+import { PongGateway } from 'src/pong/Pong.gateway';
 import { GameInviteResponseType } from 'src/types/games/apiInputTypes';
 import {
   PrivateGameRequestDto,

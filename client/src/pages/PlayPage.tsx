@@ -5,7 +5,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { GameSocketContext } from "../ContextsProviders/GameSocketContext";
+import { SocketsContext } from "../ContextsProviders/SocketsContext";
 import GameLayout from "../components/gameComponents/GameLayout";
 import GamePreferences from "../components/gameSettings/GameSettings";
 import LiveGames from "../components/LiveGames";
@@ -18,7 +18,7 @@ import { GameSettingsContext } from "../ContextsProviders/GameSettingsContext";
 import { FindGameMatchButton } from "../components/FindGameMatchButton";
 
 export default function PlayPage() {
-  const socket = useContext(GameSocketContext);
+  const { gameSocket } = useContext(SocketsContext);
   const [privateInvitation, setPrivateInvitation] = useState<{
     userId: number;
   }>();
@@ -33,11 +33,11 @@ export default function PlayPage() {
       setPrivateInvitation(data);
     };
 
-    socket.on("privateGameInvitation", handlePrivateGameInvite);
+    gameSocket.on("privateGameInvitation", handlePrivateGameInvite);
     return () => {
-      socket.off("privateGameInvitation", handlePrivateGameInvite);
+      gameSocket.off("privateGameInvitation", handlePrivateGameInvite);
     };
-  }, [socket]);
+  }, [gameSocket]);
 
   useLayoutEffect(() => {
     gameRef.current.ball.vX = 200;
@@ -49,7 +49,7 @@ export default function PlayPage() {
     if (privateGameUserId === "") {
       return;
     }
-    socket.emit("privateGameRequest", {
+    gameSocket.emit("privateGameRequest", {
       targetId: Number(privateGameUserId),
       powerUps: gameSettings.powerUps,
       points: gameSettings.points,
@@ -57,7 +57,7 @@ export default function PlayPage() {
   };
 
   const respondPrivateGameInvitation = () => {
-    socket.emit("acceptPrivateGameRequest", {
+    gameSocket.emit("acceptPrivateGameRequest", {
       userInvitingId: privateInvitation?.userId,
     });
   };

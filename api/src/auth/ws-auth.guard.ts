@@ -5,6 +5,18 @@ import { Socket } from 'socket.io';
 
 export const jwt = new JwtService();
 
+export const authenticateSocket = (client: Socket, wsGuard: WsAuthGuard) => {
+  client.use((client, next) => {
+    try {
+      const payload: { id: number } = wsGuard.validateToken(client as any);
+      (client as any as Socket).data = payload;
+      next();
+    } catch (error) {
+      next(new Error('not authorized'));
+    }
+  });
+};
+
 @Injectable()
 export class WsAuthGuard implements CanActivate {
   canActivate(

@@ -5,12 +5,12 @@ import {
   PublicGameRequestDto,
 } from "../../../../api/src/types/games/gameRequestsDto";
 import { useContext, useEffect, useState } from "react";
-import { GameSocketContext } from "../../ContextsProviders/GameSocketContext";
+import { SocketsContext } from "../../ContextsProviders/SocketsContext";
 import { useNavigate } from "react-router-dom";
 import { ErrorContext } from "../../ContextsProviders/ErrorContext";
 
 export const useFindGameMatch = (preferences: PublicGameRequestDto) => {
-  const socket = useContext(GameSocketContext);
+  const { gameSocket } = useContext(SocketsContext);
   const { addError } = useContext(ErrorContext);
   const navigate = useNavigate();
   const [isFindingGame, setIsFindingGame] = useState(false);
@@ -64,11 +64,11 @@ export const useFindGameMatch = (preferences: PublicGameRequestDto) => {
       navigate(`/play/${gameId}`);
     };
 
-    socket.on("gameStart", handleGameStart);
+    gameSocket.on("gameStart", handleGameStart);
     return () => {
-      socket.off("gameStart", handleGameStart);
+      gameSocket.off("gameStart", handleGameStart);
     };
-  }, [socket]);
+  }, [gameSocket]);
 
   return { findGame, cancel, isFindingGame };
 };

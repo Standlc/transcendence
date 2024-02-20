@@ -6,9 +6,8 @@ import {
 import { Server, Socket } from 'socket.io';
 import { GamesService } from 'src/games/games.service';
 import { DefaultEventsMap } from '@socket.io/component-emitter';
-import { GameRequestsService } from 'src/gameRequests/GameRequests.service';
 import { Inject, UseGuards, forwardRef } from '@nestjs/common';
-import { WsAuthGuard } from 'src/auth/ws-auth.guard';
+import { WsAuthGuard, authenticateSocket } from 'src/auth/ws-auth.guard';
 import { PlayersService } from './players/players.service';
 import { Game, PublicGameRequest } from 'src/types/schema';
 import { Selectable } from 'kysely';
@@ -31,6 +30,7 @@ import {
   PLAYER_PING_INTERVAL,
 } from './gameLogic/constants';
 import { handlePlayerMove } from './gameLogic/paddle';
+import { UsersStatusGateway } from 'src/usersStatusGateway/UsersStatus.gateway';
 
 const getPlayer = (
   game: GameStateType,
@@ -68,24 +68,13 @@ export class PongGateway {
   constructor(
     @Inject(forwardRef(() => GamesService))
     private readonly gamesService: GamesService,
-    @Inject(forwardRef(() => GameRequestsService))
-    private readonly gameRequestsService: GameRequestsService,
     private readonly wsGuard: WsAuthGuard,
     private readonly players: PlayersService,
+    private readonly usersStatusGateway: UsersStatusGateway,
   ) {}
 
   afterInit(client: Socket) {
-    client.use((client, next) => {
-      try {
-        const payload: { id: number } = this.wsGuard.validateToken(
-          client as any,
-        );
-        (client as any as Socket).data = payload;
-        next();
-      } catch (error) {
-        next(new Error('not authorized'));
-      }
-    });
+    authenticateSocket(client, this.wsGuard);
   }
 
   handleConnection(client: Socket) {
@@ -93,11 +82,8 @@ export class PongGateway {
   }
 
   async handleDisconnect(client: Socket) {
-    const userId = this.extractUserId(client);
+    // const userId = this.extractUserId(client);
     // console.log('DISCONNECTION:', client.id, 'with userId', client.data.id);
-    // try {
-    //   await this.gameRequestsService.delete(userId);
-    // } catch (error) {}
   }
 
   @SubscribeMessage('leaveGame')
@@ -114,6 +100,7 @@ export class PongGateway {
     const { player } = getPlayer(game.game, 'id', userId);
     if (player) {
       this.reconnectPlayerToGame(game, player, Date.now());
+      this.usersStatusGateway.setUserAsPlaying(userId);
     }
 
     if (game.isPublic || player) {
@@ -182,6 +169,8 @@ export class PongGateway {
       return;
     }
 
+    this.usersStatusGateway.setUserAsPlaying(gameRecord.playerOneId);
+    this.usersStatusGateway.setUserAsPlaying(gameRecord.playerTwoId);
     this.runGame(gameState);
   }
 
@@ -225,9 +214,6 @@ export class PongGateway {
           message: 'Error while setting game as finished.',
         });
       }
-      await new Promise((resolve) =>
-        setTimeout(() => resolve(undefined), 1000),
-      );
       this.sendLiveGameUpdate(gameState);
     };
 
@@ -328,6 +314,9 @@ export class PongGateway {
     await this.gamesService.finishGame(game.gameId, winnerId);
     this.sendLiveGameEnd(game, newRatings, winnerId);
     this.sendLeaderboardUpdates(game, newRatings, winnerId);
+
+    this.usersStatusGateway.setUserAsOnline(game.game.playerOne.id);
+    this.usersStatusGateway.setUserAsOnline(game.game.playerTwo.id);
     this.games.delete(game.gameId);
   }
 

@@ -2,7 +2,7 @@ import { memo, useContext, useMemo } from "react";
 import { UserContext } from "../../ContextsProviders/UserContext";
 import { GAME_STYLES } from "./gameBackgrounds";
 import { AppGame } from "../../../../api/src/types/games/returnTypes";
-import { Avatar } from "../../UIKit/Avatar";
+import { Avatar } from "../../UIKit/avatar/Avatar";
 import InfiniteSlotMachine from "../../UIKit/InfiniteSlotMachine";
 import { GameSettingsContext } from "../../ContextsProviders/GameSettingsContext";
 import { VolumeOffRounded, VolumeUpRounded } from "@mui/icons-material";
@@ -23,7 +23,7 @@ export default function GameLayout({
   const { user } = useContext(UserContext);
   const { gameSettings, upadteGameSetting } = useContext(GameSettingsContext);
   const reverse = useMemo(
-    () => user.id === gameRecord?.playerOne?.id,
+    () => gameRecord !== undefined && user.id === gameRecord.playerOne?.id,
     [user.id, gameRecord?.playerOne?.id]
   );
 
