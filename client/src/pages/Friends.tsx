@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Chat } from "../components/Chat/Chat";
+import { FriendsAdd } from "./FriendsAdd";
 
 // Assuming the Friend interface is defined as follows:
 interface Friend {
@@ -11,6 +12,7 @@ interface Friend {
 export const Friends = () => {
     const [friends, setFriends] = useState<Friend[]>([]);
     const [showChat, setShowChat] = useState(false);
+    const [adding, setAdding] = useState(false);
 
     // useEffect(() => {
     //     const fetchFriends = async () => {
@@ -56,6 +58,8 @@ export const Friends = () => {
         <div className="w-full">
             {showChat ? (
                 <Chat />
+            ) : adding ? (
+                <FriendsAdd adding={adding} />
             ) : (
                 <div>
                     <div
@@ -82,7 +86,10 @@ export const Friends = () => {
                         </svg>
                         <div className="ml-2 mt-4 font-bold text-xl ">Amis</div>
                         <div className="ml-[100px]  mt-[15px]">
-                            <button className="text-white bg-green p-[10px]  rounded-lg text-s w-full py-1 text-center">
+                            <button
+                                onClick={() => setAdding(true)}
+                                className="text-white bg-green p-[10px]  rounded-lg text-s w-full py-1 text-center"
+                            >
                                 Ajouter
                             </button>
                         </div>

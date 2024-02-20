@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { LoginResponse } from "../../../components/RequireAuth/AuthProvider";
 import defaultAvatar from "../../../components/defaultAvatar.png";
+import { Avatar } from "../../../UIKit/Avatar";
 
 export const MonCompte = ({ loginResponse }: { loginResponse: LoginResponse }) => {
     const navigate = useNavigate();

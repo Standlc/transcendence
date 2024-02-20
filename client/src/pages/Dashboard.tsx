@@ -7,17 +7,21 @@ import { Friends } from "./Friends";
 
 export const Dashboard = () => {
     const { loginResponse } = useAuth();
-    const [currentPage, setCurrentPage] = useState("");
+    // Note: currentPage now contains both 'page' and 'refreshKey'
+    const [currentPage, setCurrentPage] = useState({ page: "", refreshKey: 0 });
 
-    const changePage = (page: string) => {
-        setCurrentPage(page);
+    const changePage = (page: string, refreshKey: number = Date.now()) => {
+        setCurrentPage({ page, refreshKey });
     };
 
     const renderPage = () => {
-        if (currentPage === "friends") {
-            return <Friends />;
-        } else if (currentPage === "chatbox") {
-            return <Chatbox />;
+        switch (currentPage.page) {
+            case "friends":
+                return <Friends key={currentPage.refreshKey} />;
+            case "chatbox":
+                return <Chatbox />;
+            default:
+                return null;
         }
     };
 

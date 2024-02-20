@@ -10,8 +10,10 @@ interface Props {
 
 export const ChanColumn: React.FC<Props> = ({ loginResponse, setCurrentPage }) => {
     const navigate = useNavigate();
+
     const handleFriendsClick = () => {
-        setCurrentPage("friends");
+        // Use a timestamp as a refresh key
+        setCurrentPage("friends", Date.now());
     };
 
     const handleSettingClick = () => {
