@@ -10,7 +10,7 @@ import {
   GameStateType,
   PlayerType,
 } from "../../../api/src/types/games/pongGameTypes";
-import { GameSocketContext } from "../ContextsProviders/GameSocketContext";
+import { SocketsContext } from "../ContextsProviders/SocketsContext";
 import GameLayout from "../components/gameComponents/GameLayout";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
@@ -29,7 +29,7 @@ export default function GamePage() {
   const { gameId } = useParams();
   const gameIdNumber = useMemo(() => Number(gameId), [gameId]);
   const queryClient = useQueryClient();
-  const socket = useContext(GameSocketContext);
+  const { gameSocket } = useContext(SocketsContext);
   const [showGameSettings, setShowGameSettings] = useState(false);
   const [playerDisconnectionInfo, setPlayerDisconnectionInfo] =
     useState<WsPlayerDisconnection>();
@@ -124,11 +124,15 @@ export default function GamePage() {
     };
 
     const handleOpponentDisconnection = (data: WsPlayerDisconnection) => {
-      setPlayerDisconnectionInfo(data);
+      if (data.secondsUntilEnd === 0) {
+        setPlayerDisconnectionInfo(undefined);
+      } else {
+        setPlayerDisconnectionInfo(data);
+      }
       setIsPaused(true);
     };
 
-    const handleGameStartCoutdown = (countdown: number) => {
+    const handleGameStartCountdown = (countdown: number) => {
       setStartCountdown(countdown);
       if (!countdown) setIsPaused(false);
     };
@@ -141,27 +145,27 @@ export default function GamePage() {
       }
     };
 
-    socket.on("updateGameState", handleGameUpadte);
-    socket.on("playerMoveUpdate", handlePlayerMoveUpdate);
-    socket.on("gameEnd", handleGameEnd);
-    socket.on("playerDisconnection", handleOpponentDisconnection);
-    socket.on("startCountdown", handleGameStartCoutdown);
+    gameSocket.on("updateGameState", handleGameUpadte);
+    gameSocket.on("playerMoveUpdate", handlePlayerMoveUpdate);
+    gameSocket.on("gameEnd", handleGameEnd);
+    gameSocket.on("playerDisconnection", handleOpponentDisconnection);
+    gameSocket.on("startCountdown", handleGameStartCountdown);
     return () => {
-      socket.off("updateGameState", handleGameUpadte);
-      socket.off("playerMoveUpdate", handlePlayerMoveUpdate);
-      socket.off("gameEnd", handleGameEnd);
-      socket.off("playerDisconnection", handleOpponentDisconnection);
-      socket.off("startCountdown", handleGameStartCoutdown);
+      gameSocket.off("updateGameState", handleGameUpadte);
+      gameSocket.off("playerMoveUpdate", handlePlayerMoveUpdate);
+      gameSocket.off("gameEnd", handleGameEnd);
+      gameSocket.off("playerDisconnection", handleOpponentDisconnection);
+      gameSocket.off("startCountdown", handleGameStartCountdown);
     };
-  }, [socket, gameIdNumber]);
+  }, [gameSocket, gameIdNumber]);
 
   useEffect(() => {
     const payload: WsGameIdType = { gameId: gameIdNumber };
-    socket.emit("joinRoom", payload);
+    gameSocket.emit("joinRoom", payload);
     return () => {
-      socket.emit("leaveGame", payload);
+      gameSocket.emit("leaveGame", payload);
     };
-  }, [socket, gameIdNumber]);
+  }, [gameSocket, gameIdNumber]);
 
   if (gameRecord.error) {
     return <div>We could not find this game</div>;

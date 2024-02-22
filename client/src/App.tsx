@@ -26,7 +26,7 @@ function App() {
     queryKey: ["user"],
     retry: false,
     queryFn: async () => {
-      const res = await axios.get<AppUser>("/api/auth/login");
+      const res = await axios.get<AppUser>("/api/auth/token");
       return res.data;
     },
   });

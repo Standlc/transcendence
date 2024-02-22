@@ -1,9 +1,9 @@
 import { useContext, useEffect } from "react";
-import { Avatar } from "../UIKit/Avatar";
+import { Avatar } from "../UIKit/avatar/Avatar";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { LeaderbordPlayer } from "../../../api/src/types/games/games";
-import { GameSocketContext } from "../ContextsProviders/GameSocketContext";
+import { SocketsContext } from "../ContextsProviders/SocketsContext";
 import {
   Tuple,
   WsLeaderboardPlayerUpdate,
@@ -11,20 +11,22 @@ import {
 import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
 
 export default function Leaderboard({ limit }: { limit?: number }) {
-  const socket = useContext(GameSocketContext);
+  const { gameSocket, addUsersStatusHandler, removeUsersStatusHandler } =
+    useContext(SocketsContext);
   const queryClient = useQueryClient();
 
   const leaderboard = useQuery({
+    queryKey: ["leaderboard", limit],
     queryFn: async () => {
       const res = await axios.get<LeaderbordPlayer[]>(
         `/api/players/leaderboard${limit ? `?limit=${limit}` : ""}`
       );
       return res.data;
     },
-    queryKey: ["leaderboard", limit],
   });
 
   const newLeaderboardPlayers = useMutation({
+    mutationKey: ["newLeaderboardPlayers"],
     mutationFn: async (userIds: number[]) => {
       const res = await axios.post<LeaderbordPlayer[]>(
         `/api/players/leaderboard`,
@@ -36,7 +38,6 @@ export default function Leaderboard({ limit }: { limit?: number }) {
       queryClient.setQueryData(
         ["leaderboard", limit],
         (prev: LeaderbordPlayer[]) => {
-          console.log("api data", data);
           if (!prev) return data;
           const newLeaderboard = [...prev, ...data];
           newLeaderboard.sort((a, b) => b.rating - a.rating);
@@ -45,15 +46,12 @@ export default function Leaderboard({ limit }: { limit?: number }) {
         }
       );
     },
-    mutationKey: ["newLeaderboardPlayers"],
   });
 
   useEffect(() => {
     const handleLeaderboardUpdate = async (
       data: Tuple<WsLeaderboardPlayerUpdate>
     ) => {
-      console.log("leaderboard update");
-
       queryClient.setQueryData(
         ["leaderboard", limit],
         (prev: LeaderbordPlayer[]) => {
@@ -91,11 +89,36 @@ export default function Leaderboard({ limit }: { limit?: number }) {
       );
     };
 
-    socket.on("leaderboardUpdate", handleLeaderboardUpdate);
+    gameSocket.on("leaderboardUpdate", handleLeaderboardUpdate);
     return () => {
-      socket.off("leaderboardUpdate", handleLeaderboardUpdate);
+      gameSocket.off("leaderboardUpdate", handleLeaderboardUpdate);
     };
-  }, [socket]);
+  }, [gameSocket]);
+
+  useEffect(() => {
+    addUsersStatusHandler({
+      eventKeys: ["leaderboard", limit],
+      statusHandler: (data) => {
+        queryClient.setQueryData(
+          ["leaderboard", limit],
+          (prev: LeaderbordPlayer[]) => {
+            if (!prev) return undefined;
+
+            const newLeaderboard = prev.map((player) => {
+              if (player.id !== data.userId) return player;
+              return {
+                ...player,
+                status: data.status,
+              };
+            });
+
+            return newLeaderboard;
+          }
+        );
+      },
+    });
+    return () => removeUsersStatusHandler(["leaderboard", limit]);
+  }, []);
 
   return (
     <div className="flex flex-col gap-5">
@@ -143,7 +166,12 @@ export function LeaderboardPlayer({
 
       <td className="px-5 py-3">
         <div className="flex gap-3 items-center relative">
-          <Avatar imgUrl={undefined} size="md" userId={player.id} />
+          <Avatar
+            imgUrl={undefined}
+            size="md"
+            userId={player.id}
+            status={player.status}
+          />
           <span className="font-extrabold text-base">{player.username}</span>
         </div>
       </td>

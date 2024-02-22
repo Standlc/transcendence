@@ -3,9 +3,12 @@ import { db } from 'src/database';
 import { LeaderbordPlayer } from 'src/types/games/games';
 import { Tuple } from 'src/types/games/socketPayloadTypes';
 import { calculatePlayersNewRatings } from './ratings';
+import { UsersStatusGateway } from 'src/usersStatusGateway/UsersStatus.gateway';
 
 @Injectable()
 export class PlayersService {
+  constructor(private readonly usersStatusGateway: UsersStatusGateway) {}
+
   async updatePlayersRating(
     players: Tuple<{ id: number; score: number }>,
   ): Promise<Tuple<{ rating: number; id: number }>> {
@@ -48,14 +51,27 @@ export class PlayersService {
       .orderBy('rating desc')
       .limit(limit)
       .execute();
-    return leaderboard;
+
+    const leaderboardWithStatus = leaderboard.map((player) => {
+      return {
+        ...player,
+        status: this.usersStatusGateway.getUserStatus(player.id),
+      };
+    });
+    return leaderboardWithStatus;
   }
 
-  async getLeaderboardInfo(userIds: number[]) {
+  async getLeaderboardInfo(userIds: number[]): Promise<LeaderbordPlayer[]> {
     const playerInfos = await this.selectPlayerInfos()
       .where('user.id', 'in', userIds)
       .execute();
-    return playerInfos;
+    const leaderboardWithStatus = playerInfos.map((player) => {
+      return {
+        ...player,
+        status: this.usersStatusGateway.getUserStatus(player.id),
+      };
+    });
+    return leaderboardWithStatus;
   }
 
   private selectPlayerInfos() {
