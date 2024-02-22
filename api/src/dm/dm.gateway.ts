@@ -1,8 +1,4 @@
-import {
-  InternalServerErrorException,
-  UnprocessableEntityException,
-  UseGuards,
-} from '@nestjs/common';
+import { UseGuards } from '@nestjs/common';
 import { DmService } from './dm.service';
 import {
   ConnectedSocket,
@@ -12,10 +8,12 @@ import {
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
+  WsException,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ConnectToDm, DirectMessageContent } from 'src/types/channelsSchema';
 import { WsAuthGuard } from 'src/auth/ws-auth.guard';
+import { ConnectedUsersService } from 'src/connectedUsers/connectedUsers.service';
 
 @WebSocketGateway(5050, {
   namespace: 'dm',
@@ -28,10 +26,14 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private dmService: DmService,
     private readonly wsGuard: WsAuthGuard,
+    private readonly connectedUsersService: ConnectedUsersService,
   ) {}
 
   @WebSocketServer() server: Server;
 
+  //
+  //
+  //
   afterInit(socket: Socket) {
     socket.use((client, next) => {
       try {
@@ -47,36 +49,47 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
+  //
+  //
+  //
   handleConnection(@ConnectedSocket() socket: Socket) {
     console.log(`Client connected: ${socket.id}`);
   }
 
+  //
+  //
+  //
   handleDisconnect(socket: Socket) {
     try {
       socket.disconnect();
       console.log('Client disconnected');
     } catch (error) {
       console.error('Error disconnecting client:', error);
+      throw new WsException('Error disconnecting client');
     }
   }
 
+  //
+  //
+  //
   @SubscribeMessage('joinConversation')
   async joinConversation(
     @ConnectedSocket() socket: Socket,
     @MessageBody() payload: ConnectToDm,
   ) {
     try {
-      console.log('Payload:', payload);
       await this.dmService.userExists(payload.userId);
     } catch (error) {
-      socket.disconnect();
-      throw error;
+      console.error(error);
+
+      throw new WsException('User not found');
     }
 
     try {
       await this.dmService.conversationExists(payload.conversationId);
     } catch (error) {
-      throw error;
+      console.error(error);
+      throw new WsException('Conversation not found');
     }
 
     try {
@@ -84,12 +97,16 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
       console.log(
         `User ${payload.userId} joined conversation ${payload.conversationId}`,
       );
+      this.connectedUsersService.addUser(payload.userId, socket);
     } catch (error) {
-      socket.disconnect();
-      throw new UnprocessableEntityException('Unable to join conversation');
+      console.error(error);
+      throw new WsException('Unable to join conversation');
     }
   }
 
+  //
+  //
+  //
   @SubscribeMessage('leaveConversation')
   async leaveConversation(
     @ConnectedSocket() socket: Socket,
@@ -100,18 +117,29 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
       console.log(
         `User ${payload.userId} left conversation ${payload.conversationId}`,
       );
+      this.connectedUsersService.removeUserWithSocketId(socket.id);
     } catch (error) {
       console.error(error);
       socket.disconnect();
-      throw new UnprocessableEntityException('Unable to leave conversation');
+      throw new WsException('Unable to leave conversation');
     }
   }
 
+  //
+  //
+  //
   @SubscribeMessage('createDirectMessage')
   create(
     @ConnectedSocket() socket: Socket,
     @MessageBody() payload: DirectMessageContent,
   ) {
+    try {
+      this.connectedUsersService.verifyConnection(socket);
+    } catch (error) {
+      console.error(error);
+      throw new WsException('User did not join channel room');
+    }
+
     try {
       if (socket.rooms.has(payload.conversationId.toString())) {
         this.dmService.createDirectMessage(payload);
@@ -120,9 +148,9 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
           .emit('createDirectMessage', payload);
       }
     } catch (error) {
+      this.connectedUsersService.removeUserWithSocketId(socket.id);
       console.error(error);
-      if (error instanceof InternalServerErrorException) throw error;
-      throw new UnprocessableEntityException('Cannot send message');
+      throw new WsException('Cannot send message');
     }
   }
 }

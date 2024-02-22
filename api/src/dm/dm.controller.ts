@@ -159,6 +159,9 @@ export class DmController {
           username: {
             type: 'string',
           },
+          senderIsBlocked: {
+            type: 'boolean',
+          },
         },
       },
     },

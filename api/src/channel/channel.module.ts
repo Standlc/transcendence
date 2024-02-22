@@ -3,7 +3,7 @@ import { ChannelGateway } from './channel.gateway';
 import { ChannelService } from './channel.service';
 import { UserController } from './channel.controller';
 import { WsAuthGuard } from 'src/auth/ws-auth.guard';
-import { ConnectedUsersService } from './connectedUsers/connectedUsers.service';
+import { ConnectedUsersService } from 'src/connectedUsers/connectedUsers.service';
 import { FriendsService } from 'src/friends/friends.service';
 
 @Module({
