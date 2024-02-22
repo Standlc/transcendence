@@ -44,6 +44,7 @@ export interface DmWithSenderInfo {
   senderId: number;
   avatarUrl: string | null;
   username: string;
+  senderIsBlocked: boolean;
 }
 
 export interface ConnectToChannel {
@@ -78,8 +79,8 @@ export interface BlockUser {
 }
 
 export interface ConversationPromise {
-  createdAt: Date;
   id: number;
+  createdAt: Date;
   user1_id: number;
   user2_id: number;
 }

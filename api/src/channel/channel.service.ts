@@ -18,9 +18,13 @@ import {
   QuitChannel,
 } from 'src/types/channelsSchema';
 import * as bcrypt from 'bcrypt';
+import { FriendsService } from 'src/friends/friends.service';
+import { WsException } from '@nestjs/websockets';
 
 @Injectable()
 export class ChannelService {
+  constructor(private readonly friendsService: FriendsService) {}
+
   //
   //
   //
@@ -50,12 +54,6 @@ export class ChannelService {
     userId: number,
     channelId: number,
   ): Promise<MessageWithSenderInfo[]> {
-    try {
-      await this.userExists(userId);
-    } catch (error) {
-      throw new NotFoundException('User not found');
-    }
-
     try {
       await this.channelExists(channelId);
     } catch (error) {
@@ -153,12 +151,6 @@ export class ChannelService {
     channel: ChannelCreationData,
     userId: number,
   ): Promise<ChannelDataWithoutPassword> {
-    try {
-      await this.userExists(userId);
-    } catch (error) {
-      throw new NotFoundException('User not found');
-    }
-
     const boolPublic = (channel.isPublic as unknown as boolean).toString();
     if (channel.password !== null && boolPublic === 'true') {
       throw new UnprocessableEntityException(
@@ -300,12 +292,6 @@ export class ChannelService {
     channel: Channel,
     userId: number,
   ): Promise<string> {
-    try {
-      await this.userExists(userId);
-    } catch (error) {
-      throw new NotFoundException('User not found');
-    }
-
     try {
       await this.channelExists(channelId);
     } catch (error) {
@@ -454,21 +440,6 @@ export class ChannelService {
   async getAllChannelsOfTheUser(
     userId: number,
   ): Promise<ChannelDataWithoutPassword[]> {
-    let user: { avatarUrl: string | null; username: string }[];
-    try {
-      user = await db
-        .selectFrom('user')
-        .select(['avatarUrl', 'username'])
-        .where('id', '=', userId)
-        .execute();
-    } catch (error) {
-      throw new InternalServerErrorException();
-    }
-
-    if (!user || user.length === 0) {
-      throw new NotFoundException('User not found.');
-    }
-
     let channels: ChannelDataWithoutPassword[]; // !!! to test
     try {
       channels = (await db
@@ -1308,5 +1279,76 @@ export class ChannelService {
       (await this.userIsOwner(payload.targetUserId, payload.channelId)) === true
     )
       throw new UnauthorizedException('User cannot kick the channel owner');
+  }
+
+  //
+  //
+  //
+  // !!! to test
+  async invitedListVerification(payload: ActionOnUser): Promise<void> {
+    // !!! check if user is owner
+    try {
+      await this.userIsOwner(payload.userId, payload.channelId);
+    } catch {
+      throw new UnauthorizedException('User is not the owner');
+    }
+
+    // !!! check if owner and user are friends
+    try {
+      await this.friendsService.isFriend(payload.userId, payload.targetUserId);
+    } catch (error) {
+      console.error(error);
+      throw new UnauthorizedException(
+        'Users are not friends, impossible to invite to a private or protected channel',
+      );
+    }
+  }
+
+  //
+  //
+  //
+  // !!! to finish
+  async addToInviteList(payload: ActionOnUser): Promise<void> {
+    try {
+      await this.invitedListVerification(payload);
+    } catch (error) {
+      throw error;
+    }
+
+    try {
+      await db
+        .insertInto('channelInviteList')
+        .values({
+          invitedUserId: payload.targetUserId,
+          invitedByUserId: payload.userId,
+          channelId: payload.channelId,
+        })
+        .execute();
+    } catch (error) {
+      throw new InternalServerErrorException();
+    }
+  }
+
+  //
+  //
+  //
+  // !!! to finish
+  async removeFromInviteList(payload: ActionOnUser): Promise<void> {
+    try {
+      await this.invitedListVerification(payload);
+    } catch (error) {
+      throw error;
+    }
+
+    try {
+      await db
+        .deleteFrom('channelInviteList')
+        .where('invitedUserId', '=', payload.targetUserId)
+        .where('invitedByUserId', '=', payload.userId)
+        .where('channelId', '=', payload.channelId)
+        .execute();
+    } catch (error) {
+      throw new InternalServerErrorException();
+    }
   }
 }

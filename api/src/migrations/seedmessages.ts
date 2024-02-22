@@ -49,6 +49,36 @@ async function seed() {
         },
       ])
       .execute();
+
+    await db
+      .insertInto('directMessage')
+      .values([
+        {
+          senderId: 1,
+          conversationId: 1,
+          content: 'Message from User 1 to User 2',
+          createdAt: new Date(),
+        },
+        {
+          senderId: 2,
+          conversationId: 1,
+          content: 'Message from User 2 to User 1',
+          createdAt: new Date(),
+        },
+        {
+          senderId: 1,
+          conversationId: 1,
+          content: 'Message',
+          createdAt: new Date(),
+        },
+        {
+          senderId: 2,
+          conversationId: 1,
+          content: 'Message2',
+          createdAt: new Date(),
+        },
+      ])
+      .execute();
   } catch (error) {
     console.log(error);
     process.exit(1);
