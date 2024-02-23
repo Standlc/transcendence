@@ -116,13 +116,11 @@ export class UsersController {
   //#endregion
 
   //#region update
-  @ApiCookieAuth()
-  @ApiOkResponse({description: "Profile updated"})
-  @ApiUnprocessableEntityResponse({description: "Invalid field or empty field"})
   @UseGuards(JwtAuthGuard)
   @Patch('update')
-  async updateUserProfile(@Request() req, @Body() body: UpdateUsersDto) {
+  async updateUserProfile(@Request() req, @Body() body: UpdateUsersDto): Promise<undefined> {
     await this.usersService.updateUser(req.user.id, body);
+    return ;
   }
 
   //#endregion
