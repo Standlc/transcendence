@@ -1219,9 +1219,17 @@ export class ChannelService {
     try {
       await db
         .selectFrom('friend')
-        .select('userId')
-        .where('userId', '=', userId)
-        .where('friendId', '=', friendId)
+        .select('user1_id')
+        .where(({ eb, or, and }) => or([
+          and([
+            eb('user1_id', '=', userId),
+            eb('user2_id', '=', friendId),
+          ]),
+          and([
+            eb('user1_id', '=', friendId),
+            eb('user2_id', '=', userId),
+          ])
+        ]))
         .executeTakeFirstOrThrow();
 
       return true;

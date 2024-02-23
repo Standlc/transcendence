@@ -73,8 +73,8 @@ export interface DirectMessage {
 
 export interface Friend {
   createdAt: Generated<Timestamp>;
-  friendId: number;
-  userId: number;
+  user1_id: number | null;
+  user2_id: number | null;
 }
 
 export interface FriendRequest {

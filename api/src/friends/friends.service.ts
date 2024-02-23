@@ -238,26 +238,37 @@ export class FriendsService {
    * @throws NotFound, InternalServerError
    */
   async findAllFriends(id: number): Promise<ListUsers[]> {
-    let friendsId: {friendId: number}[];
+    let friends1_Id: {user1_id: number | null}[];
+    let friends2_Id: {user2_id: number | null}[];
     try {
-      friendsId = await db
+      friends1_Id = await db
       .selectFrom('friend')
-      .select('friendId')
+      .select('user1_id')
       .orderBy('createdAt asc')
-      .groupBy(['friendId', 'createdAt'])
-      .where('userId', '=', id)
+      .groupBy(['user1_id', 'createdAt'])
+      .where('user2_id', '=', id)
+      .execute();
+      friends2_Id = await db
+      .selectFrom('friend')
+      .select('user2_id')
+      .orderBy('createdAt asc')
+      .groupBy(['user2_id', 'createdAt'])
+      .where('user1_id', '=', id)
       .execute();
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException();
     }
 
-    if (!friendsId || friendsId && friendsId.length === 0)
+    if ((!friends1_Id && !friends2_Id) || (friends1_Id.length === 0 && friends2_Id.length === 0))
       throw new NotFoundException();
 
-    let arrayFriendsId: number[] = [];
-    friendsId.forEach(friendsId => {
-      arrayFriendsId.push(friendsId.friendId);
+    let arrayFriendsId: (number | null)[] = [];
+    friends1_Id.forEach(friend1_Id => {
+      arrayFriendsId.push(friend1_Id.user1_id);
+    });
+    friends2_Id.forEach(friend2_Id => {
+      arrayFriendsId.push(friend2_Id.user2_id);
     });
 
     let friendList: ListUsers[];
@@ -289,12 +300,12 @@ export class FriendsService {
       .deleteFrom('friend')
       .where(({ eb, or, and }) => or([
         and([
-          eb('userId', '=', selfId),
-          eb('friendId', '=', friendId),
+          eb('user1_id', '=', selfId),
+          eb('user2_id', '=', friendId),
         ]),
         and([
-          eb('friendId', '=', selfId),
-          eb('userId', '=', friendId),
+          eb('user2_id', '=', selfId),
+          eb('user1_id', '=', friendId),
         ])
       ]))
       .execute();
@@ -316,16 +327,22 @@ export class FriendsService {
   async isFriend(selfId: number, friendId: number): Promise<boolean> {
     let result: {
       createdAt: Date;
-      friendId: number;
-      userId: number;
+      user1_id: number | null;
+      user2_id: number | null;
     } | undefined;
     try {
       result = await db
       .selectFrom('friend')
       .selectAll()
-      .where(({ eb, and}) => and([
-        eb('userId', '=', selfId),
-        eb('friendId', '=', friendId)
+      .where(({ eb, or, and }) => or([
+        and([
+          eb('user1_id', '=', selfId),
+          eb('user2_id', '=', friendId),
+        ]),
+        and([
+          eb('user2_id', '=', selfId),
+          eb('user1_id', '=', friendId),
+        ])
       ]))
       .executeTakeFirst()
     } catch (error) {

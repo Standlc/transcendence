@@ -39,12 +39,16 @@ export class DmService {
     try {
       await db
         .selectFrom('friend')
-        .where((eb) =>
-          eb.or([eb('friendId', '=', userId), eb('userId', '=', user2)]),
-        )
-        .where((eb) =>
-          eb.or([eb('friendId', '=', user2), eb('userId', '=', userId)]),
-        )
+        .where(({ eb, or, and }) => or([
+          and([
+            eb('user1_id', '=', userId),
+            eb('user2_id', '=', user2),
+          ]),
+          and([
+            eb('user1_id', '=', user2),
+            eb('user2_id', '=', userId),
+          ])
+        ]))
         .executeTakeFirstOrThrow();
     } catch (error) {
       console.error(error);
