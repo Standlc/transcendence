@@ -10,6 +10,7 @@ export interface GameType {
   gameId: number;
   isPaused: boolean;
   nextUpdateTime: number;
+  startTime: number;
 }
 
 export interface GameStateType {

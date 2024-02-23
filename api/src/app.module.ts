@@ -12,6 +12,7 @@ import { FriendsService } from './friends/friends.service';
 import { FriendsModule } from './friends/friends.module';
 import { ChannelModule } from './channel/channel.module';
 import { DmModule } from './dm/dm.module';
+import { AchievementsModule } from './achievements/Achievements.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { DmModule } from './dm/dm.module';
     UsersStatusModule,
     ChannelModule,
     DmModule,
+    AchievementsModule,
   ],
   controllers: [AppController],
   providers: [AppService, FriendsService],

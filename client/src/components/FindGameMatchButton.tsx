@@ -18,7 +18,7 @@ export const FindGameMatchButton = ({
       onClick={() => {
         !isFindingGame ? findGame.mutate() : cancel.mutate();
       }}
-      className="hover:-translate-y-[1px] flex items-center py-4 px-5 justify-center overflow-hidden active:translate-y-0 rounded-lg bg-indigo-500 font-[900] text-2xl shadow-[0_6px_0_0_rgba(0,0,0,0.6)]"
+      className="hover:-translate-y-[1px] flex items-center py-4 px-5 justify-center overflow-hidden active:translate-y-0 rounded-lg bg-indigo-500 font-[900] text-2xl shadow-lg"
     >
       {!isFindingGame ? (
         children

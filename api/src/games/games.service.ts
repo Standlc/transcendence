@@ -8,6 +8,7 @@ import { ExpressionBuilder, Insertable, Selectable } from 'kysely';
 import { DB, Game, PublicGameRequest } from '../types/schema';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { AppGame } from 'src/types/games/returnTypes';
+import { PlayersRatingChangesType } from 'src/pong/players/players.service';
 
 @Injectable()
 export class GamesService {
@@ -87,6 +88,9 @@ export class GamesService {
           'user.avatarUrl',
           'game.points',
           which === 1 ? 'playerOneScore as score' : 'playerTwoScore as score',
+          which === 1
+            ? 'playerOneRatingChange as ratingChange'
+            : 'playerTwoRatingChange as ratingChange',
         ]),
     ).as(which === 1 ? 'playerOne' : 'playerTwo');
   }
@@ -105,11 +109,17 @@ export class GamesService {
     return gameRecord;
   }
 
-  async finishGame(gameId: number, winnerId: number) {
+  async finishGame(
+    gameId: number,
+    winnerId: number,
+    playersRatingsChange: PlayersRatingChangesType,
+  ) {
     await db
       .updateTable('game')
       .set({
         winnerId,
+        playerOneRatingChange: playersRatingsChange.playerOne.ratingChange,
+        playerTwoRatingChange: playersRatingsChange.playerTwo.ratingChange,
       })
       .where('game.id', '=', gameId)
       .execute();

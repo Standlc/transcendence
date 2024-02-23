@@ -8,14 +8,14 @@ export default function GamePreferences({ hide }: { hide: () => void }) {
   const { gameSettings, upadteGameSetting } = useContext(GameSettingsContext);
 
   return (
-    <div className="flex max-h-full flex-col gap-5 flex-[2] p-5 bg-white bg-opacity-5 rounded-lg min-w-80">
-      <div className="font-[900] text-2xl flex items-center gap-2">
-        <Tune />
+    <div className="flex max-h-full flex-col gap-5 flex-[2] p-5 bg-bg-1 rounded-lg min-w-96 shadow-md">
+      <div className="font-[900] text-2xl flex items-center justify-between gap-2">
         <span>Game Settings</span>
+        <Tune fontSize="small" />
       </div>
 
       <div className="flex flex-col gap-3">
-        <span className="text-sm opacity-50 font-extrabold">
+        <span className="text-sm opacity-50 font-bold">
           MATCHING PREFERENCES
         </span>
         <Setting
@@ -41,7 +41,7 @@ export default function GamePreferences({ hide }: { hide: () => void }) {
         >
           {gameSettings.points}
         </Setting>
-        <span className="text-sm opacity-50 font-extrabold mt-2">STYLE</span>
+        <span className="text-sm opacity-50 font-bold mt-2">STYLE</span>
         <Setting
           title="Board"
           onClick={() => {
@@ -63,13 +63,31 @@ export default function GamePreferences({ hide }: { hide: () => void }) {
           {gameSettings.ballStyle}
         </Setting>
 
-        <span className="text-sm opacity-50 font-extrabold mt-2">SOUND</span>
-        <VolumeKnob soundEffectsSetting={gameSettings.soundEffects} />
+        <span className="text-sm opacity-50 font-bold mt-2">SOUND</span>
+        <div className="flex flex-col gap-5">
+          <Setting
+            title="Sound Effects"
+            onClick={() => {
+              upadteGameSetting("soundEffects", {
+                isOn: !gameSettings.soundEffects.isOn,
+                volume: gameSettings.soundEffects.volume,
+              });
+            }}
+          >
+            <span
+              aria-selected={gameSettings.soundEffects.isOn}
+              className="aria-selected:text-green-500 text-red-500"
+            >
+              {gameSettings.soundEffects.isOn ? "On" : "Off"}
+            </span>
+          </Setting>
+          <VolumeKnob soundEffectsSetting={gameSettings.soundEffects} />
+        </div>
       </div>
 
       <button
         onClick={hide}
-        className="bg-white bg-opacity-0 rounded-md opacity-50 hover:opacity-100 font-extrabold self-end justify-self-end mt-auto"
+        className="bg-white bg-opacity-0 rounded-md opacity-50 hover:opacity-100 font-bold self-end justify-self-end mt-auto"
       >
         Done
       </button>
@@ -89,7 +107,7 @@ const Setting = ({
   return (
     <div
       onClick={onClick}
-      className="flex select-none justify-between cursor-pointer items-center rounded-md hover:bg-opacity-15 active:translate-y-[1px] p-5 shadow-inset bg-white bg-opacity-5"
+      className="flex select-none justify-between cursor-pointer items-center rounded-md hover:bg-opacity-15 active:translate-y-[1px] p-5 shadow-md bg-white bg-opacity-5"
     >
       <span className="font-extrabold">{title}</span>
       <div className="font-extrabold">{children}</div>

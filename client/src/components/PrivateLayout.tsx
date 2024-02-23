@@ -39,7 +39,7 @@ export default function PrivateLayout({ user }: { user: AppUser }) {
           <GameSettingsContext.Provider
             value={{ gameSettings, upadteGameSetting }}
           >
-            <div className="min-h-[100vh] min-w-[100vw] w-full h-full">
+            <div className="min-h-[100vh] w-full h-full">
               {error && <ErrorModal />}
               <Outlet />
             </div>

@@ -91,7 +91,7 @@ export default function LiveGames() {
   return (
     <div className="w-full flex flex-col gap-5">
       {liveGames.data?.length === 0 ? (
-        <span className="font-[700] opacity-50 text-xl">
+        <span className="opacity-50 text-lg">
           No games going on right now
         </span>
       ) : (
