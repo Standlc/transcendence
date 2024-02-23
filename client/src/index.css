@@ -7,6 +7,26 @@
   src: url(./assets/Blippo-Bold.ttf);
 }
 
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  /*  */
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+}
+
 :root {
   /* font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif; */
   font-family: "Gabarito", sans-serif;
@@ -27,4 +47,8 @@ body {
   display: flex;
   place-items: center;
   min-height: 100vh;
+}
+
+#root {
+  width: 100%;
 }

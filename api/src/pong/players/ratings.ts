@@ -21,22 +21,18 @@ export const getPlayerGameOutcome = (
   return playerScore / (playerScore + opponentScore);
 };
 
-export const getNewRatingPlayerRating = (
-  playerRating: number,
+export const getRatingChange = (
   playerGameOutcome: number,
   playerExpectedOutcome: number,
 ) => {
-  return playerRating + K * (playerGameOutcome - playerExpectedOutcome);
+  return K * (playerGameOutcome - playerExpectedOutcome);
 };
 
 export const calculatePlayersNewRatings = (
   players: Tuple<{ score: number; rating: number }>,
 ) => {
   if (players[0].score === 0 && players[1].score === 0) {
-    return {
-      newRatingPlayer1: players[0].rating,
-      newRatingPlayer2: players[1].rating,
-    };
+    return [0, 0];
   }
 
   const QPlayer1 = getExponentialRating(players[0].rating);
@@ -46,19 +42,8 @@ export const calculatePlayersNewRatings = (
   const SPlayer1 = getPlayerGameOutcome(players[0].score, players[1].score);
   const SPlayer2 = getPlayerGameOutcome(players[1].score, players[0].score);
 
-  const newRatingPlayer1 = getNewRatingPlayerRating(
-    players[0].rating,
-    SPlayer1,
-    EPlayer1,
-  );
-  const newRatingPlayer2 = getNewRatingPlayerRating(
-    players[1].rating,
-    SPlayer2,
-    EPlayer2,
-  );
+  const playerOneRatingChange = Math.round(getRatingChange(SPlayer1, EPlayer1));
+  const playerTwoRatingChange = Math.round(getRatingChange(SPlayer2, EPlayer2));
 
-  return {
-    newRatingPlayer1: Math.floor(newRatingPlayer1),
-    newRatingPlayer2: Math.floor(newRatingPlayer2),
-  };
+  return [playerOneRatingChange, playerTwoRatingChange];
 };

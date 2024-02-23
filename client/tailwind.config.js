@@ -81,7 +81,7 @@ export default {
       },
       animation: {
         fadein: "fadein 0.3s cubic-bezier(0.7, 0, 0, 1)",
-        scalein: "scalein 0.3s cubic-bezier(0.7, 0, 0, 1)",
+        scalein: "scalein 0.3s cubic-bezier(0.7, 0, 0, 1.5)",
         "slow-spin": "spin 6s linear infinite",
         "move-left-right":
           "move-left-right 3s cubic-bezier(0.7, 0, 0, 1) infinite",

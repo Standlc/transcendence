@@ -1,5 +1,4 @@
 import { useContext, useMemo } from "react";
-import { Avatar } from "../UIKit/avatar/Avatar";
 import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
 import { UserContext } from "../ContextsProviders/UserContext";
 import { AppGame } from "../../../api/src/types/games/returnTypes";
@@ -34,12 +33,18 @@ export default function PlayerDisconnectionInfos({
   }
 
   return (
-    <div className="font-title flex-col gap-5 p-5 flex items-center justify-center rounded-lg">
-      <div className="text-3xl font-title flex flex-col items-center gap-5 rounded-lg">
-        <div className="font-extrabold mb-2">
+    <div className="flex-col gap-5 p-5 flex items-center justify-center rounded-lg max-w-80">
+      <div className="flex flex-col items-center mb-2 text-center">
+        <div className="text-2xl font-extrabold ont-extrabold">
           <span className="mr-2">{players.disconnected.username}</span>
-          <span>left the game</span>
+          <span>is not connected</span>
         </div>
+        {/* <span className="opacity-50">
+          The opponent is not connected to the game
+        </span> */}
+        <span className="opacity-50 break-words">
+          The game will end if the player doesn't reconnect before the timeout
+        </span>
       </div>
 
       <div className="flex flex-col gap-5 justify-center w-full">
@@ -66,14 +71,14 @@ export default function PlayerDisconnectionInfos({
         />
       </div>
 
-      <div className="flex flex-col items-center justify-start gap-2 text-white mt-2">
-        <span className="text-3xl font-extrabold">
+      <div className="flex flex-col items-center justify-start gap-1 text-white mt-2">
+        <span className="text-base opacity-50">
           {players.other.id === user.id
             ? "You win "
             : players.other.username + " wins "}
           in
         </span>
-        <span className="text-7xl font-extrabold">
+        <span className="text-5xl font-extrabold">
           <InfiniteSlotMachine state={disconnectionInfo.secondsUntilEnd} />
         </span>
       </div>

@@ -1,6 +1,7 @@
 import { Selectable } from 'kysely';
 import { PublicGameRequest } from '../schema';
 import { GameStateType, PlayerType } from './pongGameTypes';
+import { UserAchievement } from '../achievements';
 
 export type EmitPayloadType<T extends string> = T extends 'updateGameState'
   ? GameStateType
@@ -30,7 +31,9 @@ export type EmitPayloadType<T extends string> = T extends 'updateGameState'
                           ? { isPaused: boolean }
                           : T extends 'error'
                             ? WsError
-                            : never;
+                            : T extends 'achievements'
+                              ? UserAchievement[]
+                              : never;
 
 export type Tuple<T> = [T, T];
 
@@ -78,7 +81,8 @@ export interface WsGameIdType {
 
 export interface WsLeaderboardPlayerUpdate {
   userId: number;
-  rating: number;
+  ratingChange: number;
+  prevRating: number;
   isWinner: boolean;
 }
 
@@ -86,10 +90,10 @@ export interface WsGameEndType {
   winnerId: number;
   playerOne: {
     score: number;
-    rating: number;
+    ratingChange: number;
   };
   playerTwo: {
     score: number;
-    rating: number;
+    ratingChange: number;
   };
 }

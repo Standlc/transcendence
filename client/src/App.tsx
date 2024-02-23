@@ -14,6 +14,7 @@ import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { LiveGamesPage } from "./pages/LiveGamesPage";
+import { AchievementsPage } from "./pages/AchievementsPage";
 
 function App() {
   const queryClient = useQueryClient();
@@ -65,6 +66,10 @@ function App() {
                 <Route index element={<div>home</div>}></Route>
                 <Route path="/play" element={<PlayPage />} />
                 <Route path="/play/:gameId" element={<GamePage />} />
+                <Route
+                  path="/achievements/:userId"
+                  element={<AchievementsPage />}
+                />
                 <Route path="/leaderboard" element={<LeaderboardPage />} />
                 <Route path="/live" element={<LiveGamesPage />} />
               </Route>

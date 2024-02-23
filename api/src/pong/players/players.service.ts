@@ -1,49 +1,57 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { db } from 'src/database';
 import { LeaderbordPlayer } from 'src/types/games/games';
-import { Tuple } from 'src/types/games/socketPayloadTypes';
 import { calculatePlayersNewRatings } from './ratings';
 import { UsersStatusGateway } from 'src/usersStatusGateway/UsersStatus.gateway';
+import { PlayerType } from 'src/types/games/pongGameTypes';
+
+export type PlayersRatingChangesType = {
+  playerOne: PlayerRatingChangeType;
+  playerTwo: PlayerRatingChangeType;
+};
+
+export type PlayerRatingChangeType = {
+  ratingChange: number;
+  prevRating: number;
+};
 
 @Injectable()
 export class PlayersService {
   constructor(private readonly usersStatusGateway: UsersStatusGateway) {}
 
-  async updatePlayersRating(
-    players: Tuple<{ id: number; score: number }>,
-  ): Promise<Tuple<{ rating: number; id: number }>> {
-    const playersWithRating = [
-      { ...players[0], rating: 0 },
-      { ...players[1], rating: 0 },
-    ];
-
-    const ratings = await this.getUsersRating([players[0].id, players[1].id]);
-    if (ratings.length !== 2) {
-      throw new Error("Players's ratings could not be upadted");
+  async updatePlayersRating(playerOne: PlayerType, playerTwo: PlayerType) {
+    const userRatings = await this.getUsersRating([playerOne.id, playerTwo.id]);
+    const playerOneRating = userRatings.get(playerOne.id);
+    const playerTwoRating = userRatings.get(playerTwo.id);
+    if (!playerOneRating || !playerTwoRating) {
+      throw new InternalServerErrorException();
     }
 
-    playersWithRating.forEach((player) => {
-      const rating = ratings.find((r) => r.id === player.id);
-      if (rating) player.rating = rating.rating;
-    });
+    const [playerOneRatingChange, playerTwoRatingChange] =
+      calculatePlayersNewRatings([
+        {
+          score: playerOne.score,
+          rating: playerOneRating,
+        },
+        {
+          score: playerTwo.score,
+          rating: playerTwoRating,
+        },
+      ]);
 
-    const { newRatingPlayer1, newRatingPlayer2 } = calculatePlayersNewRatings([
-      {
-        score: playersWithRating[0].score,
-        rating: playersWithRating[0].rating,
-      },
-      {
-        score: playersWithRating[1].score,
-        rating: playersWithRating[1].rating,
-      },
-    ]);
+    await this.updateRating(playerOne.id, playerOneRatingChange);
+    await this.updateRating(playerTwo.id, playerTwoRatingChange);
 
-    await this.updateRating(players[0].id, newRatingPlayer1);
-    await this.updateRating(players[1].id, newRatingPlayer2);
-    return [
-      { rating: newRatingPlayer1, id: players[0].id },
-      { rating: newRatingPlayer2, id: players[1].id },
-    ];
+    return {
+      playerOne: {
+        ratingChange: playerOneRatingChange,
+        prevRating: playerOneRating,
+      },
+      playerTwo: {
+        ratingChange: playerTwoRatingChange,
+        prevRating: playerTwoRating,
+      },
+    };
   }
 
   async getLeaderboard(limit: number): Promise<LeaderbordPlayer[]> {
@@ -111,21 +119,32 @@ export class PlayersService {
       .select(['user.id', 'username', 'user.bio', 'user.avatarUrl', 'rating']);
   }
 
-  async getUsersRating(userIds: number[]) {
+  async getUsersRating(userIds: number[]): Promise<Map<number, number>> {
     const users = await db
       .selectFrom('user')
       .where('id', 'in', userIds)
       .select(['id', 'rating'])
       .execute();
-    return users;
+
+    if (users.length !== userIds.length) {
+      throw new InternalServerErrorException();
+    }
+
+    const userIdUserRatingMap = new Map<number, number>();
+    users.forEach((user) => {
+      userIdUserRatingMap.set(user.id, user.rating);
+    });
+    return userIdUserRatingMap;
   }
 
-  async updateRating(userId: number, rating: number) {
+  async updateRating(userId: number, ratingChange: number) {
     await db
       .updateTable('user')
       .where('user.id', '=', userId)
-      .set({
-        rating: rating,
+      .set((eb) => {
+        return {
+          rating: eb('rating', '+', ratingChange),
+        };
       })
       .execute();
   }

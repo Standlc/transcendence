@@ -24,6 +24,8 @@ import { createGamePositions } from "../../../api/src/pong/gameLogic/gamePositio
 import { useGameControls } from "../utils/game/useGameControls";
 import GamePreferences from "../components/gameSettings/GameSettings";
 import { usePingServer } from "../utils/game/usePingServer";
+import { UserAchievement } from "@api/types/achievements";
+import { NewGameAchievements } from "../components/achievements/NewGameAchievements";
 
 export default function GamePage() {
   const { gameId } = useParams();
@@ -36,6 +38,7 @@ export default function GamePage() {
   const [isPaused, setIsPaused] = useState(true);
   const [startCountdown, setStartCountdown] = useState<number>();
   const gameRef = useRef<GameStateType>(createGamePositions({}));
+  const [achievements, setAchievements] = useState<UserAchievement[]>();
   const [playersPingRtt, setPlayersPingRtt] = useState([0, 0]);
   const gameRecord = useQuery({
     queryFn: async () => {
@@ -113,9 +116,19 @@ export default function GamePage() {
           const prevCopy = { ...prev };
           prevCopy.winnerId = data.winnerId;
           if (prevCopy.playerOne)
-            prevCopy.playerOne = { ...prevCopy.playerOne, ...data.playerOne };
+            prevCopy.playerOne = {
+              ...prevCopy.playerOne,
+              rating: prevCopy.playerOne.rating + data.playerOne.ratingChange,
+              ratingChange: data.playerOne.ratingChange,
+              score: data.playerOne.score,
+            };
           if (prevCopy.playerTwo)
-            prevCopy.playerTwo = { ...prevCopy.playerTwo, ...data.playerTwo };
+            prevCopy.playerTwo = {
+              ...prevCopy.playerTwo,
+              rating: prevCopy.playerTwo.rating + data.playerTwo.ratingChange,
+              ratingChange: data.playerTwo.ratingChange,
+              score: data.playerTwo.score,
+            };
           return prevCopy;
         }
       );
@@ -145,17 +158,23 @@ export default function GamePage() {
       }
     };
 
+    const handleNewAchievements = (newAchievements: UserAchievement[]) => {
+      setAchievements(newAchievements);
+    };
+
     gameSocket.on("updateGameState", handleGameUpadte);
     gameSocket.on("playerMoveUpdate", handlePlayerMoveUpdate);
     gameSocket.on("gameEnd", handleGameEnd);
     gameSocket.on("playerDisconnection", handleOpponentDisconnection);
     gameSocket.on("startCountdown", handleGameStartCountdown);
+    gameSocket.on("achievements", handleNewAchievements);
     return () => {
       gameSocket.off("updateGameState", handleGameUpadte);
       gameSocket.off("playerMoveUpdate", handlePlayerMoveUpdate);
       gameSocket.off("gameEnd", handleGameEnd);
       gameSocket.off("playerDisconnection", handleOpponentDisconnection);
       gameSocket.off("startCountdown", handleGameStartCountdown);
+      gameSocket.off("achievements", handleNewAchievements);
     };
   }, [gameSocket, gameIdNumber]);
 
@@ -172,13 +191,25 @@ export default function GamePage() {
   }
 
   return (
-    <div className="flex justify-center h-[100vh] p-5 gap-5 w-[100vw] font-title">
+    <div className="flex justify-center h-[100vh] p-5 gap-5">
       <div className="max-w-[1100px] contents">
-        {gameRecord.data && gameRecord.data.winnerId && !showGameSettings && (
+        {!achievements &&
+          gameRecord.data &&
+          gameRecord.data.winnerId &&
+          !showGameSettings && (
+            <ModalLayout>
+              <GameFinishedCard
+                game={gameRecord.data}
+                showSettings={() => setShowGameSettings(true)}
+              />
+            </ModalLayout>
+          )}
+
+        {achievements && (
           <ModalLayout>
-            <GameFinishedCard
-              game={gameRecord.data}
-              showSettings={() => setShowGameSettings(true)}
+            <NewGameAchievements
+              achievements={achievements}
+              hide={() => setAchievements(undefined)}
             />
           </ModalLayout>
         )}

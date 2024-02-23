@@ -72,12 +72,12 @@ export default function Leaderboard({ limit }: { limit?: number }) {
                 ? player.losses + 1
                 : player.losses,
               wins: playerUpdate.isWinner ? player.wins + 1 : player.wins,
-              rating: playerUpdate.rating,
+              rating: playerUpdate.prevRating + playerUpdate.ratingChange,
             };
           });
 
           usersToFetch = usersToFetch.filter(
-            (u) => u.rating > prev[prev.length - 1].rating
+            (u) => u.prevRating + u.ratingChange > prev[prev.length - 1].rating
           );
           if (usersToFetch.length) {
             newLeaderboardPlayers.mutate(usersToFetch.flatMap((u) => u.userId));
@@ -122,7 +122,7 @@ export default function Leaderboard({ limit }: { limit?: number }) {
 
   return (
     <div className="flex flex-col gap-5">
-      {leaderboard.data && (
+      {leaderboard.data && leaderboard.data.length ? (
         <table className="border-separate border-spacing-x-0 border-spacing-y-[2px]">
           <thead className="">
             <tr className="opacity-100">
@@ -137,11 +137,13 @@ export default function Leaderboard({ limit }: { limit?: number }) {
           </thead>
 
           <tbody>
-            {leaderboard.data?.map((player, i) => {
+            {leaderboard.data.map((player, i) => {
               return <LeaderboardPlayer key={i} i={i} player={player} />;
             })}
           </tbody>
         </table>
+      ) : (
+        <span className="text-lg opacity-50">No leaderboard yet</span>
       )}
     </div>
   );

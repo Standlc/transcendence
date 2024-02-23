@@ -1,7 +1,7 @@
-import { AppGame, AppPlayer } from "../../../api/src/types/games/returnTypes";
+import { AppGame, GamePlayer } from "../../../api/src/types/games/returnTypes";
 import { Avatar } from "../UIKit/avatar/Avatar";
 import { memo, useMemo } from "react";
-import { EmojiEventsRounded } from "@mui/icons-material";
+import { EmojiEvents } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import { useIsUserAPlayer } from "../utils/game/useIsUserAPlayer";
 import { FindGameMatchButton } from "./FindGameMatchButton";
@@ -19,7 +19,7 @@ export const GameFinishedCard = memo(
     return (
       <div className="relative transition origin-bottom shadow-card min-w-[200px] flex-1 rounded-md p-5 flex items-center justify-center">
         <div className="flex flex-col w-full justify-center gap-5">
-          <span className="font-[900] text-center text-3xl bg-bg-1 mb-3">
+          <span className="font-[900] text-center text-2xl mb-3">
             {winner?.username} won!
           </span>
 
@@ -42,11 +42,11 @@ export const GameFinishedCard = memo(
             />
           </div>
 
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 mt-3">
             <FindGameMatchButton>
               <span>{isUserAPlayer ? "New Game" : "Play Online"}</span>
             </FindGameMatchButton>
-            <div className="flex gap-2 w-full mt-1">
+            <div className="flex gap-2 w-full">
               <Link
                 to={"/play"}
                 className="bg-white flex-1 text-center bg-opacity-10 text-opacity-100 rounded-md py-2 font-extrabold text-base active:translate-y-[1px]"
@@ -73,21 +73,31 @@ export const PlayerQuickInfos = ({
   style,
   isDisconnected,
 }: {
-  player: AppPlayer | null;
+  player: GamePlayer | null;
   winnerId: number | undefined;
   style?: React.CSSProperties;
   isDisconnected?: boolean;
 }) => {
+  const ratingChange = player?.ratingChange ?? 0;
   return (
     <div
-      style={{ ...style, opacity: isDisconnected ? 0.4 : 1 }}
+      style={{ ...style, opacity: isDisconnected ? 0.3 : 1 }}
       className="flex font-extrabold items-start gap-3 flex-1"
     >
       <PlayerAvatar player={player} winnerId={winnerId} />
       <div className="flex gap-3 [flex-direction:inherit] items-center">
         <span className="text-lg">{player?.username ?? "Unkown"}</span>
-        <div className="text-sm text-indigo-400 rounded-md px-2 py-[2px] bg-indigo-400 bg-opacity-10">
+        <div className="text-sm flex items-center text-indigo-400 rounded-md px-2 py-[2px] bg-indigo-500 bg-opacity-20">
           {player?.rating ?? "Unkown"}
+          {ratingChange > 0 ? (
+            <span className="text-[12px] text-green-500 ml-1 opacity-100">
+              +{player?.ratingChange ?? "Unkown"}
+            </span>
+          ) : ratingChange < 0 ? (
+            <span className="text-[12px] text-red-500 ml-1 opacity-100">
+              {player?.ratingChange ?? "Unkown"}
+            </span>
+          ) : null}
         </div>
       </div>
     </div>
@@ -98,7 +108,7 @@ const PlayerAvatar = ({
   player,
   winnerId,
 }: {
-  player: AppPlayer | null;
+  player: GamePlayer | null;
   winnerId: number | undefined;
 }) => {
   const isWinner = winnerId === player?.id;
@@ -108,14 +118,14 @@ const PlayerAvatar = ({
       style={{
         borderStyle: !isWinner ? "hidden" : "solid",
       }}
-      className="relative border-[5px] overflow-hidden rounded-md border-indigo-600"
+      className="relative border-[5px] overflow-hidden rounded-2xl border-indigo-600"
     >
       <div style={{ margin: isWinner ? "-5px" : "" }} className="relative">
         <Avatar imgUrl={undefined} size="lg" userId={player?.id ?? 0} />
       </div>
       {winnerId === player?.id && (
-        <div className="absolute -bottom-[5px] -right-[5px] rounded-md bg-indigo-600 text-yellow-400 h-[26px] w-[26px] flex items-center justify-center">
-          <EmojiEventsRounded style={{ fontSize: 20 }} />
+        <div className="absolute -bottom-[5px] -right-[5px] rounded-tl-md bg-indigo-600 text-yellow-400 h-[25px] w-[25px] flex items-center justify-center">
+          <EmojiEvents style={{ fontSize: 16 }} />
         </div>
       )}
     </div>
