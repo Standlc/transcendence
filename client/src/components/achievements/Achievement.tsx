@@ -79,10 +79,10 @@ export const LockedAchievement = ({
           <span className="text-xs leading-none font-bold">Locked</span>
         </div>
 
-        <span className="font-extrabold text-xl flex items-center gap-2">
+        <span className="font-extrabold text-xl flex items-center gap-2 opacity-50">
           {achievement.title}
           {currentLevel !== undefined ? (
-            <span className="opacity-50">({currentLevel + 1}/3)</span>
+            <span>({currentLevel + 1}/3)</span>
           ) : null}
         </span>
         <span className="text-sm opacity-50">
