@@ -7,6 +7,7 @@ import { userFromIntra } from 'src/auth/oauth.strategy';
 import { randomBytes } from 'crypto';
 import { User } from 'src/types/schema';
 import { Selectable } from 'kysely';
+import { UpdateUsersDto } from './dto/update-users.dto';
 
 @Injectable()
 export class UsersService {
@@ -256,6 +257,42 @@ export class UsersService {
       return userList;
     } catch (error) {
       throw new InternalServerErrorException();
+    }
+  }
+
+  async updateUser(userId: number, updateUsersDto: UpdateUsersDto) {
+    if (updateUsersDto.bio) {
+      try {
+        const result = await db
+        .updateTable('user')
+        .set('bio', updateUsersDto.bio)
+        .where('id', '=', userId)
+        .executeTakeFirst()
+      } catch (error) {
+        throw new InternalServerErrorException();        
+      }
+    }
+    if (updateUsersDto.firstname) {
+      try {
+        const result = await db
+        .updateTable('user')
+        .set('firstname', updateUsersDto.firstname)
+        .where('id', '=', userId)
+        .executeTakeFirst()
+      } catch (error) {
+        throw new InternalServerErrorException();        
+      }
+    }
+    if (updateUsersDto.lastname) {
+      try {
+        const result = await db
+        .updateTable('user')
+        .set('lastname', updateUsersDto.lastname)
+        .where('id', '=', userId)
+        .executeTakeFirst()
+      } catch (error) {
+        throw new InternalServerErrorException();        
+      }
     }
   }
 }
