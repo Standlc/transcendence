@@ -26,6 +26,7 @@ import { ChannelService } from './channel.service';
 import {
   ChannelCreationData,
   ChannelDataWithoutPassword,
+  ChannelUpdate,
   MessageWithSenderInfo,
 } from 'src/types/channelsSchema';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
@@ -313,7 +314,7 @@ export class UserController {
   @Put(':channelId')
   updateChannel(
     @Param('channelId') channelId: number,
-    @Body() channel: Channel,
+    @Body() channel: ChannelUpdate,
     @Request() req,
   ): Promise<string> {
     console.log('PUT: Recieved id:', channelId);
