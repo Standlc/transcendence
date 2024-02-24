@@ -3,7 +3,7 @@ import { createContext } from "react";
 import {
   AddUsersStatusHandlerFnType,
   RemoveUsersStatusHandlerFnType,
-} from "../utils/useUsersStautsSocket";
+} from "../utils/useUsersStatusSocket";
 
 export type SocketsContextType = {
   gameSocket: Socket;
