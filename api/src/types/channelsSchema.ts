@@ -1,9 +1,11 @@
-import { Channel, ChannelMessage, DirectMessage } from './schema';
+import { ChannelMessage, DirectMessage } from './schema';
 
-export type ChannelCreationData = Omit<
-  Channel,
-  'channelOwner' | 'createdAt' | 'id'
->;
+export interface ChannelCreationData {
+  isPublic: boolean;
+  name: string;
+  password: string | null;
+  photoUrl: string | null;
+}
 
 export type UserId = { userId: number };
 
@@ -88,4 +90,11 @@ export interface ConversationPromise {
 export interface QuitChannel {
   channelId: number;
   userId: number;
+}
+
+export interface ChannelUpdate {
+  isPublic: boolean;
+  name: string | null;
+  password: string | null;
+  photoUrl: string | null;
 }

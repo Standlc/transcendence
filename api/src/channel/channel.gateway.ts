@@ -554,18 +554,18 @@ export class ChannelGateway
   //
   //
   //
-  // !!! to finish
+  // !!! tested
   @SubscribeMessage('addToInviteList')
   async handleAddToInviteList(
     @ConnectedSocket() socket: Socket,
     @MessageBody() payload: ActionOnUser,
   ) {
-    // try {
-    //   this.connectedUsersService.verifyConnection(socket);
-    // } catch (error) {
-    //   console.error(error);
-    //   throw new WsException('User did not join channel room');
-    // }
+    try {
+      this.connectedUsersService.verifyConnection(socket);
+    } catch (error) {
+      console.error(error);
+      throw new WsException('User did not join channel room');
+    }
     try {
       await this.channelService.addToInviteList(payload);
     } catch (error) {
@@ -577,18 +577,18 @@ export class ChannelGateway
   //
   //
   //
-  // !!! to finish
+  // !!! tested
   @SubscribeMessage('removeFromInviteList')
   async handleRemoveFromInviteList(
     @ConnectedSocket() socket: Socket,
     @MessageBody() payload: ActionOnUser,
   ) {
-    // try {
-    //   this.connectedUsersService.verifyConnection(socket);
-    // } catch (error) {
-    //   console.error(error);
-    //   throw new WsException('User did not join channel room');
-    // }
+    try {
+      this.connectedUsersService.verifyConnection(socket);
+    } catch (error) {
+      console.error(error);
+      throw new WsException('User did not join channel room');
+    }
     try {
       await this.channelService.removeFromInviteList(payload);
     } catch (error) {

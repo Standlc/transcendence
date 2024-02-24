@@ -5,7 +5,6 @@ import {
   UnauthorizedException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { Channel } from '../types/schema';
 import { db } from 'src/database';
 import {
   ActionOnUser,
@@ -13,13 +12,13 @@ import {
   ChannelCreationData,
   ChannelDataWithoutPassword,
   ChannelMessageContent,
+  ChannelUpdate,
   MessageWithSenderInfo,
   MuteUser,
   QuitChannel,
 } from 'src/types/channelsSchema';
 import * as bcrypt from 'bcrypt';
 import { FriendsService } from 'src/friends/friends.service';
-import { WsException } from '@nestjs/websockets';
 
 @Injectable()
 export class ChannelService {
@@ -151,8 +150,7 @@ export class ChannelService {
     channel: ChannelCreationData,
     userId: number,
   ): Promise<ChannelDataWithoutPassword> {
-    const boolPublic = (channel.isPublic as unknown as boolean).toString();
-    if (channel.password !== null && boolPublic === 'true') {
+    if (channel.password != null && channel.isPublic == true) {
       throw new UnprocessableEntityException(
         'A public channel cannot have a password',
       );
@@ -190,7 +188,7 @@ export class ChannelService {
         .insertInto('channel')
         .values({
           channelOwner: userId,
-          isPublic: channel.isPublic as unknown as boolean, // !!! to fix
+          isPublic: channel.isPublic,
           name: channel.name,
           password: hashedPassword,
           photoUrl: channel.photoUrl,
@@ -289,7 +287,7 @@ export class ChannelService {
   //
   async updateChannel(
     channelId: number,
-    channel: Channel,
+    channel: ChannelUpdate,
     userId: number,
   ): Promise<string> {
     try {
@@ -367,8 +365,7 @@ export class ChannelService {
         await db
           .updateTable('channel')
           .set({
-            channelOwner: channel.channelOwner,
-            isPublic: channel.isPublic as unknown as boolean, // !!! to test
+            isPublic: channel.isPublic,
             name: channel.name,
             password: hashedPassword,
             photoUrl: channel.photoUrl,
@@ -1284,35 +1281,39 @@ export class ChannelService {
   //
   //
   //
-  // !!! to test
+  // !!! tested
   async invitedListVerification(payload: ActionOnUser): Promise<void> {
-    // !!! check if user is owner
     try {
-      await this.userIsOwner(payload.userId, payload.channelId);
-    } catch {
-      throw new UnauthorizedException('User is not the owner');
+      await this.channelExists(payload.channelId);
+    } catch (error) {
+      throw new UnprocessableEntityException("Channel doesn't exist");
     }
 
-    // !!! check if owner and user are friends
-    try {
-      await this.friendsService.isFriend(payload.userId, payload.targetUserId);
-    } catch (error) {
-      console.error(error);
-      throw new UnauthorizedException(
-        'Users are not friends, impossible to invite to a private or protected channel',
-      );
+    if ((await this.userIsOwner(payload.userId, payload.channelId)) == false) {
+      throw new UnauthorizedException('User is not the owner');
     }
   }
 
   //
   //
   //
-  // !!! to finish
+  // !!! tested
   async addToInviteList(payload: ActionOnUser): Promise<void> {
     try {
       await this.invitedListVerification(payload);
     } catch (error) {
       throw error;
+    }
+
+    if (
+      (await this.friendsService.isFriend(
+        payload.userId,
+        payload.targetUserId,
+      )) == false
+    ) {
+      throw new UnauthorizedException(
+        'Users are not friends, impossible to invite to a private or protected channel',
+      );
     }
 
     try {
@@ -1332,7 +1333,7 @@ export class ChannelService {
   //
   //
   //
-  // !!! to finish
+  // !!! tested
   async removeFromInviteList(payload: ActionOnUser): Promise<void> {
     try {
       await this.invitedListVerification(payload);
