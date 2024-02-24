@@ -11,19 +11,19 @@ export type UsersStatusHandlerType<T extends string> = (
 ) => void;
 
 export type AddUsersStatusHandlerFnPropsType = {
-  eventKeys: any[];
+  key: string;
   statusHandler: UsersStatusHandlerType<"status">;
 };
 
 export type AddUsersStatusHandlerFnType = (
-  data: AddUsersStatusHandlerFnPropsType
+  handler: AddUsersStatusHandlerFnPropsType
 ) => void;
 
-export type RemoveUsersStatusHandlerFnType = (eventKeys: any[]) => void;
+export type RemoveUsersStatusHandlerFnType = (key: string) => void;
 
 export const useUsersStatusSocket = (addError: (error: ErrorType) => void) => {
   const [usersStatusSocket, setUsersStatusSocket] = useState<Socket>();
-  const handlers = useRef(new Map<any[], UsersStatusHandlerType<"status">>());
+  const handlers = useRef(new Map<string, UsersStatusHandlerType<"status">>());
 
   useEffect(() => {
     const connection = io("/status");
@@ -80,14 +80,11 @@ export const useUsersStatusSocket = (addError: (error: ErrorType) => void) => {
 
   return {
     usersStatusSocket,
-    addHandler: ({
-      eventKeys,
-      statusHandler,
-    }: AddUsersStatusHandlerFnPropsType) => {
-      handlers.current.set(eventKeys, statusHandler);
+    addHandler: ({ key, statusHandler }: AddUsersStatusHandlerFnPropsType) => {
+      handlers.current.set(key, statusHandler);
     },
-    removeHandler: (eventKeys: string[]) => {
-      handlers.current.delete(eventKeys);
+    removeHandler: (key: string) => {
+      handlers.current.delete(key);
     },
   };
 };

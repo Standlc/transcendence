@@ -97,7 +97,7 @@ export default function Leaderboard({ limit }: { limit?: number }) {
 
   useEffect(() => {
     addUsersStatusHandler({
-      eventKeys: ["leaderboard", limit],
+      key: "leaderboard",
       statusHandler: (data) => {
         queryClient.setQueryData(
           ["leaderboard", limit],
@@ -117,12 +117,12 @@ export default function Leaderboard({ limit }: { limit?: number }) {
         );
       },
     });
-    return () => removeUsersStatusHandler(["leaderboard", limit]);
+    return () => removeUsersStatusHandler("leaderboard");
   }, []);
 
   return (
     <div className="flex flex-col gap-5">
-      {leaderboard.data && leaderboard.data.length ? (
+      {leaderboard.data?.length ? (
         <table className="border-separate border-spacing-x-0 border-spacing-y-[2px]">
           <thead className="">
             <tr className="opacity-100">

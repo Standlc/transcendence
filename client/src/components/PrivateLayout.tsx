@@ -6,7 +6,7 @@ import { ErrorModal } from "./ErrorModal";
 import { GameSettingsContext } from "../ContextsProviders/GameSettingsContext";
 import { useGamePreferences } from "../utils/game/useGamePreferences";
 import { useErrorQueue } from "../utils/useErrorQueue";
-import { useUsersStatusSocket } from "../utils/useUsersStautsSocket";
+import { useUsersStatusSocket } from "../utils/useUsersStatusSocket";
 import { useGameSocket } from "../utils/useGameSocket";
 
 export default function PrivateLayout({ user }: { user: AppUser }) {

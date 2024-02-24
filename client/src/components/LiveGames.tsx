@@ -90,13 +90,11 @@ export default function LiveGames() {
 
   return (
     <div className="w-full flex flex-col gap-5">
-      {liveGames.data?.length === 0 ? (
-        <span className="opacity-50 text-lg">
-          No games going on right now
-        </span>
+      {!liveGames.data?.length ? (
+        <span className="opacity-50 text-lg">No games going on right now</span>
       ) : (
         <div className="flex flex-col gap-[2px]">
-          {liveGames.data?.map((game, i) => {
+          {liveGames.data.map((game, i) => {
             return <GameInfo key={i} game={game} />;
           })}
         </div>
