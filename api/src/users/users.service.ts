@@ -6,7 +6,7 @@ import { AppUser, AppUserDB, ListUsers } from 'src/types/clientSchema';
 import { userFromIntra } from 'src/auth/oauth.strategy';
 import { randomBytes } from 'crypto';
 import { User } from 'src/types/schema';
-import { Selectable } from 'kysely';
+import { Selectable, UnaryOperationNode, UpdateResult } from 'kysely';
 import { UpdateUsersDto } from './dto/update-users.dto';
 import { UsersStatusGateway } from 'src/usersStatusGateway/UsersStatus.gateway';
 
@@ -286,38 +286,19 @@ export class UsersService {
   }
 
   async updateUser(userId: number, updateUsersDto: UpdateUsersDto) {
-    if (updateUsersDto.bio) {
+    if (updateUsersDto.bio || updateUsersDto.firstname || updateUsersDto.lastname) {
       try {
         const result = await db
         .updateTable('user')
-        .set('bio', updateUsersDto.bio)
+        .set({...updateUsersDto})
         .where('id', '=', userId)
         .executeTakeFirst()
       } catch (error) {
-        throw new InternalServerErrorException();        
+        console.log(error);
+        throw new InternalServerErrorException();
       }
     }
-    if (updateUsersDto.firstname) {
-      try {
-        const result = await db
-        .updateTable('user')
-        .set('firstname', updateUsersDto.firstname)
-        .where('id', '=', userId)
-        .executeTakeFirst()
-      } catch (error) {
-        throw new InternalServerErrorException();        
-      }
-    }
-    if (updateUsersDto.lastname) {
-      try {
-        const result = await db
-        .updateTable('user')
-        .set('lastname', updateUsersDto.lastname)
-        .where('id', '=', userId)
-        .executeTakeFirst()
-      } catch (error) {
-        throw new InternalServerErrorException();        
-      }
-    }
+    else
+      throw new UnprocessableEntityException("Empty value");
   }
 }
