@@ -4,13 +4,13 @@ import { IsString } from "class-validator";
 export class UpdateUsersDto {
     @ApiProperty({required: false})
     @IsString()
-    bio: string | null;
+    bio?: string;
 
     @ApiProperty({required: false})
     @IsString()
-    firstname: string | null;
+    firstname?: string;
 
     @ApiProperty({required: false})
     @IsString()
-    lastname: string | null;
+    lastname?: string;
 }
