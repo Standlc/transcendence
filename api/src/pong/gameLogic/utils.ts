@@ -1,4 +1,4 @@
-import { GameStateType, GameType } from 'src/types/games/pongGameTypes';
+import { GameStateType, GameType } from 'src/types/gameServer/pongGameTypes';
 
 export const getOtherPlayer = (game: GameStateType, userId: number) => {
   return game.playerOne.id === userId ? game.playerTwo : game.playerOne;

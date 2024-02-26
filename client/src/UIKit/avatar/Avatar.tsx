@@ -22,7 +22,7 @@ const COLORS = [
 const AVATAR_SIZES = {
   xs: 18,
   sm: 30,
-  md: 40,
+  md: 45,
   lg: 65,
   xl: 85,
   "2xl": 140,
@@ -70,9 +70,9 @@ export const Avatar = ({
 }) => {
   const randomMaskId = useMemo(() => Math.round(Math.random() * 10000), []);
   const dim = AVATAR_SIZES[size];
-  const avatarColor = () => {
-    return COLORS[userId % COLORS.length];
-  };
+  const avatarColor = useMemo(() => {
+    return userId === -1 ? "rgb(65,65,65)" : COLORS[userId % COLORS.length];
+  }, [userId]);
 
   return (
     <div
@@ -111,7 +111,7 @@ export const Avatar = ({
             ) : (
               <div
                 style={{
-                  backgroundColor: avatarColor(),
+                  backgroundColor: avatarColor,
                 }}
                 className="w-full h-full flex items-center justify-center"
               >
@@ -127,11 +127,7 @@ export const Avatar = ({
           size: dim,
           heightRatio: STAUTUS_INDICATORS_HEIGHT_RATIOS[size],
           status: (
-            <div 
-            style={{
-              transitionTimingFunction: "cubic-bezier(0.7,0,0,1.2)"
-            }}
-            className="z-[2] absolute -top-1 translate-y-[-100%] bg-zinc-950 text-xs font-[500] rounded-md px-2 py-1 group-hover/indicator:[visibility:visible] group-hover/indicator:scale-100 group-hover/indicator:opacity-100 opacity-0 [visibility:hidden] origin-bottom scale-90 transition-all">
+            <div className="z-[2] absolute -top-1 translate-y-[-100%] bg-zinc-950 text-xs font-[500] rounded-md px-2 py-1 group-hover/indicator:[visibility:visible] group-hover/indicator:scale-100 group-hover/indicator:opacity-100 opacity-0 [visibility:hidden] origin-bottom scale-90 transition-all [transition-timing-function:cubic-bezier(0.7,0,0,1.4)]">
               {UserStatusIndicators[status].status}
             </div>
           ),

@@ -48,7 +48,7 @@ export const useUsersStatusSocket = (addError: (error: ErrorType) => void) => {
     handler: (data: UsersStatusEmitsDto<T>) => void
   ) => {
     if (usersStatusSocket) {
-      usersStatusSocket.on(ev, handler as any);
+      usersStatusSocket.off(ev, handler as any);
     }
   };
 

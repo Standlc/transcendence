@@ -98,6 +98,14 @@ export interface Game {
   winnerId: number | null;
 }
 
+export interface GameRequest {
+  createdAt: Generated<Timestamp>;
+  points: number;
+  powerUps: boolean;
+  targetId: number | null;
+  userId: number;
+}
+
 export interface MutedUser {
   channelId: number;
   mutedAt: Generated<Timestamp>;
@@ -108,14 +116,6 @@ export interface MutedUser {
 export interface PrivateGameRequest {
   createdAt: Generated<Timestamp>;
   targetId: number;
-  userId: number;
-}
-
-export interface PublicGameRequest {
-  createdAt: Generated<Timestamp>;
-  points: number;
-  powerUps: boolean;
-  targetId: number | null;
   userId: number;
 }
 
@@ -145,8 +145,8 @@ export interface DB {
   friend: Friend;
   friendRequest: FriendRequest;
   game: Game;
+  gameRequest: GameRequest;
   mutedUser: MutedUser;
   privateGameRequest: PrivateGameRequest;
-  publicGameRequest: PublicGameRequest;
   user: User;
 }

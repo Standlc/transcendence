@@ -1,21 +1,27 @@
 import {
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
+  forwardRef,
 } from '@nestjs/common';
 import { db } from 'src/database';
 import { ExpressionBuilder, Insertable, Selectable } from 'kysely';
-import { DB, Game, PublicGameRequest } from '../types/schema';
-import { jsonObjectFrom } from 'kysely/helpers/postgres';
-import { AppGame } from 'src/types/games/returnTypes';
-import { PlayersRatingChangesType } from 'src/pong/players/players.service';
+import { DB, Game, GameRequest } from '../types/schema';
+import { jsonBuildObject, jsonObjectFrom } from 'kysely/helpers/postgres';
+import { UserGame } from 'src/types/games';
+import { PlayersRatingChangesType } from 'src/games/players/players.service';
+import { PongGateway } from 'src/pong/Pong.gateway';
 
 @Injectable()
 export class GamesService {
-  constructor() {}
+  constructor(
+    @Inject(forwardRef(() => PongGateway))
+    private readonly gameServer: PongGateway,
+  ) {}
 
-  async getOngoingPublicGames(limit?: number): Promise<AppGame[]> {
-    const games: AppGame[] = await this.selectGame({ ongoing: true })
+  async getOngoingPublicGames(limit?: number): Promise<UserGame[]> {
+    const games: UserGame[] = await this.selectGame({ ongoing: true })
       .where('winnerId', 'is', null)
       .where('isPublic', 'is', true)
       .orderBy('game.createdAt desc')
@@ -24,7 +30,7 @@ export class GamesService {
     return games;
   }
 
-  async getByGameId(gameId: number, userId: number): Promise<AppGame> {
+  async getByGameId(gameId: number, userId: number): Promise<UserGame> {
     const game = await this.selectGame({
       gameId,
     }).executeTakeFirst();
@@ -62,10 +68,28 @@ export class GamesService {
           ]),
         ),
       )
-      .select((eb) => [
-        this.selectGamePlayer(eb, 1),
-        this.selectGamePlayer(eb, 2),
-      ])
+      .innerJoin('user as playerOne', 'playerOne.id', 'game.playerOneId')
+      .select((eb) =>
+        jsonBuildObject({
+          id: eb.ref('playerOne.id'),
+          score: eb.ref('game.playerOneScore'),
+          rating: eb.ref('playerOne.rating'),
+          username: eb.ref('playerOne.username'),
+          avatarUrl: eb.ref('playerOne.avatarUrl'),
+          ratingChange: eb.ref('game.playerOneRatingChange'),
+        }).as('playerOne'),
+      )
+      .innerJoin('user as playerTwo', 'playerTwo.id', 'game.playerTwoId')
+      .select((eb) =>
+        jsonBuildObject({
+          id: eb.ref('playerTwo.id'),
+          score: eb.ref('game.playerTwoScore'),
+          rating: eb.ref('playerTwo.rating'),
+          username: eb.ref('playerTwo.username'),
+          avatarUrl: eb.ref('playerTwo.avatarUrl'),
+          ratingChange: eb.ref('game.playerTwoRatingChange'),
+        }).as('playerTwo'),
+      )
       .select([
         'game.id',
         'game.points',
@@ -95,34 +119,23 @@ export class GamesService {
     ).as(which === 1 ? 'playerOne' : 'playerTwo');
   }
 
-  async create(
-    matchingGameRequest: Selectable<PublicGameRequest>,
-    userId: number,
-  ): Promise<Selectable<Game>> {
-    const gameRecord = await this.new({
-      isPublic: !matchingGameRequest.targetId,
-      points: matchingGameRequest.points,
-      powerUps: matchingGameRequest.powerUps,
-      playerOneId: matchingGameRequest.userId,
-      playerTwoId: userId,
-    });
-    return gameRecord;
-  }
-
   async finishGame(
     gameId: number,
     winnerId: number,
-    playersRatingsChange: PlayersRatingChangesType,
+    playersRatingsChange?: PlayersRatingChangesType,
   ) {
-    await db
+    return await db
       .updateTable('game')
       .set({
         winnerId,
-        playerOneRatingChange: playersRatingsChange.playerOne.ratingChange,
-        playerTwoRatingChange: playersRatingsChange.playerTwo.ratingChange,
+        playerOneRatingChange:
+          playersRatingsChange?.playerOne.ratingChange ?? 0,
+        playerTwoRatingChange:
+          playersRatingsChange?.playerTwo.ratingChange ?? 0,
       })
       .where('game.id', '=', gameId)
-      .execute();
+      .returningAll()
+      .executeTakeFirstOrThrow();
   }
 
   async updatePlayerScore(
@@ -145,24 +158,35 @@ export class GamesService {
       .execute();
   }
 
-  async new(game: Insertable<Game>) {
-    const updatedGame = await db
+  async create(game: Insertable<Game>) {
+    const newGame = await db
       .insertInto('game')
       .values(game)
       .returningAll()
       .executeTakeFirstOrThrow();
-    return updatedGame;
+    return newGame;
   }
 
   async findByUserId(props?: {
     userId?: number;
     ongoing?: boolean;
-  }): Promise<AppGame | undefined> {
+  }): Promise<UserGame | undefined> {
     const game = await this.selectGame({
       playerId: props?.userId,
       ongoing: props?.ongoing,
     }).executeTakeFirst();
     return game;
+  }
+
+  async startNew(gameRequest: Selectable<GameRequest>, userId: number) {
+    const gameRecord = await this.create({
+      isPublic: gameRequest.targetId == null,
+      points: gameRequest.points,
+      powerUps: gameRequest.powerUps,
+      playerOneId: gameRequest.userId,
+      playerTwoId: userId,
+    });
+    this.gameServer.startGame(gameRecord);
   }
 
   async delete(gameId: number) {

@@ -5,7 +5,7 @@ import {
   PlayerType,
   BallType,
   GameStateType,
-} from '../../types/games/pongGameTypes';
+} from '../../types/gameServer/pongGameTypes';
 import { Game } from 'src/types/schema';
 import {
   BALL_SIZE,
@@ -27,7 +27,7 @@ import {
 import { createGamePositions } from './gamePositions';
 import { handlePowerUps, placeNewPowerUps } from './powerUps';
 
-export async function startGameInterval(
+export function startGameInterval(
   game: GameType,
   gameStateUpdateHandler: () => void,
   scoreHandler: (player: PlayerType) => void,
@@ -43,7 +43,7 @@ export async function startGameInterval(
     throwBall(game);
   }, THROW_BALL_TIMEMOUT);
 
-  game.intervalId = setInterval(async () => {
+  game.intervalId = setInterval(() => {
     if (game.isPaused) return;
 
     if (checkIsWinner(game)) {

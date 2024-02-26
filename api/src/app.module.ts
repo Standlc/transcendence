@@ -7,7 +7,7 @@ import { GameRequestsModule } from './gameRequests/GameRequests.module';
 import { UsersStatusModule } from './usersStatusGateway/UsersStatus.module';
 import { PongGameModule } from './pong/Pong.module';
 import { GamesModule } from './games/Games.module';
-import { PlayersModule } from './pong/players/players.module';
+import { PlayersModule } from './games/players/players.module';
 import { FriendsService } from './friends/friends.service';
 import { FriendsModule } from './friends/friends.module';
 import { ChannelModule } from './channel/channel.module';

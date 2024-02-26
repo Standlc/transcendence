@@ -11,19 +11,16 @@ import {
   GameStateType,
   ObjectType,
   PlayerType,
-} from "../../../../api/src/types/games/pongGameTypes";
-import {
-  CANVAS_H,
-  CANVAS_W,
-} from "../../../../api/src/pong/gameLogic/constants";
+} from "@api/types/gameServer/pongGameTypes";
+import { CANVAS_H, CANVAS_W } from "@api/pong/gameLogic/constants";
 import {
   BALL_HIT_TYPE,
   bounceBallAndMovePaddles,
-} from "../../../../api/src/pong/gameLogic/bounceBall";
+} from "@api/pong/gameLogic/bounceBall";
 import { useSoundEffects } from "../../utils/game/useSoundEffects";
 import { BALL_STYLES_IMAGES } from "../../utils/game/ballStyles";
 import { GameSettingsContext } from "../../ContextsProviders/GameSettingsContext";
-import { boundingBoxIntersection } from "../../../../api/src/pong/gameLogic/collisions";
+import { boundingBoxIntersection } from "@api/pong/gameLogic/collisions";
 
 export const POWER_UPS_EMOJIS = ["🦄", "🔮", "🎰", "🎲", "🌈"];
 
