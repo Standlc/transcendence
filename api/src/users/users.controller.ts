@@ -1,9 +1,12 @@
-import { Body, Controller, Get, NotFoundException, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Request, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { ApiBody, ApiCookieAuth, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiQuery, ApiTags, ApiUnauthorizedResponse, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
 import { CreateUsersDto } from './dto/create-users.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { AppUser, ListUsers } from 'src/types/clientSchema';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 
 @ApiInternalServerErrorResponse({ description: "Whenever the backend fail in some point, probably an error with the db." })
 @ApiTags('users')
@@ -139,6 +142,33 @@ export class UsersController {
   @Get('list')
   async getUserList(): Promise<ListUsers[] | null> {
     return await this.usersService.getUserList();
+  }
+
+  //#endregion
+
+  //#region avatar
+
+  @UseGuards(JwtAuthGuard)
+  @Post('avatar')
+  @UseInterceptors(FileInterceptor('file',
+    {
+      storage: diskStorage({
+        destination: './avatar',
+        filename: (req, file, cb) => {
+          const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
+          return cb(null, `${randomName}${extname(file.originalname)}`);
+        }
+      })
+    }
+  ))
+  async uploadAvatar(@Request() req, @UploadedFile() file: Express.Multer.File) {
+    console.log(file);
+    this.usersService.setAvatar(req.user.id, `${process.env.SERVER_URL}users/${file.path}`);
+  }
+
+  @Get('avatar/:fileId')
+  async sendAvatar(@Param('fileId') fileId, @Res() res) {
+    res.sendFile(fileId, { root: './avatar' })
   }
 
   //#endregion

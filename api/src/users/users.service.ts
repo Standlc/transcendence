@@ -258,4 +258,16 @@ export class UsersService {
       throw new InternalServerErrorException();
     }
   }
+
+  async setAvatar(userId: number, avatarUrl: string) {
+    try {
+      const result = await db
+      .updateTable('user')
+      .set('avatarUrl', avatarUrl)
+      .where('user.id', '=', userId)
+      .executeTakeFirst();
+    } catch (error) {
+      throw new InternalServerErrorException();
+    }
+  }
 }

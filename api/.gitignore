@@ -2,6 +2,9 @@
 /dist
 /node_modules
 
+# avatar asset
+/avatar
+
 # Logs
 logs
 *.log
