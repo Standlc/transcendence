@@ -42,6 +42,13 @@ export interface ChannelAdmin {
   userId: number;
 }
 
+export interface ChannelInviteList {
+  channelId: number | null;
+  createdAt: Generated<Timestamp>;
+  invitedByUserId: number | null;
+  invitedUserId: number | null;
+}
+
 export interface ChannelMember {
   channelId: number;
   joinedAt: Generated<Timestamp>;
@@ -138,6 +145,7 @@ export interface DB {
   blockedUser: BlockedUser;
   channel: Channel;
   channelAdmin: ChannelAdmin;
+  channelInviteList: ChannelInviteList;
   channelMember: ChannelMember;
   channelMessage: ChannelMessage;
   conversation: Conversation;
