@@ -86,11 +86,13 @@ export const ChanColumn: React.FC<Props> = ({
                 <div>MESSAGE PRIVES</div>
                 <span className="bloc text-right">+</span>
             </div>
-            <div className="flex bg-almost-black text-m user-chancolumn">
+            <div className="flex bg-almost-black text-m user-chancolumn ">
                 {putAvatar()}
                 <div>
-                    <div className=" font-bold"> {loginResponse?.username} </div>
-                    <div className="text-green ml-[10px]">En ligne</div>
+                    <div className=" font-bold text-left">
+                        {loginResponse?.username}
+                    </div>
+                    <div className="text-green text-left">En ligne</div>
                 </div>
                 <button className="ml-[150px]" onClick={handleSettingClick}>
                     <Settings />

@@ -6,6 +6,7 @@ interface Props {
     friendsPending: boolean;
     setAdding: (adding: boolean) => void;
     setFriendsPending: (friendsPending: boolean) => void;
+    setAllfriends: (allFriends: boolean) => void;
 }
 
 interface Friend {
@@ -18,6 +19,7 @@ export const FriendsInvitation: React.FC<Props> = ({
     friendsPending,
     setAdding,
     setFriendsPending,
+    setAllfriends,
 }: Props) => {
     const [friendsRequest, setFriendsRequest] = useState<Friend[]>([]);
 
@@ -102,6 +104,15 @@ export const FriendsInvitation: React.FC<Props> = ({
                 </div>
 
                 <div className="flex ml-[20px]  mt-[10px] mb-[10px]">
+                    <button
+                        onClick={() => {
+                            setFriendsPending(false);
+                            setAllfriends(true);
+                        }}
+                        className="mr-[20px] text-white p-[10px] hover:bg-discord-light-grey rounded-lg text-s  py-1 text-center"
+                    >
+                        Tous
+                    </button>
                     <button
                         className={`text-white mr-[20px] text-s py-1 text-center p-[10px] ${
                             friendsPending

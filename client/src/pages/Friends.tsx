@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Chat } from "../components/Chat/Chat";
 import { FriendsAdd } from "./FriendsAdd";
-import { Avatar } from "../UIKit/Avatar";
 import { LoginResponse } from "../components/RequireAuth/AuthProvider";
-import defaultAvatar from "../components/defaultAvatar.png";
 import { FriendsInvitation } from "./FriendsInvitation";
+import { AllFriends } from "./AllFriends";
 
 // Assuming the Friend interface is defined as follows:
 interface Friend {
@@ -18,10 +17,10 @@ interface Props {
 }
 
 export const Friends: React.FC<Props> = ({ loginResponse }: Props) => {
-    const [showChat, setShowChat] = useState(false);
     const [adding, setAdding] = useState(false);
     const [friends, setFriends] = useState<Friend[]>([]);
     const [friendsPending, setFriendsPending] = useState(false);
+    const [allFriends, setAllFriends] = useState(true);
 
     useEffect(() => {
         const fetchFriends = async () => {
@@ -55,19 +54,27 @@ export const Friends: React.FC<Props> = ({ loginResponse }: Props) => {
 
     return (
         <div className="w-full">
-            {showChat ? (
-                <Chat />
-            ) : adding ? (
+            {adding ? (
                 <FriendsAdd
                     adding={adding}
                     setAdding={setAdding}
                     setFriendsPending={setFriendsPending}
+                    setAllFriends={setAllFriends}
                 />
             ) : friendsPending ? (
                 <FriendsInvitation
                     friendsPending={friendsPending}
                     setAdding={setAdding}
                     setFriendsPending={setFriendsPending}
+                    setAllfriends={setAllFriends}
+                />
+            ) : allFriends ? (
+                <AllFriends
+                    allFriends={allFriends}
+                    setAdding={setAdding}
+                    setFriendsPending={setFriendsPending}
+                    setAllFriends={setAllFriends}
+                    friends={friends}
                 />
             ) : (
                 <div>
@@ -99,6 +106,12 @@ export const Friends: React.FC<Props> = ({ loginResponse }: Props) => {
 
                         <div className="flex ml-[20px]  mt-[10px] mb-[10px]">
                             <button
+                                onClick={() => setAllFriends(true)}
+                                className="mr-[20px] text-white p-[10px] hover:bg-discord-light-grey rounded-lg text-s  py-1 text-center"
+                            >
+                                Tous
+                            </button>
+                            <button
                                 onClick={() => setFriendsPending(true)}
                                 className="mr-[20px] text-white p-[10px] hover:bg-discord-light-grey rounded-lg text-s  py-1 text-center"
                             >
@@ -111,77 +124,6 @@ export const Friends: React.FC<Props> = ({ loginResponse }: Props) => {
                                 Ajouter
                             </button>
                         </div>
-                    </div>
-                    <div className="relative mt-5 ml-5 mr-5">
-                        <input
-                            type="text"
-                            placeholder="Rechercher"
-                            className="block w-full py-3 px-4 bg-discord-black text-xl rounded"
-                        />
-                        <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                            <svg
-                                className="w-4 h-4 text-gray-500"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                                xmlns="http://www.w3.org/2000/svg"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M21 21l-4.35-4.35"
-                                ></path>
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M15.5 10.5a5 5 0 1 1-8.44-3.5"
-                                ></path>
-                            </svg>
-                        </div>
-                    </div>
-                    <div className="block p-5 text-left  text-m font-bold">
-                        EN LIGNE - 2
-                    </div>
-                    <div className="border-b border-b-gray-500 border-t-1 " />
-                    <div className="mt-5">
-                        <ul>
-                            {friends.map((friend) => (
-                                <div className="flex item-center justify-between ml-5 mb-4">
-                                    <div className="flex items-center">
-                                        <li key={friend.id}>
-                                            <button
-                                                onClick={() => setShowChat(true)} // When a friend's name is clicked, show the chat
-                                                className=" hover:bg-gray-800 w-full text-left text-m font-bold"
-                                            >
-                                                {friend.avatarUrl ? (
-                                                    <Avatar
-                                                        imgUrl={friend.avatarUrl}
-                                                        size="lg"
-                                                        userId={friend.id}
-                                                    />
-                                                ) : (
-                                                    <Avatar
-                                                        imgUrl={defaultAvatar}
-                                                        size="lg"
-                                                        userId={friend.id}
-                                                    />
-                                                )}
-                                            </button>
-                                        </li>
-                                        <div className="ml-5">
-                                            <div className="font-bold">
-                                                {friend.username}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button className="bg-blurple hover:bg-blurple-hover text-white font-bold py-2 px-4 rounded mr-5">
-                                        supprimer
-                                    </button>
-                                </div>
-                            ))}
-                        </ul>
                     </div>
                 </div>
             )}

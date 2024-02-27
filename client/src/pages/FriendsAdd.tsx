@@ -6,12 +6,14 @@ interface Props {
     adding: boolean;
     setFriendsPending: (friendsPending: boolean) => void;
     setAdding: (adding: boolean) => void;
+    setAllFriends: (allFriends: boolean) => void;
 }
 
 export const FriendsAdd: React.FC<Props> = ({
     adding,
     setFriendsPending,
     setAdding,
+    setAllFriends,
 }: Props) => {
     const [username, setUsername] = useState("");
     const [usersFound, setUsersFound] = useState<LoginResponse[]>([]);
@@ -88,6 +90,15 @@ export const FriendsAdd: React.FC<Props> = ({
                 </div>
 
                 <div className="flex ml-[20px]  mt-[10px] mb-[10px]">
+                    <button
+                        onClick={() => {
+                            setAllFriends(true);
+                            setAdding(false);
+                        }}
+                        className="mr-[20px] text-white p-[10px] hover:bg-discord-light-grey rounded-lg text-s  py-1 text-center"
+                    >
+                        Tous
+                    </button>
                     <button
                         onClick={() => {
                             setFriendsPending(true);
