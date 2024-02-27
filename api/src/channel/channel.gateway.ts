@@ -98,23 +98,39 @@ export class ChannelGateway
       throw new WsException('User is banned');
     }
 
+    // !!! to test
     try {
       if (
         payload.userId !== payload.channelOwner &&
-        payload.isPublic === false
+        payload.isPublic == false
       ) {
-        await this.friendsService.isFriend(
-          // !!! to test
+        await this.channelService.isInInviteList(
           payload.userId,
-          payload.channelOwner,
+          payload.channelId,
         );
       }
     } catch (error) {
       console.error(error);
-      throw new WsException(
-        'Users are not friends, impossible to join a private or protected channel',
-      );
+      throw new WsException('User is not invited to join the channel');
     }
+
+    // try {
+    //   if (
+    //     payload.userId !== payload.channelOwner &&
+    //     payload.isPublic === false
+    //   ) {
+    //     await this.friendsService.isFriend(
+    //       // !!! to test
+    //       payload.userId,
+    //       payload.channelOwner,
+    //     );
+    //   }
+    // } catch (error) {
+    //   console.error(error);
+    //   throw new WsException(
+    //     'Users are not friends, impossible to join a private or protected channel',
+    //   );
+    // }
 
     try {
       if (payload.password !== null) {

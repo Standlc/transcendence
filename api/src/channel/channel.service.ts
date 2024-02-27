@@ -1352,4 +1352,27 @@ export class ChannelService {
       throw new InternalServerErrorException();
     }
   }
+
+  //
+  //
+  //
+  // !!! to test
+  async isInInviteList(userId: number, channelId: number) {
+    try {
+      const userInList = await db
+        .selectFrom('channelInviteList')
+        .selectAll()
+        .where('channelId', '=', channelId)
+        .where('invitedUserId', '=', userId)
+        .executeTakeFirst();
+
+      if (!userInList)
+        throw new NotFoundException(
+          'User not found in invite list of the channel',
+        );
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+      throw new InternalServerErrorException();
+    }
+  }
 }
