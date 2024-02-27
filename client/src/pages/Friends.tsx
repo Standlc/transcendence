@@ -41,7 +41,7 @@ export const Friends: React.FC<Props> = ({ loginResponse }: Props) => {
 
                 const data = await response.json();
                 setFriends(data);
-                console.log(data); // Or set your state with this data
+                console.log("Friendslist", data); // Or set your state with this data
             } catch (error) {
                 console.error("Fetching friends failed:", error);
             }

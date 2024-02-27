@@ -63,6 +63,7 @@ export const AllFriends: React.FC<Props> = ({
             setShowChat(true);
         } else {
             // Sinon, créer une nouvelle conversation
+            console.log(friend.username);
             await newConversation(friend.id);
         }
     };
