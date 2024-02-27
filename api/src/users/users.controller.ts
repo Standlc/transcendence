@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, Request, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Post, Query, Request, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { ApiBody, ApiCookieAuth, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiQuery, ApiTags, ApiUnauthorizedResponse, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
 import { CreateUsersDto } from './dto/create-users.dto';
@@ -148,6 +148,21 @@ export class UsersController {
 
   //#region avatar
 
+  @ApiCookieAuth()
+  @ApiCreatedResponse({description: "Avatar succesfully uploaded"})
+  @ApiBody({
+    description: "This is a multipart/form-data body, the name should be 'file' and the attachement an image binary",
+    type: 'multipart/form-data',
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary'
+        }
+      }
+    }
+  })
   @UseGuards(JwtAuthGuard)
   @Post('avatar')
   @UseInterceptors(FileInterceptor('file',
@@ -166,9 +181,13 @@ export class UsersController {
     this.usersService.setAvatar(req.user.id, `${process.env.SERVER_URL}users/${file.path}`);
   }
 
+  @ApiCookieAuth()
+  @ApiOkResponse({description: "Image file"})
+  @ApiNotFoundResponse({description: "No such file exist"})
+  @UseGuards(JwtAuthGuard)
   @Get('avatar/:fileId')
   async sendAvatar(@Param('fileId') fileId, @Res() res) {
-    res.sendFile(fileId, { root: './avatar' })
+    res.sendFile(fileId, { root: './avatar' });
   }
 
   //#endregion

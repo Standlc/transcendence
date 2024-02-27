@@ -259,6 +259,11 @@ export class UsersService {
     }
   }
 
+  /**
+   * Set the URL avatar for the user
+   * @param userId 
+   * @param avatarUrl 
+   */
   async setAvatar(userId: number, avatarUrl: string) {
     try {
       const result = await db
