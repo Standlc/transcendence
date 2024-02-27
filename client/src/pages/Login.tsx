@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 // import qrcode from './../../public/qrcode.png';
 // import qrcode from "./qrcode.png";
 import qrcode from "./qrcode.png";
 import { useAuth } from "../components/RequireAuth/AuthProvider";
-import { get } from "http";
 
 export const Login = () => {
     const navigate = useNavigate();
@@ -21,6 +20,10 @@ export const Login = () => {
     // };
 
     // ...state declarations and other code...
+
+    useEffect(() => {
+        checkCookie();
+    }, []);
 
     const checkCookie = async () => {
         try {
@@ -69,7 +72,6 @@ export const Login = () => {
 
     return (
         <div
-            onLoad={checkCookie()}
             className="bg-discord-light-black min-h-screen 
 		w-full flex items-center justify-center"
         >

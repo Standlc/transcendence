@@ -78,7 +78,10 @@ function App() {
                                 <Route path="/live" element={<LiveGamesPage />} />
                                 <Route path="/home" element={<Dashboard />} />
                                 <Route path="/create-account" element={<Register />} />
-                                <Route path="/friends" element={<Friends />} />
+                                <Route
+                                    path="/friends"
+                                    element={<Friends loginResponse={loginResponse} />}
+                                />
                                 <Route path="/settings" element={<Settings />} />
                             </Route>
                         </>
