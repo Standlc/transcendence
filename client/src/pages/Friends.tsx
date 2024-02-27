@@ -1,65 +1,74 @@
 import React, { useState, useEffect } from "react";
 import { Chat } from "../components/Chat/Chat";
 import { FriendsAdd } from "./FriendsAdd";
+import { Avatar } from "../UIKit/Avatar";
+import { LoginResponse } from "../components/RequireAuth/AuthProvider";
+import defaultAvatar from "../components/defaultAvatar.png";
+import { FriendsInvitation } from "./FriendsInvitation";
 
 // Assuming the Friend interface is defined as follows:
 interface Friend {
+    username: string;
+    avatarUrl: string;
     id: number;
-    name: string;
-    createdAt: string;
 }
 
-export const Friends = () => {
-    const [friends, setFriends] = useState<Friend[]>([]);
+interface Props {
+    loginResponse: LoginResponse | null;
+}
+
+export const Friends: React.FC<Props> = ({ loginResponse }: Props) => {
     const [showChat, setShowChat] = useState(false);
     const [adding, setAdding] = useState(false);
-
-    // useEffect(() => {
-    //     const fetchFriends = async () => {
-    //         try {
-    //             const response = await fetch("/api/friends"); // Adjust the API endpoint as needed
-    //             if (!response.ok) {
-    //                 throw new Error(`HTTP error! status: ${response.status}`);
-    //             }
-    //             const data = await response.json();
-    //             setFriends(data); // Store the friends data in state
-    //         } catch (error) {
-    //             console.error("Could not fetch friends data:", error);
-    //         }
-    //     };
-    //     fetchFriends();
-    // }, []); // Empty dependency array means this effect will only run once, when the component mounts
+    const [friends, setFriends] = useState<Friend[]>([]);
+    const [friendsPending, setFriendsPending] = useState(false);
 
     useEffect(() => {
         const fetchFriends = async () => {
             try {
-                // Simulated API call
-                setTimeout(() => {
-                    const mockFriendsData: Friend[] = [
-                        { id: 1, name: "John Doe", createdAt: "2024-02-14T12:00:00Z" },
-                        {
-                            id: 2,
-                            name: "Jane Smith",
-                            createdAt: "2024-02-15T12:00:00Z",
+                const response = await fetch(
+                    `http://localhost:3000/api/friends?id=${loginResponse?.id}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json",
                         },
-                        // Add more friends as needed
-                    ];
-                    setFriends(mockFriendsData);
-                }, 1000); // Simulate fetch delay
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                setFriends(data);
+                console.log(data); // Or set your state with this data
             } catch (error) {
-                console.error("Could not fetch friends data:", error);
+                console.error("Fetching friends failed:", error);
             }
         };
 
-        fetchFriends();
-    }, []);
+        if (loginResponse?.id) {
+            fetchFriends();
+        }
+    }, [loginResponse?.id]); // Add loginResponse?.id to the dependency array if it can change
 
     return (
         <div className="w-full">
             {showChat ? (
                 <Chat />
             ) : adding ? (
-                <FriendsAdd adding={adding} />
+                <FriendsAdd
+                    adding={adding}
+                    setAdding={setAdding}
+                    setFriendsPending={setFriendsPending}
+                />
+            ) : friendsPending ? (
+                <FriendsInvitation
+                    friendsPending={friendsPending}
+                    setAdding={setAdding}
+                    setFriendsPending={setFriendsPending}
+                />
             ) : (
                 <div>
                     <div
@@ -84,11 +93,20 @@ export const Friends = () => {
                                 d="M13 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"
                             ></path>
                         </svg>
-                        <div className="ml-2 mt-4 font-bold text-xl ">Amis</div>
-                        <div className="ml-[100px]  mt-[15px]">
+                        <div className="ml-2 mt-4 font-bold text-xl ">
+                            Amis <span className="ml-[20px] text-greyple">|</span>
+                        </div>
+
+                        <div className="flex ml-[20px]  mt-[10px] mb-[10px]">
+                            <button
+                                onClick={() => setFriendsPending(true)}
+                                className="mr-[20px] text-white p-[10px] hover:bg-discord-light-grey rounded-lg text-s  py-1 text-center"
+                            >
+                                En attente
+                            </button>
                             <button
                                 onClick={() => setAdding(true)}
-                                className="text-white bg-green p-[10px]  rounded-lg text-s w-full py-1 text-center"
+                                className="text-white bg-green p-[10px]  rounded-lg text-s py-2 text-center"
                             >
                                 Ajouter
                             </button>
@@ -127,22 +145,44 @@ export const Friends = () => {
                         EN LIGNE - 2
                     </div>
                     <div className="border-b border-b-gray-500 border-t-1 " />
-                    <ul className="w-full p-5">
-                        {friends.map((friend) => (
-                            <li key={friend.id}>
-                                <button
-                                    onClick={() => setShowChat(true)} // When a friend's name is clicked, show the chat
-                                    className=" py-2  hover:bg-gray-800 w-full text-left text-m font-bold"
-                                >
-                                    [avatar] {friend.name}
-                                    <span className=""> [bio]</span>
-                                    <span className="text-right mr-5 block">
-                                        <button>supprimer</button>
-                                    </span>
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
+                    <div className="mt-5">
+                        <ul>
+                            {friends.map((friend) => (
+                                <div className="flex item-center justify-between ml-5 mb-4">
+                                    <div className="flex items-center">
+                                        <li key={friend.id}>
+                                            <button
+                                                onClick={() => setShowChat(true)} // When a friend's name is clicked, show the chat
+                                                className=" hover:bg-gray-800 w-full text-left text-m font-bold"
+                                            >
+                                                {friend.avatarUrl ? (
+                                                    <Avatar
+                                                        imgUrl={friend.avatarUrl}
+                                                        size="lg"
+                                                        userId={friend.id}
+                                                    />
+                                                ) : (
+                                                    <Avatar
+                                                        imgUrl={defaultAvatar}
+                                                        size="lg"
+                                                        userId={friend.id}
+                                                    />
+                                                )}
+                                            </button>
+                                        </li>
+                                        <div className="ml-5">
+                                            <div className="font-bold">
+                                                {friend.username}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button className="bg-blurple hover:bg-blurple-hover text-white font-bold py-2 px-4 rounded mr-5">
+                                        supprimer
+                                    </button>
+                                </div>
+                            ))}
+                        </ul>
+                    </div>
                 </div>
             )}
         </div>

@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { LoginResponse } from "../../../components/RequireAuth/AuthProvider";
 import defaultAvatar from "../../../components/defaultAvatar.png";
-import { Avatar } from "../../../UIKit/Avatar";
 
 export const MonCompte = ({ loginResponse }: { loginResponse: LoginResponse }) => {
     const navigate = useNavigate();
@@ -23,7 +22,7 @@ export const MonCompte = ({ loginResponse }: { loginResponse: LoginResponse }) =
                 <div className="rounded-b-xl settings-account bg-discord-black flex items-center justify-center">
                     <div className="flex flex-row">
                         <div className="block rounded-full bg-greyple mt-4 mb-4 mr-[100px]">
-                            {loginResponse.avatarUrl ? (
+                            {loginResponse?.avatarUrl ? (
                                 <img
                                     src={loginResponse.avatarUrl}
                                     alt="avatar"
@@ -37,7 +36,9 @@ export const MonCompte = ({ loginResponse }: { loginResponse: LoginResponse }) =
                                 />
                             )}
                         </div>
-                        <div className="text-xl block font-bold mt-5 ">Monpachi</div>
+                        <div className="text-xl block font-bold mt-5 ">
+                            {loginResponse?.username}
+                        </div>
                     </div>
 
                     <div className="rounded-xl settings-account-body bg-discord-dark-grey">
@@ -45,7 +46,7 @@ export const MonCompte = ({ loginResponse }: { loginResponse: LoginResponse }) =
                             <div>NOM D'AFFICHAGE</div>
                             <div className="w-full flex block text-white">
                                 <div className=" w-full tata">
-                                    <div>{loginResponse.username}</div>
+                                    <div>{loginResponse?.username}</div>
                                     <button className=" rounded-l  px-4  py-2 bg-grey block text-right ">
                                         Modifier
                                     </button>
@@ -57,8 +58,8 @@ export const MonCompte = ({ loginResponse }: { loginResponse: LoginResponse }) =
                             <div className="w-full flex block text-white">
                                 <div className=" w-full tata">
                                     <div>
-                                        {loginResponse.lastname}{" "}
-                                        {loginResponse.firstname}
+                                        {loginResponse?.lastname}{" "}
+                                        {loginResponse?.firstname}
                                     </div>
                                     <button className=" rounded-l  px-4  py-2 bg-grey block text-right ">
                                         Modifier
@@ -70,7 +71,7 @@ export const MonCompte = ({ loginResponse }: { loginResponse: LoginResponse }) =
                             <div>EMAIL</div>
                             <div className="w-full flex block text-white">
                                 <div className=" w-full tata">
-                                    <div>{loginResponse.email}</div>
+                                    <div>{loginResponse?.email}</div>
                                     <button className=" rounded-l  px-4  py-2 bg-grey block text-right ">
                                         Modifier
                                     </button>
@@ -81,7 +82,7 @@ export const MonCompte = ({ loginResponse }: { loginResponse: LoginResponse }) =
                             <div>NUMERO ID</div>
                             <div className="w-full flex block text-white">
                                 <div className=" w-full tata">
-                                    <div>{loginResponse.id}</div>
+                                    <div>{loginResponse?.id}</div>
                                     <button className=" rounded-l  px-4  py-2 bg-grey block text-right ">
                                         Modifier
                                     </button>

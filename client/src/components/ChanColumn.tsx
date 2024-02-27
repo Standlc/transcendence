@@ -2,13 +2,17 @@ import { useNavigate } from "react-router-dom";
 import { LoginResponse } from "./RequireAuth/AuthProvider";
 import defaultAvatar from "./defaultAvatar.png";
 import React from "react";
+import { Settings } from "@mui/icons-material";
 
 interface Props {
     loginResponse: LoginResponse | null;
     setCurrentPage: (page: string) => void;
 }
 
-export const ChanColumn: React.FC<Props> = ({ loginResponse, setCurrentPage }) => {
+export const ChanColumn: React.FC<Props> = ({
+    loginResponse,
+    setCurrentPage,
+}: Props) => {
     const navigate = useNavigate();
 
     const handleFriendsClick = () => {
@@ -82,11 +86,15 @@ export const ChanColumn: React.FC<Props> = ({ loginResponse, setCurrentPage }) =
                 <div>MESSAGE PRIVES</div>
                 <span className="bloc text-right">+</span>
             </div>
-            <div className="bg-almost-black text-m user-chancolumn">
+            <div className="flex bg-almost-black text-m user-chancolumn">
                 {putAvatar()}
-                <span className=" font-bold mt-3"> {loginResponse?.username} </span>
-                <span className="text-greyple">En ligne</span>
-                <button onClick={handleSettingClick}>setting</button>
+                <div>
+                    <div className=" font-bold"> {loginResponse?.username} </div>
+                    <div className="text-green ml-[10px]">En ligne</div>
+                </div>
+                <button className="ml-[150px]" onClick={handleSettingClick}>
+                    <Settings />
+                </button>
             </div>
         </div>
     );

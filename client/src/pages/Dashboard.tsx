@@ -17,7 +17,12 @@ export const Dashboard = () => {
     const renderPage = () => {
         switch (currentPage.page) {
             case "friends":
-                return <Friends key={currentPage.refreshKey} />;
+                return (
+                    <Friends
+                        loginResponse={loginResponse}
+                        key={currentPage.refreshKey}
+                    />
+                );
             case "chatbox":
                 return <Chatbox />;
             default:

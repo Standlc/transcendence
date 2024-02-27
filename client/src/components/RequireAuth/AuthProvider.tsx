@@ -3,8 +3,6 @@ import { Timestamp } from "../../../../api/src/types/schema";
 
 // Define a TypeScript type for loginResponse
 export interface LoginResponse {
-    // Define the properties you expect to receive from the login API response
-    // For example, if you expect a 'username' property, you can define it like this:
     username: string;
     avatarUrl: string | null;
     bio: string | null;
@@ -14,7 +12,6 @@ export interface LoginResponse {
     lastname: string | null;
     firstname: string | null;
     rating: number;
-    // Add other properties as needed
 }
 
 interface AuthProviderProps {
@@ -25,13 +22,11 @@ const AuthContext = createContext<{
     loginResponse: LoginResponse | null;
     login: (data: LoginResponse) => void;
     logout: () => void;
-}>(
-    // Provide an initial value for the context, specifying the loginResponse is initially null
-    { loginResponse: null, login: () => {}, logout: () => {} }
-);
+}>({ loginResponse: null, login: () => {}, logout: () => {} });
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [loginResponse, setLoginResponse] = useState<LoginResponse | null>(null);
+    // const navigate = useNavigat();
 
     const login = (data: LoginResponse) => {
         setLoginResponse(data);

@@ -4,9 +4,15 @@ import { Avatar } from "../UIKit/Avatar";
 import defaultAvatar from "../components/defaultAvatar.png";
 interface Props {
     adding: boolean;
+    setFriendsPending: (friendsPending: boolean) => void;
+    setAdding: (adding: boolean) => void;
 }
 
-export const FriendsAdd: React.FC<Props> = ({ adding }: Props) => {
+export const FriendsAdd: React.FC<Props> = ({
+    adding,
+    setFriendsPending,
+    setAdding,
+}: Props) => {
     const [username, setUsername] = useState("");
     const [usersFound, setUsersFound] = useState<LoginResponse[]>([]);
 
@@ -77,12 +83,24 @@ export const FriendsAdd: React.FC<Props> = ({ adding }: Props) => {
                         d="M13 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"
                     ></path>
                 </svg>
-                <div className="ml-2 mt-4 font-bold text-xl ">Amis</div>
-                <div className="ml-[100px]  mt-[15px]">
+                <div className="ml-2 mt-4 font-bold text-xl ">
+                    Amis <span className="ml-[20px] text-greyple">|</span>
+                </div>
+
+                <div className="flex ml-[20px]  mt-[10px] mb-[10px]">
                     <button
-                        className={`text-white ${
+                        onClick={() => {
+                            setFriendsPending(true);
+                            setAdding(false);
+                        }}
+                        className="mr-[20px] text-white p-[10px] hover:bg-discord-light-grey rounded-lg text-s  py-1 text-center"
+                    >
+                        En attente
+                    </button>
+                    <button
+                        className={`${
                             adding ? "bg-transparent text-green" : "bg-green"
-                        } p-[10px]  rounded-lg text-s w-full py-1 text-center`}
+                        } p-[10px]  rounded-lg text-s py-1 text-center`}
                     >
                         Ajouter
                     </button>
