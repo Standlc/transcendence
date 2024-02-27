@@ -1,3 +1,10 @@
 export const Chat = () => {
-    return <div className="w-full">ICI LE CHAT</div>;
+    return (
+        <div>
+            <div
+                className="bg-discord-greyple topbar-section border-b border-b-almost-black"
+                style={{ borderBottomWidth: "3px" }}
+            />
+        </div>
+    );
 };

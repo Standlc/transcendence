@@ -17,6 +17,10 @@ interface Friend {
     id: number;
 }
 
+interface Conversation {
+    userId: number;
+}
+
 export const AllFriends: React.FC<Props> = ({
     allFriends,
     setAdding,
@@ -25,6 +29,43 @@ export const AllFriends: React.FC<Props> = ({
     friends,
 }: Props) => {
     const [showChat, setShowChat] = useState(false);
+    const [conversations, setConversations] = useState<Conversation[]>([]);
+
+    const newConversation = async (userId: number) => {
+        try {
+            const response = await fetch("http://localhost:3000/api/dm", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ userId }),
+            });
+            console.log(JSON.stringify({ userId }));
+            if (response.ok) {
+                const data = await response.json();
+                console.log("Conv created:", data);
+                setConversations([...conversations, data]); // Ajouter la nouvelle conversation à l'état des conversations
+                setShowChat(true); // Afficher la conversation après la création
+            } else {
+                console.error("Conv failed ", response.status);
+            }
+        } catch (error) {
+            console.error("Network error:", error);
+        }
+    };
+
+    const handleFriendClick = async (friend: Friend) => {
+        const existingConversation = conversations.find(
+            (conversation) => conversation.userId === friend.id
+        );
+        if (existingConversation) {
+            // Si une conversation existe déjà pour cet ami, afficher la conversation
+            setShowChat(true);
+        } else {
+            // Sinon, créer une nouvelle conversation
+            await newConversation(friend.id);
+        }
+    };
 
     return (
         <>
@@ -124,8 +165,9 @@ export const AllFriends: React.FC<Props> = ({
                         <ul>
                             {friends.map((friend) => (
                                 <div
-                                    onClick={() => setShowChat(true)}
+                                    onClick={() => handleFriendClick(friend)}
                                     className="flex item-center justify-between ml-5 mb-4 py-2 hover:bg-discord-light-grey  rounded-lg mb-[10px]"
+                                    style={{ cursor: "pointer" }}
                                     key={friend.id}
                                 >
                                     <div className="flex items-center">
