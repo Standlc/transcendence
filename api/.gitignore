@@ -2,8 +2,8 @@
 /dist
 /node_modules
 
-# avatar asset
-/avatar
+# public asset
+/public
 
 # Logs
 logs

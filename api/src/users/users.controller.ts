@@ -168,16 +168,16 @@ export class UsersController {
   @UseInterceptors(FileInterceptor('file',
     {
       storage: diskStorage({
-        destination: './avatar',
+        destination: './public/avatar',
         filename: (req, file, cb) => {
-          const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
+          const randomName = Date.now().toString();
           return cb(null, `${randomName}${extname(file.originalname)}`);
         }
       })
     }
   ))
   async uploadAvatar(@Request() req, @UploadedFile() file: Express.Multer.File) {
-    this.usersService.setAvatar(req.user.id, `${process.env.SERVER_URL}users/${file.path}`);
+    this.usersService.setAvatar(req.user.id, `/api/users/${file.path}`);
   }
 
   @ApiCookieAuth()
@@ -186,7 +186,7 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @Get('avatar/:fileId')
   async sendAvatar(@Param('fileId') fileId, @Res() res) {
-    res.sendFile(fileId, { root: './avatar' });
+    res.sendFile(fileId, { root: './public/avatar' });
   }
 
   //#endregion

@@ -260,6 +260,7 @@ export class UsersService {
     }
   }
 
+  //TODO return AppUser with the new avatarUrl
   /**
    * Set the URL avatar for the user
    * @param userId 
@@ -272,8 +273,12 @@ export class UsersService {
       .select('avatarUrl')
       .where('id', '=', userId)
       .executeTakeFirst();
-      if (result != undefined && result.avatarUrl != null && result.avatarUrl.includes(`${process.env.SERVER_URL}`, 0)) {
-        await unlink(result.avatarUrl.replace(`${process.env.SERVER_URL}users/`, ''));
+      try {
+        if (result != undefined && result.avatarUrl != null && result.avatarUrl.includes(`/api/users`, 0)) {
+          await unlink(result.avatarUrl.replace(`/api/users/`, ''));
+        }
+      } catch (error) {
+        console.log(error);
       }
     } catch (error) {
       throw new InternalServerErrorException();
