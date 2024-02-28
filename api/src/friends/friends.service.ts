@@ -239,7 +239,7 @@ export class FriendsService {
    * @returns An array of Friend
    * @throws NotFound, InternalServerError
    */
-  async findAllFriends(id: number): Promise<ListUsers[]> {
+  async findAllFriends(id: number): Promise<AppUser[]> {
     let friends1_Id: {user1_id: number | null}[];
     let friends2_Id: {user2_id: number | null}[];
     try {
