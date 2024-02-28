@@ -177,7 +177,6 @@ export class UsersController {
     }
   ))
   async uploadAvatar(@Request() req, @UploadedFile() file: Express.Multer.File) {
-    console.log(file);
     this.usersService.setAvatar(req.user.id, `${process.env.SERVER_URL}users/${file.path}`);
   }
 

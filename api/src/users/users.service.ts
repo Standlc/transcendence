@@ -7,6 +7,7 @@ import { userFromIntra } from 'src/auth/oauth.strategy';
 import { randomBytes } from 'crypto';
 import { User } from 'src/types/schema';
 import { Selectable } from 'kysely';
+import { unlink } from 'fs/promises';
 
 @Injectable()
 export class UsersService {
@@ -265,6 +266,19 @@ export class UsersService {
    * @param avatarUrl 
    */
   async setAvatar(userId: number, avatarUrl: string) {
+    try {
+      const result = await db
+      .selectFrom('user')
+      .select('avatarUrl')
+      .where('id', '=', userId)
+      .executeTakeFirst();
+      if (result != undefined && result.avatarUrl != null && result.avatarUrl.includes(`${process.env.SERVER_URL}`, 0)) {
+        await unlink(result.avatarUrl.replace(`${process.env.SERVER_URL}users/`, ''));
+      }
+    } catch (error) {
+      throw new InternalServerErrorException();
+    }
+
     try {
       const result = await db
       .updateTable('user')
