@@ -87,6 +87,21 @@ export interface ConversationPromise {
   user2_id: number;
 }
 
+export interface AllConversationsPromise {
+  id: number;
+  createdAt: Date;
+  user1: {
+    userId: number;
+    avatarUrl: string;
+    username: string;
+  };
+  user2: {
+    userId: number;
+    avatarUrl: string;
+    username: string;
+  };
+}
+
 export interface QuitChannel {
   channelId: number;
   userId: number;

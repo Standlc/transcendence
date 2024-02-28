@@ -10,7 +10,6 @@ import {
   ApiUnauthorizedResponse,
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
-import { Channel } from './../types/schema';
 import {
   Body,
   Controller,

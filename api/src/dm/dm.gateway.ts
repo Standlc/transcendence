@@ -15,7 +15,7 @@ import { ConnectToDm, DirectMessageContent } from 'src/types/channelsSchema';
 import { WsAuthGuard } from 'src/auth/ws-auth.guard';
 import { ConnectedUsersService } from 'src/connectedUsers/connectedUsers.service';
 
-@WebSocketGateway(5050, {
+@WebSocketGateway(/*5050, */{
   namespace: 'dm',
   cors: {
     origin: '*',

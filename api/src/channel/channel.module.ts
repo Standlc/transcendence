@@ -5,6 +5,8 @@ import { UserController } from './channel.controller';
 import { WsAuthGuard } from 'src/auth/ws-auth.guard';
 import { ConnectedUsersService } from 'src/connectedUsers/connectedUsers.service';
 import { FriendsService } from 'src/friends/friends.service';
+import { Utils } from './utilsChannel.service';
+import { SocketService } from './socketService.service';
 
 @Module({
   controllers: [UserController],
@@ -14,6 +16,8 @@ import { FriendsService } from 'src/friends/friends.service';
     WsAuthGuard,
     ConnectedUsersService,
     FriendsService,
+    Utils,
+    SocketService,
   ],
 })
 export class ChannelModule {}

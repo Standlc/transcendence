@@ -7,15 +7,43 @@ import {
 } from '@nestjs/common';
 import { db } from 'src/database';
 import {
+  AllConversationsPromise,
   ConversationPromise,
   DirectMessageContent,
   DmWithSenderInfo,
 } from 'src/types/channelsSchema';
 import { FriendsService } from 'src/friends/friends.service';
+import { on } from 'events';
 
 @Injectable()
 export class DmService {
   constructor(private friendsService: FriendsService) {}
+
+  //
+  //
+  //
+  async findDmId(user1: number, user2: number): Promise<number> {
+    try {
+      const conversation = await db
+        .selectFrom('conversation')
+        .selectAll()
+        .where((eb) =>
+          eb.or([eb('user1_id', '=', user1), eb('user2_id', '=', user1)]),
+        )
+        .where((eb) =>
+          eb.or([eb('user1_id', '=', user2), eb('user2_id', '=', user2)]),
+        )
+        .executeTakeFirstOrThrow();
+
+      if (!conversation) {
+        throw new NotFoundException('Conversation not found');
+      }
+      return conversation.id;
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+      throw new InternalServerErrorException();
+    }
+  }
 
   //
   //
@@ -61,7 +89,7 @@ export class DmService {
   //
   async getAllConversationsOfTheUser(
     userId: number,
-  ): Promise<ConversationPromise[]> {
+  ): Promise<AllConversationsPromise[]> {
     try {
       const allConv = await db
         .selectFrom('conversation')
@@ -69,12 +97,33 @@ export class DmService {
         .where((eb) =>
           eb.or([eb('user1_id', '=', userId), eb('user2_id', '=', userId)]),
         )
+        .leftJoin('user', 'conversation.user1_id', 'user.id')
+        .leftJoin('user as user2', 'conversation.user2_id', 'user2.id')
+        .select([
+          'conversation.id',
+          'conversation.createdAt',
+          'user.id as user1Id',
+          'user.avatarUrl as user1AvatarUrl',
+          'user.username as user1Username',
+          'user2.id as user2Id',
+          'user2.avatarUrl as user2AvatarUrl',
+          'user2.username as user2Username',
+        ])
         .execute();
-      if (!allConv || allConv.length == 0) {
-        throw new NotFoundException('No conversations found for this user');
-      }
-
-      return allConv as ConversationPromise[];
+      return allConv.map((conv) => ({
+        id: conv.id,
+        createdAt: conv.createdAt,
+        user1: {
+          userId: conv.user1Id,
+          avatarUrl: conv.user1AvatarUrl,
+          username: conv.user1Username,
+        },
+        user2: {
+          userId: conv.user2Id,
+          avatarUrl: conv.user2AvatarUrl,
+          username: conv.user2Username,
+        },
+      })) as AllConversationsPromise[];
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException();
@@ -166,10 +215,6 @@ export class DmService {
         ])
         .execute();
 
-      if (!messages || messages.length == 0) {
-        throw new NotFoundException('No messages found');
-      }
-
       return messages.map((message) => ({
         content: message.content,
         conversationId: conversationId,
@@ -181,7 +226,6 @@ export class DmService {
         senderIsBlocked: Boolean(message.blockedId),
       })) as DmWithSenderInfo[];
     } catch (error) {
-      if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException();
     }
   }
