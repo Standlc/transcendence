@@ -153,7 +153,7 @@ export class UsersService {
   async findUsersByName(substring: string): Promise<AppUser[]> {
     //? Fetch the database and search for any user containing a substring in the username field.
     //? Create an array of AppUser containing every field except password of any user that matches the substring.
-    let user: AppUserDB[]
+    let users: AppUserDB[]
     try {
       users = await db
       .selectFrom('user')
@@ -167,14 +167,7 @@ export class UsersService {
     }
     if (!users)
       throw new NotFoundException();
-    let appUsers: AppUser[] = [];
-    user.forEach(user => {
-      appUsers.push({
-        ...user,
-        status: this.usersStatusGateway.getUserStatus(user?.id)
-      })
-    })
-    return appUsers;
+    return users.map((u) => ({...u, status: this.usersStatusGateway.getUserStatus(u?.id)}))
   }
 
   /**
