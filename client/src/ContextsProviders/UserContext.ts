@@ -1,12 +1,8 @@
-import { Dispatch, SetStateAction, createContext } from "react";
-
-export interface AppUser {
-  id: number;
-}
+import { createContext } from "react";
+import { AppUser } from "@api/types/clientSchema";
 
 export type UserContextType = {
   user: AppUser;
-  // setUser: Dispatch<SetStateAction<AppUser | undefined>>;
 };
 
 export const UserContext = createContext<UserContextType>(

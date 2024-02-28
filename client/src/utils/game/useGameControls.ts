@@ -1,8 +1,8 @@
 import { useContext, useEffect, useMemo, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { SocketsContext } from "../../ContextsProviders/SocketsContext";
-import { WsPlayerMove } from "../../../../api/src/types/games/socketPayloadTypes";
-import { AppGame } from "../../../../api/src/types/games/returnTypes";
+import { WsPlayerMove } from "../../../../api/src/types/gameServer/socketPayloadTypes";
+import { UserGame } from "../../../../api/src/types/games";
 import { useIsUserAPlayer } from "./useIsUserAPlayer";
 
 const MOVES: Record<string, "up" | "down"> = {
@@ -14,7 +14,7 @@ export const useGameControls = ({
   gameRecord,
   isPaused,
 }: {
-  gameRecord: AppGame | undefined;
+  gameRecord: UserGame | undefined | null;
   isPaused: boolean;
 }) => {
   const { gameId } = useParams();

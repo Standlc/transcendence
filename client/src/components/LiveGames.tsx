@@ -1,6 +1,6 @@
 import { useContext, useEffect } from "react";
 import { SocketsContext } from "../ContextsProviders/SocketsContext";
-import { AppGame } from "../../../api/src/types/games/returnTypes";
+import { UserGame } from "@api/types/games";
 import { Avatar } from "../UIKit/avatar/Avatar";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
@@ -8,16 +8,16 @@ import { useNavigate } from "react-router-dom";
 import {
   WsGameIdType,
   WsLiveGameUpdate,
-} from "../../../api/src/types/games/socketPayloadTypes";
+} from "@api//types/gameServer/socketPayloadTypes";
 import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
 
 export default function LiveGames() {
-  const { gameSocket } = useContext(SocketsContext);
+  const { gameSocketOn, gameSocketOff } = useContext(SocketsContext);
   const queryClient = useQueryClient();
 
   const liveGames = useQuery({
     queryFn: async () => {
-      const res = await axios.get<AppGame[]>("/api/games/live");
+      const res = await axios.get<UserGame[]>("/api/games/live");
       return res.data;
     },
     queryKey: ["liveGames"],
@@ -25,7 +25,7 @@ export default function LiveGames() {
 
   const newLiveGame = useMutation({
     mutationFn: async (gameId: number) => {
-      const res = await axios.get<AppGame>(`/api/games/${gameId}`);
+      const res = await axios.get<UserGame>(`/api/games/${gameId}`);
       return res.data;
     },
     onSuccess: (data) => {
@@ -42,51 +42,54 @@ export default function LiveGames() {
     };
 
     const handleGameUpdate = (data: WsLiveGameUpdate) => {
-      queryClient.setQueryData(["liveGames"], (prev: AppGame[] | undefined) => {
-        if (!prev) return undefined;
+      queryClient.setQueryData(
+        ["liveGames"],
+        (prev: UserGame[] | undefined) => {
+          if (!prev) return undefined;
 
-        return prev.map((game) => {
-          if (game.id === data.gameId) {
-            let playerOneScore = 0;
-            let playerTwoScore = 0;
-            if (game.playerOne) {
-              const playerOne = data.players.find(
-                (p) => p.id === game.playerOne?.id
-              );
-              playerOneScore = playerOne?.score ?? 0;
+          return prev.map((game) => {
+            if (game.id === data.gameId) {
+              let playerOneScore = 0;
+              let playerTwoScore = 0;
+              if (game.playerOne) {
+                const playerOne = data.players.find(
+                  (p) => p.id === game.playerOne?.id
+                );
+                playerOneScore = playerOne?.score ?? 0;
+              }
+              if (game.playerTwo) {
+                const playerTwo = data.players.find(
+                  (p) => p.id === game.playerTwo?.id
+                );
+                playerTwoScore = playerTwo?.score ?? 0;
+              }
+              return {
+                ...game,
+                playerOne: { ...game.playerOne, score: playerOneScore },
+                playerTwo: { ...game.playerTwo, score: playerTwoScore },
+              };
             }
-            if (game.playerTwo) {
-              const playerTwo = data.players.find(
-                (p) => p.id === game.playerTwo?.id
-              );
-              playerTwoScore = playerTwo?.score ?? 0;
-            }
-            return {
-              ...game,
-              playerOne: { ...game.playerOne, score: playerOneScore },
-              playerTwo: { ...game.playerTwo, score: playerTwoScore },
-            };
-          }
-          return game;
-        });
-      });
+            return game;
+          });
+        }
+      );
     };
 
     const handleLiveGameEnd = (gameId: number) => {
-      queryClient.setQueryData(["liveGames"], (prev: AppGame[]) =>
+      queryClient.setQueryData(["liveGames"], (prev: UserGame[]) =>
         prev ? prev.filter((game) => game.id !== gameId) : prev
       );
     };
 
-    gameSocket.on("liveGame", handleNewLiveGame);
-    gameSocket.on("liveGameUpdate", handleGameUpdate);
-    gameSocket.on("liveGameEnd", handleLiveGameEnd);
+    gameSocketOn("liveGame", handleNewLiveGame);
+    gameSocketOn("liveGameUpdate", handleGameUpdate);
+    gameSocketOn("liveGameEnd", handleLiveGameEnd);
     return () => {
-      gameSocket.off("liveGame", handleNewLiveGame);
-      gameSocket.off("liveGameUpdate", handleGameUpdate);
-      gameSocket.off("liveGameEnd", handleLiveGameEnd);
+      gameSocketOff("liveGame", handleNewLiveGame);
+      gameSocketOff("liveGameUpdate", handleGameUpdate);
+      gameSocketOff("liveGameEnd", handleLiveGameEnd);
     };
-  }, [gameSocket]);
+  }, []);
 
   return (
     <div className="w-full flex flex-col gap-5">
@@ -103,7 +106,7 @@ export default function LiveGames() {
   );
 }
 
-export const GameInfo = ({ game }: { game: AppGame }) => {
+export const GameInfo = ({ game }: { game: UserGame }) => {
   const { playerOne, playerTwo } = game;
   const navigate = useNavigate();
 

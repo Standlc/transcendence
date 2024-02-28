@@ -1,5 +1,5 @@
 import { Outlet } from "react-router-dom";
-import { AppUser, UserContext } from "../ContextsProviders/UserContext";
+import { UserContext } from "../ContextsProviders/UserContext";
 import { SocketsContext } from "../ContextsProviders/SocketsContext";
 import { ErrorContext } from "../ContextsProviders/ErrorContext";
 import { ErrorModal } from "./ErrorModal";
@@ -8,10 +8,13 @@ import { useGamePreferences } from "../utils/game/useGamePreferences";
 import { useErrorQueue } from "../utils/useErrorQueue";
 import { useUsersStatusSocket } from "../utils/useUsersStatusSocket";
 import { useGameSocket } from "../utils/useGameSocket";
+import { GameRequestModal } from "./GameRequestModal";
+import { AppUser } from "@api/types/clientSchema";
+import { GameInvitationModal } from "./GameInvitationsModal";
 
 export default function PrivateLayout({ user }: { user: AppUser }) {
   const { error, addError, removeCurrentError } = useErrorQueue();
-  const gameSocket = useGameSocket(addError);
+  const { gameSocket, gameSocketOn, gameSocketOff } = useGameSocket(addError);
   const { usersStatusSocket, addHandler, removeHandler } =
     useUsersStatusSocket(addError);
   const [gameSettings, upadteGameSetting] = useGamePreferences();
@@ -30,6 +33,8 @@ export default function PrivateLayout({ user }: { user: AppUser }) {
       <SocketsContext.Provider
         value={{
           gameSocket,
+          gameSocketOn,
+          gameSocketOff,
           usersStatusSocket,
           addUsersStatusHandler: addHandler,
           removeUsersStatusHandler: removeHandler,
@@ -41,6 +46,8 @@ export default function PrivateLayout({ user }: { user: AppUser }) {
           >
             <div className="min-h-[100vh] w-full h-full">
               {error && <ErrorModal />}
+              <GameRequestModal />
+              <GameInvitationModal />
               <Outlet />
             </div>
           </GameSettingsContext.Provider>

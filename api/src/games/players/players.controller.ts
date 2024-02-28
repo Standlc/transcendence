@@ -4,14 +4,13 @@ import {
   Controller,
   Get,
   InternalServerErrorException,
-  Param,
   Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import { PlayersService } from './players.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
-import { LeaderbordPlayer } from 'src/types/games/games';
+import { LeaderbordPlayer } from 'src/types/games';
 
 @UseGuards(JwtAuthGuard)
 @Controller('players')

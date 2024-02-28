@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Selectable, sql } from 'kysely';
 import { db } from 'src/database';
-import { PlayerRatingChangeType } from 'src/pong/players/players.service';
+import { PlayerRatingChangeType } from 'src/games/players/players.service';
 import {
   ACHIEVEMENTS,
   MARATHON_MAN_ACHIEVEMENT_TIME,
@@ -11,8 +11,8 @@ import {
   VETERAN_LEVELS,
   WINNING_STREAK_LEVELS,
 } from 'src/types/achievements';
-import { GameType, PlayerType } from 'src/types/games/pongGameTypes';
-import { Tuple } from 'src/types/games/socketPayloadTypes';
+import { GameType, PlayerType } from 'src/types/gameServer/pongGameTypes';
+import { Tuple } from 'src/types/gameServer/socketPayloadTypes';
 import { Achievement } from 'src/types/schema';
 
 @Injectable()
@@ -53,23 +53,25 @@ export class AchievementsService {
         achievements,
         pushAchievement,
       );
+      if (game.userDisconnectedId === undefined) {
+        await this.handleQuickWitted(
+          userId,
+          game.startTime,
+          achievements,
+          pushAchievement,
+        );
+        await this.handleMarathonMan(
+          userId,
+          game.startTime,
+          achievements,
+          pushAchievement,
+        );
+      }
+      await this.handleWinningStreak(userId, achievements, pushAchievement);
     }
 
     await this.handleSocialButterfly(userId, achievements, pushAchievement);
-    await this.handleWinningStreak(userId, achievements, pushAchievement);
     await this.handleVeteranPlayer(userId, achievements, pushAchievement);
-    await this.handleMarathonMan(
-      userId,
-      game.startTime,
-      achievements,
-      pushAchievement,
-    );
-    await this.handleQuickWitted(
-      userId,
-      game.startTime,
-      achievements,
-      pushAchievement,
-    );
     await this.handleRookieRiser(
       userId,
       winner.id === userId
@@ -249,6 +251,7 @@ export class AchievementsService {
         winnerId,
         loserId,
       ]);
+      console.log(previousGameWithLoser);
       if (previousGameWithLoser && previousGameWithLoser.winnerId === loserId) {
         pushAchievement(await this.unlock(winnerId, ACHIEVEMENTS.REVENGE, 0));
       }
@@ -315,11 +318,11 @@ export class AchievementsService {
         eb.or([
           eb.and([
             eb('playerOneId', '=', userIds[0]),
-            eb('playerOneId', '=', userIds[0]),
+            eb('playerTwoId', '=', userIds[1]),
           ]),
           eb.and([
             eb('playerOneId', '=', userIds[1]),
-            eb('playerOneId', '=', userIds[0]),
+            eb('playerTwoId', '=', userIds[0]),
           ]),
         ]),
       )

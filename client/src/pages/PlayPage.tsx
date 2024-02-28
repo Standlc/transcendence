@@ -1,11 +1,4 @@
-import {
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
-import { SocketsContext } from "../ContextsProviders/SocketsContext";
+import { useContext, useLayoutEffect, useRef, useState } from "react";
 import GameLayout from "../components/gameComponents/GameLayout";
 import GamePreferences from "../components/gameSettings/GameSettings";
 import LiveGames from "../components/LiveGames";
@@ -14,53 +7,24 @@ import GameCanvas from "../components/gameComponents/GameCanvas";
 import { ArrowLink } from "../UIKit/ArrowLink";
 import { createGamePositions } from "../../../api/src/pong/gameLogic/gamePositions";
 import { PlayArrowRounded, SettingsRounded } from "@mui/icons-material";
+import { PlayButton } from "../UIKit/PlayButton";
 import { GameSettingsContext } from "../ContextsProviders/GameSettingsContext";
-import { FindGameMatchButton } from "../components/FindGameMatchButton";
+import { useFindGameMatch } from "../utils/useFindGameMatch";
 
 export default function PlayPage() {
-  const { gameSocket } = useContext(SocketsContext);
-  const [privateInvitation, setPrivateInvitation] = useState<{
-    userId: number;
-  }>();
   const gameRef = useRef(createGamePositions({}));
   const [showSettings, setShowSettings] = useState(false);
-  const [privateGameUserId, setPrivateGameUserId] = useState<string>("");
   const { gameSettings } = useContext(GameSettingsContext);
-
-  useEffect(() => {
-    const handlePrivateGameInvite = (data: { userId: number }) => {
-      console.log(data);
-      setPrivateInvitation(data);
-    };
-
-    gameSocket.on("privateGameInvitation", handlePrivateGameInvite);
-    return () => {
-      gameSocket.off("privateGameInvitation", handlePrivateGameInvite);
-    };
-  }, [gameSocket]);
+  const findGame = useFindGameMatch({
+    points: gameSettings.points,
+    powerUps: gameSettings.powerUps,
+  });
 
   useLayoutEffect(() => {
     gameRef.current.ball.vX = 200;
     gameRef.current.ball.nextBounceVelocity.x = 200;
     gameRef.current.ball.nextBounceVelocity.y = 0;
   }, []);
-
-  const inviteFriendToPlay = () => {
-    if (privateGameUserId === "") {
-      return;
-    }
-    gameSocket.emit("privateGameRequest", {
-      targetId: Number(privateGameUserId),
-      powerUps: gameSettings.powerUps,
-      points: gameSettings.points,
-    });
-  };
-
-  const respondPrivateGameInvitation = () => {
-    gameSocket.emit("acceptPrivateGameRequest", {
-      userInvitingId: privateInvitation?.userId,
-    });
-  };
 
   return (
     <div className="flex justify-center min-h-[100vh] p-5 gap-10">
@@ -76,14 +40,10 @@ export default function PlayPage() {
               </button>
 
               <div className="absolute z-[2] flex flex-col gap-2">
-                <FindGameMatchButton>
-                  <div className="flex gap-3 items-center">
-                    <PlayArrowRounded
-                      style={{ margin: "-7px", fontSize: 30 }}
-                    />
-                    <span>Play Online</span>
-                  </div>
-                </FindGameMatchButton>
+                <PlayButton onClick={() => findGame.mutate()}>
+                  <PlayArrowRounded style={{ margin: "-7px", fontSize: 30 }} />
+                  <span className="pl-3">Play Online</span>
+                </PlayButton>
               </div>
 
               <GameCanvas gameRef={gameRef} isPaused={false} />

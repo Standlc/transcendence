@@ -1,4 +1,4 @@
-import { Tuple } from 'src/types/games/socketPayloadTypes';
+import { Tuple } from 'src/types/gameServer/socketPayloadTypes';
 
 export const C = 500;
 export const K = 64;

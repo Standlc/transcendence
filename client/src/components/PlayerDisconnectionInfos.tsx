@@ -1,8 +1,8 @@
 import { useContext, useMemo } from "react";
 import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
 import { UserContext } from "../ContextsProviders/UserContext";
-import { AppGame } from "../../../api/src/types/games/returnTypes";
-import { WsPlayerDisconnection } from "../../../api/src/types/games/socketPayloadTypes";
+import { UserGame } from "@api/types/games";
+import { WsPlayerDisconnection } from "@api/types/gameServer/socketPayloadTypes";
 import { PlayerQuickInfos } from "./GameFinishedCard";
 
 export default function PlayerDisconnectionInfos({
@@ -10,7 +10,7 @@ export default function PlayerDisconnectionInfos({
   gameRecord,
 }: {
   disconnectionInfo: WsPlayerDisconnection;
-  gameRecord: AppGame;
+  gameRecord: UserGame;
 }) {
   const { user } = useContext(UserContext);
 
@@ -39,9 +39,6 @@ export default function PlayerDisconnectionInfos({
           <span className="mr-2">{players.disconnected.username}</span>
           <span>is not connected</span>
         </div>
-        {/* <span className="opacity-50">
-          The opponent is not connected to the game
-        </span> */}
         <span className="opacity-50 break-words">
           The game will end if the player doesn't reconnect before the timeout
         </span>

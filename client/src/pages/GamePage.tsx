@@ -5,33 +5,33 @@ import {
   WsGameEndType,
   WsGameIdType,
   WsPlayerDisconnection,
-} from "../../../api/src/types/games/socketPayloadTypes";
-import {
-  GameStateType,
-  PlayerType,
-} from "../../../api/src/types/games/pongGameTypes";
+} from "@api/types/gameServer/socketPayloadTypes";
+import { GameStateType, PlayerType } from "@api/types/gameServer/pongGameTypes";
 import { SocketsContext } from "../ContextsProviders/SocketsContext";
 import GameLayout from "../components/gameComponents/GameLayout";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
-import { AppGame } from "../../../api/src/types/games/returnTypes";
+import { useQueryClient } from "@tanstack/react-query";
+import { UserGame } from "@api/types/games";
 import ModalLayout from "../UIKit/ModalLayout";
 import { Spinner } from "../UIKit/Kit";
 import GameCanvas from "../components/gameComponents/GameCanvas";
 import { GameFinishedCard } from "../components/GameFinishedCard";
 import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
-import { createGamePositions } from "../../../api/src/pong/gameLogic/gamePositions";
+import { createGamePositions } from "@api/pong/gameLogic/gamePositions";
 import { useGameControls } from "../utils/game/useGameControls";
 import GamePreferences from "../components/gameSettings/GameSettings";
 import { usePingServer } from "../utils/game/usePingServer";
 import { UserAchievement } from "@api/types/achievements";
 import { NewGameAchievements } from "../components/achievements/NewGameAchievements";
+import { useGameRequest } from "../utils/useGameRequest";
+import { useGame } from "../utils/useGame";
+import { useGameInvitations } from "../utils/useGameInvitations";
 
 export default function GamePage() {
   const { gameId } = useParams();
   const gameIdNumber = useMemo(() => Number(gameId), [gameId]);
   const queryClient = useQueryClient();
-  const { gameSocket } = useContext(SocketsContext);
+  const { gameSocket, gameSocketOn, gameSocketOff } =
+    useContext(SocketsContext);
   const [showGameSettings, setShowGameSettings] = useState(false);
   const [playerDisconnectionInfo, setPlayerDisconnectionInfo] =
     useState<WsPlayerDisconnection>();
@@ -40,15 +40,11 @@ export default function GamePage() {
   const gameRef = useRef<GameStateType>(createGamePositions({}));
   const [achievements, setAchievements] = useState<UserAchievement[]>();
   const [playersPingRtt, setPlayersPingRtt] = useState([0, 0]);
-  const gameRecord = useQuery({
-    queryFn: async () => {
-      const res = await axios.get<AppGame>(`/api/games/${gameIdNumber}`);
-      return res.data;
-    },
-    queryKey: ["gameRecord", gameIdNumber],
-  });
+  const gameRecord = useGame();
   useGameControls({ gameRecord: gameRecord.data, isPaused });
   const isPlayerDisconnected = usePingServer({ gameRecord: gameRecord.data });
+  const gameRequest = useGameRequest();
+  const gameInvitations = useGameInvitations();
 
   useEffect(() => {
     gameRef.current = createGamePositions({});
@@ -63,24 +59,20 @@ export default function GamePage() {
     playerTwoScore: number
   ) => {
     queryClient.setQueryData(
-      ["gameRecord", gameIdNumber],
-      (prev: AppGame | undefined) => {
+      ["gameRecord", gameId],
+      (prev: UserGame | undefined) => {
         if (!prev) return undefined;
         const prevCopy = { ...prev };
 
-        if (prevCopy.playerOne) {
-          prevCopy.playerOne = {
-            ...prevCopy.playerOne,
-            score: playerOneScore,
-          };
-        }
+        prevCopy.playerOne = {
+          ...prevCopy.playerOne,
+          score: playerOneScore,
+        };
 
-        if (prevCopy.playerTwo) {
-          prevCopy.playerTwo = {
-            ...prevCopy.playerTwo,
-            score: playerTwoScore,
-          };
-        }
+        prevCopy.playerTwo = {
+          ...prevCopy.playerTwo,
+          score: playerTwoScore,
+        };
         return prevCopy;
       }
     );
@@ -100,8 +92,8 @@ export default function GamePage() {
       );
 
       if (
-        data.playerOne.score !== gameRecord.data?.playerOne?.score ||
-        data.playerTwo.score !== gameRecord.data?.playerTwo?.score
+        data.playerOne.score !== gameRecord.data?.playerOne.score ||
+        data.playerTwo.score !== gameRecord.data?.playerTwo.score
       ) {
         updatePlayersScores(data.playerOne.score, data.playerTwo.score);
       }
@@ -110,25 +102,23 @@ export default function GamePage() {
 
     const handleGameEnd = (data: WsGameEndType) => {
       queryClient.setQueryData(
-        ["gameRecord", gameIdNumber],
-        (prev: AppGame | undefined) => {
+        ["gameRecord", gameId],
+        (prev: UserGame | undefined) => {
           if (!prev) return undefined;
           const prevCopy = { ...prev };
           prevCopy.winnerId = data.winnerId;
-          if (prevCopy.playerOne)
-            prevCopy.playerOne = {
-              ...prevCopy.playerOne,
-              rating: prevCopy.playerOne.rating + data.playerOne.ratingChange,
-              ratingChange: data.playerOne.ratingChange,
-              score: data.playerOne.score,
-            };
-          if (prevCopy.playerTwo)
-            prevCopy.playerTwo = {
-              ...prevCopy.playerTwo,
-              rating: prevCopy.playerTwo.rating + data.playerTwo.ratingChange,
-              ratingChange: data.playerTwo.ratingChange,
-              score: data.playerTwo.score,
-            };
+          prevCopy.playerOne = {
+            ...prevCopy.playerOne,
+            rating: prevCopy.playerOne.rating + data.playerOneRatingChange,
+            ratingChange: data.playerOneRatingChange,
+            score: data.playerOneScore,
+          };
+          prevCopy.playerTwo = {
+            ...prevCopy.playerTwo,
+            rating: prevCopy.playerTwo.rating + data.playerTwoRatingChange,
+            ratingChange: data.playerTwoRatingChange,
+            score: data.playerTwoScore,
+          };
           return prevCopy;
         }
       );
@@ -162,21 +152,21 @@ export default function GamePage() {
       setAchievements(newAchievements);
     };
 
-    gameSocket.on("updateGameState", handleGameUpadte);
-    gameSocket.on("playerMoveUpdate", handlePlayerMoveUpdate);
-    gameSocket.on("gameEnd", handleGameEnd);
-    gameSocket.on("playerDisconnection", handleOpponentDisconnection);
-    gameSocket.on("startCountdown", handleGameStartCountdown);
-    gameSocket.on("achievements", handleNewAchievements);
+    gameSocketOn("updateGameState", handleGameUpadte);
+    gameSocketOn("playerMoveUpdate", handlePlayerMoveUpdate);
+    gameSocketOn("gameEnd", handleGameEnd);
+    gameSocketOn("playerDisconnection", handleOpponentDisconnection);
+    gameSocketOn("startCountdown", handleGameStartCountdown);
+    gameSocketOn("achievements", handleNewAchievements);
     return () => {
-      gameSocket.off("updateGameState", handleGameUpadte);
-      gameSocket.off("playerMoveUpdate", handlePlayerMoveUpdate);
-      gameSocket.off("gameEnd", handleGameEnd);
-      gameSocket.off("playerDisconnection", handleOpponentDisconnection);
-      gameSocket.off("startCountdown", handleGameStartCountdown);
-      gameSocket.off("achievements", handleNewAchievements);
+      gameSocketOff("updateGameState", handleGameUpadte);
+      gameSocketOff("playerMoveUpdate", handlePlayerMoveUpdate);
+      gameSocketOff("gameEnd", handleGameEnd);
+      gameSocketOff("playerDisconnection", handleOpponentDisconnection);
+      gameSocketOff("startCountdown", handleGameStartCountdown);
+      gameSocketOff("achievements", handleNewAchievements);
     };
-  }, [gameSocket, gameIdNumber]);
+  }, [gameSocketOn, gameSocketOff, gameIdNumber]);
 
   useEffect(() => {
     const payload: WsGameIdType = { gameId: gameIdNumber };
@@ -194,9 +184,10 @@ export default function GamePage() {
     <div className="flex justify-center h-[100vh] p-5 gap-5">
       <div className="max-w-[1100px] contents">
         {!achievements &&
-          gameRecord.data &&
-          gameRecord.data.winnerId &&
-          !showGameSettings && (
+          gameRecord.data?.winnerId &&
+          !showGameSettings &&
+          !gameRequest.data &&
+          !gameInvitations.data?.length && (
             <ModalLayout>
               <GameFinishedCard
                 game={gameRecord.data}
