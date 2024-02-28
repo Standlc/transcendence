@@ -1,10 +1,12 @@
 import { Injectable, InternalServerErrorException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { db } from 'src/database';
 import { DeleteResult } from 'kysely';
-import { ListUsers } from 'src/types/clientSchema';
+import { AppUser, AppUserDB, ListUsers } from 'src/types/clientSchema';
+import { UsersStatusGateway } from 'src/usersStatusGateway/UsersStatus.gateway';
 
 @Injectable()
 export class FriendsService {
+  constructor(private usersStatusGateway: UsersStatusGateway) {}
 
   //#region <-- Request -->
 
@@ -237,7 +239,7 @@ export class FriendsService {
    * @returns An array of Friend
    * @throws NotFound, InternalServerError
    */
-  async findAllFriends(id: number): Promise<ListUsers[]> {
+  async findAllFriends(id: number): Promise<AppUser[]> {
     let friends1_Id: {user1_id: number | null}[];
     let friends2_Id: {user2_id: number | null}[];
     try {
@@ -271,18 +273,18 @@ export class FriendsService {
       arrayFriendsId.push(friend2_Id.user2_id);
     });
 
-    let friendList: ListUsers[];
+    let friendList: AppUserDB[];
     try {
       friendList = await db
       .selectFrom('user')
-      .select(['avatarUrl', 'id', 'username', 'rating'])
+      .select(['avatarUrl', 'id', 'username', 'rating', 'bio', 'createdAt', 'email', 'firstname', 'lastname'])
       .where('id', 'in', arrayFriendsId)
       .execute();
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException();
     }
-    return friendList;
+    return friendList.map(u => ({...u, status: this.usersStatusGateway.getUserStatus(u?.id)}))
   }
 
   /**

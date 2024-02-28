@@ -121,9 +121,8 @@ export class UsersController {
   @ApiUnprocessableEntityResponse({description: "Invalid field or empty field"})
   @UseGuards(JwtAuthGuard)
   @Patch('update')
-  async updateUserProfile(@Request() req, @Body() body: UpdateUsersDto): Promise<undefined> {
+  async updateUserProfile(@Request() req, @Body() body: UpdateUsersDto) {
     await this.usersService.updateUser(req.user.id, body);
-    return ;
   }
 
   //#endregion
