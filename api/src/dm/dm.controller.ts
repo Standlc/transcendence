@@ -77,35 +77,6 @@ export class DmController {
           createdAt: {
             type: 'string',
           },
-          user1_id: {
-            type: 'number',
-          },
-          user2_id: {
-            type: 'number',
-          },
-        },
-      },
-    },
-  })
-  @ApiNotFoundResponse({ description: 'No conversations found for this user' })
-  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @Get()
-  //
-  //
-  //
-  @ApiOperation({ summary: 'Get all conversations' })
-  @ApiOkResponse({
-    schema: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          id: {
-            type: 'number',
-          },
-          createdAt: {
-            type: 'string',
-          },
           user1: {
             type: 'object',
             properties: {
@@ -147,6 +118,18 @@ export class DmController {
     return this.dmService.getAllConversationsOfTheUser(req.user.id);
   }
 
+  //
+  //
+  //
+  @ApiOperation({ summary: 'Find a conversation' })
+  @ApiParam({ name: 'userId', type: 'number' })
+  @ApiOkResponse({ type: Number })
+  @ApiNotFoundResponse({ description: 'Conversation not found' })
+  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
+  @Get('findDmId/:userId')
+  findDmId(@Param('userId') userId: number, @Request() req): Promise<number> {
+    return this.dmService.findDmId(userId, req.user.id);
+  }
 
   //
   //
@@ -222,7 +205,7 @@ export class DmController {
     },
   })
   @ApiNotFoundResponse({
-    description: 'Conversation not found | No messages found',
+    description: 'Conversation not found',
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @Get(':id/messages')

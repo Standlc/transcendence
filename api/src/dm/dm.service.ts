@@ -21,6 +21,32 @@ export class DmService {
   //
   //
   //
+  async findDmId(user1: number, user2: number): Promise<number> {
+    try {
+      const conversation = await db
+        .selectFrom('conversation')
+        .selectAll()
+        .where((eb) =>
+          eb.or([eb('user1_id', '=', user1), eb('user2_id', '=', user1)]),
+        )
+        .where((eb) =>
+          eb.or([eb('user1_id', '=', user2), eb('user2_id', '=', user2)]),
+        )
+        .executeTakeFirstOrThrow();
+
+      if (!conversation) {
+        throw new NotFoundException('Conversation not found');
+      }
+      return conversation.id;
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+      throw new InternalServerErrorException();
+    }
+  }
+
+  //
+  //
+  //
   async createConversation(user2: number, userId: number): Promise<string> {
     if (user2 == userId) {
       throw new UnprocessableEntityException(
@@ -152,7 +178,7 @@ export class DmService {
     }
   }
 
-//
+  //
   //
   //
   async getConversationMessages(
@@ -202,6 +228,7 @@ export class DmService {
       throw new InternalServerErrorException();
     }
   }
+
   //
   //
   //
@@ -264,32 +291,6 @@ export class DmService {
       if (!conversation) {
         throw new NotFoundException('Conversation not found');
       }
-    } catch (error) {
-      if (error instanceof NotFoundException) throw error;
-      throw new InternalServerErrorException();
-    }
-  }
-
-  //
-  //
-  //
-  async findDmId(user1: number, user2: number): Promise<number> {
-    try {
-      const conversation = await db
-        .selectFrom('conversation')
-        .selectAll()
-        .where((eb) =>
-          eb.or([eb('user1_id', '=', user1), eb('user2_id', '=', user1)]),
-        )
-        .where((eb) =>
-          eb.or([eb('user1_id', '=', user2), eb('user2_id', '=', user2)]),
-        )
-        .executeTakeFirstOrThrow();
-
-      if (!conversation) {
-        throw new NotFoundException('Conversation not found');
-      }
-      return conversation.id;
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException();
