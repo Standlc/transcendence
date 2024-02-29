@@ -7,6 +7,7 @@ import { AppUser, ListUsers } from 'src/types/clientSchema';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { UpdateUsersDto } from './dto/update-users.dto';
 
 @ApiInternalServerErrorResponse({ description: "Whenever the backend fail in some point, probably an error with the db." })
 @ApiTags('users')
@@ -113,6 +114,29 @@ export class UsersController {
   @Get(':id/profile')
   async getUserProfile(@Param('id') userId: number): Promise<AppUser> {
     return await this.usersService.getUserById(userId);
+  }
+
+  //#endregion
+
+  //#region update
+  @ApiCookieAuth()
+  @ApiOkResponse({description: "Profile updated"})
+  @ApiUnprocessableEntityResponse({description: "Invalid field or empty field"})
+  @ApiBody({
+    description: "UpdateUserDto",
+    schema: {
+      type: 'object',
+      example: {
+        bio: "bio",
+        firstname: "john",
+        lastname: "doe"
+      }
+    },
+  })
+  @UseGuards(JwtAuthGuard)
+  @Patch('update')
+  async updateUserProfile(@Request() req, @Body() body: UpdateUsersDto) {
+    await this.usersService.updateUser(req.user.id, body);
   }
 
   //#endregion

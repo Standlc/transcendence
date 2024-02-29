@@ -1,9 +1,9 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { db } from 'src/database';
-import { LeaderbordPlayer } from 'src/types/games/games';
 import { calculatePlayersNewRatings } from './ratings';
 import { UsersStatusGateway } from 'src/usersStatusGateway/UsersStatus.gateway';
-import { PlayerType } from 'src/types/games/pongGameTypes';
+import { PlayerType } from 'src/types/gameServer/pongGameTypes';
+import { LeaderbordPlayer } from 'src/types/games';
 
 export type PlayersRatingChangesType = {
   playerOne: PlayerRatingChangeType;
@@ -92,7 +92,8 @@ export class PlayersService {
               eb('playerGames.playerOneId', '=', eb.ref('user.id')),
               eb('playerGames.playerTwoId', '=', eb.ref('user.id')),
             ])
-            .and('playerGames.winnerId', 'is not', null),
+            .and('playerGames.winnerId', 'is not', null)
+            .and('playerGames.isPublic', 'is', true),
         ),
       )
       .select((eb) => [

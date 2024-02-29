@@ -11,20 +11,20 @@ import { WsAuthGuard, authenticateSocket } from 'src/auth/ws-auth.guard';
 import {
   PlayersRatingChangesType,
   PlayersService,
-} from './players/players.service';
-import { Game, PublicGameRequest } from 'src/types/schema';
+} from '../games/players/players.service';
+import { Game, GameRequest } from 'src/types/schema';
 import { Selectable } from 'kysely';
 import { initialize, startGameInterval } from './gameLogic/game';
 import {
   GameStateType,
   GameType,
   PlayerType,
-} from 'src/types/games/pongGameTypes';
+} from 'src/types/gameServer/pongGameTypes';
 import {
   EmitPayloadType,
   WsGameIdType,
   WsPlayerMove,
-} from 'src/types/games/socketPayloadTypes';
+} from 'src/types/gameServer/socketPayloadTypes';
 import { getOtherPlayer, getWinner } from './gameLogic/utils';
 import {
   DISCONNECTION_END_GAME_TIMEMOUT,
@@ -34,6 +34,7 @@ import { handlePlayerMove } from './gameLogic/paddle';
 import { UsersStatusGateway } from 'src/usersStatusGateway/UsersStatus.gateway';
 import { AchievementsService } from 'src/achievements/Achievements.service';
 import { UserAchievement } from 'src/types/achievements';
+import { UserGameInvitation, UserGameRequest } from 'src/types/gameRequests';
 
 const getPlayer = (
   game: GameStateType,
@@ -107,9 +108,7 @@ export class PongGateway {
     const { player } = getPlayer(game.game, 'id', userId);
     if (player) {
       this.reconnectPlayerToGame(game, player, Date.now());
-      this.usersStatusGateway.setUserAsPlaying(userId);
     }
-
     if (game.isPublic || player) {
       client.join(data.gameId.toString());
     }
@@ -143,18 +142,35 @@ export class PongGateway {
       });
   }
 
-  sendPrivateGameInvite(invite: Selectable<PublicGameRequest>) {
-    if (!invite.targetId) return;
-    this.sendTo(invite.targetId.toString(), 'privateGameInvitation', invite);
-  }
-
-  async startGame(gameRecord: Selectable<Game>) {
+  startGame(gameRecord: Selectable<Game>) {
     const gameState = initialize(gameRecord);
     this.games.set(gameState.gameId, gameState);
     this.joinUsersToGameRoom(gameRecord);
     this.usersStatusGateway.setUserAsPlaying(gameRecord.playerOneId);
     this.usersStatusGateway.setUserAsPlaying(gameRecord.playerTwoId);
-    this.runGame(gameState);
+
+    this.runGame(
+      gameState,
+      gameRecord.isPublic
+        ? {
+            onGameStart: () => {
+              this.emitNewLiveGame(gameState);
+            },
+            onPlayerScore: () => {
+              this.sendLiveGameUpdate(gameState);
+            },
+            onGameEnd: async () => {
+              await this.handlePublicGameEnd(gameState);
+            },
+          }
+        : {
+            onGameStart: () => {},
+            onPlayerScore: () => {},
+            onGameEnd: async () => {
+              await this.handlePrivateGameEnd(gameState);
+            },
+          },
+    );
   }
 
   joinUsersToGameRoom(gameRecord: Selectable<Game>) {
@@ -166,43 +182,82 @@ export class PongGateway {
       .socketsJoin(gameRecord.id.toString());
   }
 
-  async runGame(gameState: GameType) {
-    this.emitNewLiveGame(gameState);
+  async runGame(
+    gameState: GameType,
+    {
+      onGameStart,
+      onPlayerScore,
+      onGameEnd,
+    }: {
+      onGameStart: () => void;
+      onPlayerScore: () => void;
+      onGameEnd: () => Promise<void>;
+    },
+  ) {
+    onGameStart();
     this.sendTo(gameState.roomId, 'gameStart', gameState.roomId);
     await this.sendGameStartCountdown(gameState);
     gameState.isPaused = false;
+    gameState.startTime = Date.now();
 
     const handleEmitGameState = () => {
       this.sendTo(gameState.roomId, 'updateGameState', gameState.game);
     };
 
     const handleGameEnd = async () => {
+      clearInterval(gameState.disconnectionIntervalId);
+      clearInterval(gameState.intervalId);
       try {
-        await this.handleGameEnd(gameState);
+        await onGameEnd();
       } catch (error) {
+        try {
+          await this.gamesService.delete(gameState.gameId);
+        } catch (error) {
+          this.sendTo(gameState.roomId, 'error', {
+            message: 'Error while deleting game.',
+          });
+        }
         this.sendTo(gameState.roomId, 'error', {
           message: 'Error while setting game as finished.',
         });
       }
+      this.usersStatusGateway.setUserAsOnline(gameState.game.playerOne.id);
+      this.usersStatusGateway.setUserAsOnline(gameState.game.playerTwo.id);
+      this.games.delete(gameState.gameId);
     };
 
-    const handlePlayerScore = async (player: PlayerType) => {
+    const handlePlayerScore = async (player: PlayerType, score?: number) => {
       try {
-        await this.updatePlayerScore(gameState, player, player.score + 1);
+        const newScore = score !== undefined ? score : player.score + 1;
+        await this.updatePlayerScore(gameState, player, newScore);
+        onPlayerScore();
       } catch (error) {
         this.sendTo(gameState.roomId, 'error', {
-          message: 'Error while setting game as finished.',
+          message: 'Error while updating player score.',
         });
       }
-      this.sendLiveGameUpdate(gameState);
     };
 
-    const handlePlayersConnectivity = (now: number) => {
+    const handlePlayersConnectivity = async (now: number) => {
       const { playerOne, playerTwo } = gameState.game;
+
+      let disconnectedPlayerId: number | undefined = undefined;
       if (now - playerOne.lastPingTime >= PLAYER_PING_INTERVAL + 500) {
-        this.handlePlayerDisconnection(playerOne, gameState);
+        disconnectedPlayerId = playerOne.id;
       } else if (now - playerTwo.lastPingTime >= PLAYER_PING_INTERVAL + 500) {
-        this.handlePlayerDisconnection(playerTwo, gameState);
+        disconnectedPlayerId = playerTwo.id;
+      }
+
+      if (disconnectedPlayerId !== undefined) {
+        this.handlePlayerDisconnection(
+          disconnectedPlayerId,
+          gameState,
+          async (userId) => {
+            const winner = getOtherPlayer(gameState.game, userId);
+            await handlePlayerScore(winner, gameState.points);
+            await handleGameEnd();
+          },
+        );
       }
     };
 
@@ -215,32 +270,30 @@ export class PongGateway {
     );
   }
 
-  handlePlayerDisconnection(player: PlayerType, gameState: GameType) {
+  handlePlayerDisconnection(
+    userId: number,
+    gameState: GameType,
+    onTimeout: (id: number) => void,
+  ) {
     clearInterval(gameState.disconnectionIntervalId);
-    gameState.userDisconnectedId = player.id;
+    gameState.userDisconnectedId = userId;
     gameState.isPaused = true;
 
     let timeout = DISCONNECTION_END_GAME_TIMEMOUT;
     this.sendTo(gameState.roomId, 'playerDisconnection', {
       secondsUntilEnd: timeout,
-      userId: player.id,
+      userId: userId,
     });
-    gameState.disconnectionIntervalId = setInterval(async () => {
+
+    gameState.disconnectionIntervalId = setInterval(() => {
       timeout -= 1;
       if (!timeout) {
-        const winner = getOtherPlayer(gameState.game, player.id);
-        try {
-          await this.updatePlayerScore(gameState, winner, gameState.points);
-          await this.handleGameEnd(gameState);
-        } catch (error) {
-          this.sendTo(gameState.roomId, 'error', {
-            message: 'Error while setting game as finished.',
-          });
-        }
+        clearTimeout(gameState.disconnectionIntervalId);
+        onTimeout(userId);
       }
       this.sendTo(gameState.roomId, 'playerDisconnection', {
         secondsUntilEnd: timeout,
-        userId: player.id,
+        userId: userId,
       });
     }, 1000);
   }
@@ -277,38 +330,33 @@ export class PongGateway {
     });
   }
 
-  async handleGameEnd(game: GameType) {
-    clearInterval(game.disconnectionIntervalId);
-    clearInterval(game.intervalId);
+  async handlePrivateGameEnd(game: GameType) {
+    const { winner } = getWinner(game);
+    const updatedGameRecord = await this.gamesService.finishGame(
+      game.gameId,
+      winner.id,
+    );
+    this.sendTo(game.roomId, 'gameEnd', updatedGameRecord);
+  }
 
+  async handlePublicGameEnd(game: GameType) {
     const { playerOne, playerTwo } = game.game;
     const { winner } = getWinner(game);
-    try {
-      const playersRatingsChange = await this.players.updatePlayersRating(
-        playerOne,
-        playerTwo,
-      );
+    const playersRatingsChange = await this.players.updatePlayersRating(
+      playerOne,
+      playerTwo,
+    );
 
-      await this.gamesService.finishGame(
-        game.gameId,
-        winner.id,
-        playersRatingsChange,
-      );
+    const updatedGameRecord = await this.gamesService.finishGame(
+      game.gameId,
+      winner.id,
+      playersRatingsChange,
+    );
 
-      await this.updatePlayersAchievements(game, playersRatingsChange);
-
-      this.sendGameEnd(game, playersRatingsChange, winner.id);
-      this.sendLeaderboardUpdates(game, playersRatingsChange, winner.id);
-      this.usersStatusGateway.setUserAsOnline(game.game.playerOne.id);
-      this.usersStatusGateway.setUserAsOnline(game.game.playerTwo.id);
-      this.games.delete(game.gameId);
-    } catch (error) {
-      this.gamesService.delete(game.gameId);
-      this.usersStatusGateway.setUserAsOnline(game.game.playerOne.id);
-      this.usersStatusGateway.setUserAsOnline(game.game.playerTwo.id);
-      this.games.delete(game.gameId);
-      throw error;
-    }
+    await this.updatePlayersAchievements(game, playersRatingsChange);
+    this.sendTo(game.roomId, 'gameEnd', updatedGameRecord);
+    this.sendToAll('liveGameEnd', game.gameId);
+    this.sendLeaderboardUpdates(game, playersRatingsChange, winner.id);
   }
 
   @SubscribeMessage('playerMove')
@@ -328,8 +376,6 @@ export class PongGateway {
     game: GameType,
     playersRatingsChange: PlayersRatingChangesType,
   ) {
-    if (game.userDisconnectedId !== undefined) return;
-
     const { playerOne, playerTwo } = game.game;
     const { winner, loser } = getWinner(game);
 
@@ -363,27 +409,6 @@ export class PongGateway {
         game,
       );
     this.sendAchievementsUpdates(playerTwo.id, playerTwoAchievements);
-  }
-
-  sendGameEnd(
-    game: GameType,
-    ratingChanges: PlayersRatingChangesType,
-    winnerId: number,
-  ) {
-    const { playerOne, playerTwo } = game.game;
-
-    this.sendTo(game.roomId, 'gameEnd', {
-      winnerId,
-      playerOne: {
-        score: playerOne.score,
-        ratingChange: ratingChanges.playerOne.ratingChange,
-      },
-      playerTwo: {
-        score: playerTwo.score,
-        ratingChange: ratingChanges.playerTwo.ratingChange,
-      },
-    });
-    this.sendToAll('liveGameEnd', game.gameId);
   }
 
   sendAchievementsUpdates(userId: number, achievements: UserAchievement[]) {
@@ -420,6 +445,26 @@ export class PongGateway {
     await this.gamesService.updatePlayerScore(game.gameId, whichPlayer, score);
   }
 
+  sendGameInvitation(invite: UserGameInvitation) {
+    this.sendTo(invite.targetUser.id.toString(), 'gameInvitation', invite);
+  }
+
+  sendGameInvitationRefused(inviterId: number) {
+    this.sendTo(inviterId.toString(), 'gameInvitationRefused', undefined);
+  }
+
+  sendGameInvitationCanceled({
+    targetId,
+    inviterId,
+  }: {
+    targetId: number;
+    inviterId: number;
+  }) {
+    this.sendTo(targetId.toString(), 'gameInvitationCanceled', {
+      inviterId: inviterId,
+    });
+  }
+
   emitNewLiveGame(game: GameType) {
     const payload: WsGameIdType = { gameId: game.gameId };
     this.sendToAll('liveGame', payload);
@@ -435,11 +480,18 @@ export class PongGateway {
     });
   }
 
-  sendTo<T extends string>(roomId: string, ev: T, payload: EmitPayloadType<T>) {
+  sendTo<T extends keyof EmitPayloadType>(
+    roomId: string,
+    ev: T,
+    payload: EmitPayloadType[T],
+  ) {
     this.server.to(roomId).emit(ev, payload);
   }
 
-  sendToAll<T extends string>(ev: T, payload: EmitPayloadType<T>) {
+  sendToAll<T extends keyof EmitPayloadType>(
+    ev: T,
+    payload: EmitPayloadType[T],
+  ) {
     this.server.emit(ev as string, payload);
   }
 

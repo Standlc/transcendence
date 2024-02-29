@@ -1,11 +1,11 @@
 import { useContext, useMemo } from "react";
 import { UserContext } from "../../ContextsProviders/UserContext";
-import { AppGame } from "../../../../api/src/types/games/returnTypes";
+import { UserGame } from "../../../../api/src/types/games";
 
 export const useIsUserAPlayer = ({
   gameRecord,
 }: {
-  gameRecord: AppGame | undefined;
+  gameRecord: UserGame | undefined | null;
 }) => {
   const { user } = useContext(UserContext);
   const isUserAPlayer = useMemo(

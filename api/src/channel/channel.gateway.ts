@@ -1,4 +1,5 @@
-import { ConnectedUsersService } from './connectedUsers/connectedUsers.service';
+import { FriendsService } from './../friends/friends.service';
+import { ConnectedUsersService } from './../connectedUsers/connectedUsers.service';
 import { ChannelService } from './channel.service';
 import {
   ConnectedSocket,
@@ -8,6 +9,7 @@ import {
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
+  WsException,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import {
@@ -16,22 +18,19 @@ import {
   ChannelMessageContent,
   ConnectToChannel,
   MuteUser,
+  QuitChannel,
 } from 'src/types/channelsSchema';
-import {
-  BadRequestException,
-  InternalServerErrorException,
-  UnauthorizedException,
-  UnprocessableEntityException,
-  UseGuards,
-} from '@nestjs/common';
+import { UseGuards } from '@nestjs/common';
 import { WsAuthGuard } from 'src/auth/ws-auth.guard';
 
-@WebSocketGateway(5050, {
-  namespace: 'channel',
-  cors: {
-    origin: '*',
+@WebSocketGateway(
+  /*5050, */ {
+    namespace: 'channel',
+    cors: {
+      origin: '*',
+    },
   },
-})
+)
 @UseGuards(WsAuthGuard)
 export class ChannelGateway
   implements OnGatewayConnection, OnGatewayDisconnect
@@ -39,7 +38,8 @@ export class ChannelGateway
   constructor(
     private channelService: ChannelService,
     private readonly wsGuard: WsAuthGuard,
-    private connectedUsersService: ConnectedUsersService,
+    private readonly connectedUsersService: ConnectedUsersService,
+    private readonly friendsService: FriendsService,
   ) {}
 
   @WebSocketServer() server: Server;
@@ -80,35 +80,57 @@ export class ChannelGateway
     try {
       await this.channelService.userExists(payload.userId);
     } catch (error) {
-      socket.disconnect();
-      throw new UnauthorizedException('User do not exist');
-    }
-    try {
-      await this.channelService.channelExists(payload.channelId);
-    } catch (error) {
-      throw new UnauthorizedException('Channel do not exist');
-    }
-    try {
-      await this.channelService.userIsBanned(payload.userId, payload.channelId);
-    } catch (error) {
-      throw new UnauthorizedException('User is banned');
+      console.error(error);
+      throw new WsException('User do not exist');
     }
 
     try {
+      await this.channelService.channelExists(payload.channelId);
+    } catch (error) {
+      console.error(error);
+      throw new WsException('Channel do not exist');
+    }
+
+    try {
+      await this.channelService.userIsBanned(payload.userId, payload.channelId);
+    } catch (error) {
+      console.error(error);
+      throw new WsException('User is banned');
+    }
+
+    // !!! to test
+    try {
       if (
         payload.userId !== payload.channelOwner &&
-        payload.isPublic === false
+        payload.isPublic == false
       ) {
-        await this.channelService.usersAreFriends(
+        await this.channelService.isInInviteList(
           payload.userId,
-          payload.channelOwner,
+          payload.channelId,
         );
       }
     } catch (error) {
-      throw new UnauthorizedException(
-        'Users are not friends, impossible to join a private or protected channel',
-      );
+      console.error(error);
+      throw new WsException('User is not invited to join the channel');
     }
+
+    // try {
+    //   if (
+    //     payload.userId !== payload.channelOwner &&
+    //     payload.isPublic === false
+    //   ) {
+    //     await this.friendsService.isFriend(
+    //       // !!! to test
+    //       payload.userId,
+    //       payload.channelOwner,
+    //     );
+    //   }
+    // } catch (error) {
+    //   console.error(error);
+    //   throw new WsException(
+    //     'Users are not friends, impossible to join a private or protected channel',
+    //   );
+    // }
 
     try {
       if (payload.password !== null) {
@@ -118,32 +140,32 @@ export class ChannelGateway
         );
       }
     } catch (error) {
-      throw new UnauthorizedException('Invalid password');
+      console.error(error);
+      throw new WsException('Invalid password');
     }
 
     if (!payload.channelId) {
-      throw new BadRequestException('No channel id provided');
+      console.error('No channel id provided');
+      throw new WsException('No channel id provided');
     }
 
     try {
       try {
         this.channelService.joinChannel(payload.userId, payload.channelId);
       } catch (error) {
-        throw new UnprocessableEntityException('Could not join channel');
+        console.error(error);
+        throw new WsException('Could not join channel');
       }
+
       socket.join(String(payload.channelId));
       this.connectedUsersService.addUser(payload.userId, socket);
       console.log(
         `Client socket ${socket.id}, joined channel: ${payload.channelId}`,
       );
     } catch (error) {
-      socket.disconnect();
-      this.connectedUsersService.removeUserWithUserId(payload.userId);
-      if (error instanceof UnprocessableEntityException) {
-        throw error;
-      }
       console.error(error);
-      throw error;
+      this.connectedUsersService.removeUserWithUserId(payload.userId);
+      throw new WsException('Could not join channel');
     }
   }
 
@@ -158,7 +180,8 @@ export class ChannelGateway
     try {
       this.connectedUsersService.verifyConnection(socket);
     } catch (error) {
-      throw error;
+      console.error(error);
+      throw new WsException('User did not join channel room');
     }
 
     try {
@@ -169,9 +192,8 @@ export class ChannelGateway
     } catch (error) {
       socket.leave(String(payload.channelId));
       this.connectedUsersService.removeUserWithSocketId(socket.id);
-      throw new UnauthorizedException(
-        `User is banned from channel ${payload.channelId}`,
-      );
+      console.error(error);
+      throw new WsException(`User is banned from channel ${payload.channelId}`);
     }
 
     // Do not disconnect the muted user, just don't send the message
@@ -179,7 +201,7 @@ export class ChannelGateway
       await this.channelService.userIsMuted(payload);
     } catch (error) {
       console.error(error);
-      throw new UnauthorizedException('User is muted');
+      throw new WsException('User is muted');
     }
 
     try {
@@ -190,7 +212,7 @@ export class ChannelGateway
       socket.disconnect();
       this.connectedUsersService.removeUserWithSocketId(socket.id);
       console.error(error);
-      throw new InternalServerErrorException();
+      throw new WsException('Could not send message');
     }
 
     try {
@@ -199,7 +221,7 @@ export class ChannelGateway
       socket.leave(String(payload.channelId));
       this.connectedUsersService.removeUserWithSocketId(socket.id);
       console.error(error);
-      throw new InternalServerErrorException();
+      throw new WsException('Internal server error');
     }
   }
 
@@ -214,7 +236,8 @@ export class ChannelGateway
     try {
       this.connectedUsersService.verifyConnection(socket);
     } catch (error) {
-      throw error;
+      console.error(error);
+      throw new WsException('User did not join channel room');
     }
 
     try {
@@ -223,46 +246,51 @@ export class ChannelGateway
     } catch (error) {
       socket.disconnect();
       this.connectedUsersService.removeUserWithSocketId(socket.id);
-      throw new UnauthorizedException('User or channel does not exist');
+      console.error(error);
+      throw new WsException('User or channel does not exist');
     }
 
     if (!payload.channelId) {
-      throw new BadRequestException('No channel id provided');
+      console.error('No channel id provided');
+      throw new WsException('No channel id provided');
     }
 
-    socket.leave(String(payload.channelId));
-    this.connectedUsersService.removeUserWithSocketId(socket.id);
-    console.log(
-      `Client socket ${socket.id}, left channel: ${payload.channelId}`,
-    );
+    try {
+      socket.leave(String(payload.channelId));
+      this.connectedUsersService.removeUserWithSocketId(socket.id);
+      console.log(
+        `Client socket ${socket.id}, left channel: ${payload.channelId}`,
+      );
+    } catch (error) {
+      socket.disconnect();
+      console.error(error);
+      throw new WsException('Could not leave channel');
+    }
   }
 
   //
   //
   //
-  // !!! to test
+  // !!! tested
   @SubscribeMessage('quitChannel')
   async handleQuitChannel(
     @ConnectedSocket() socket: Socket,
-    @MessageBody() payload: ConnectToChannel,
+    @MessageBody() payload: QuitChannel,
   ): Promise<void> {
     try {
       this.connectedUsersService.verifyConnection(socket);
     } catch (error) {
-      throw error;
+      console.error(error);
+      throw new WsException('User did not join channel room');
     }
 
     try {
       await this.channelService.userExists(payload.userId);
       await this.channelService.channelExists(payload.channelId);
     } catch (error) {
-      socket.disconnect();
       this.connectedUsersService.removeUserWithSocketId(socket.id);
-      throw new UnauthorizedException('User or channel does not exist');
-    }
-
-    if (!payload.channelId) {
-      throw new BadRequestException('No channel id provided');
+      console.error(error);
+      throw new WsException('User or channel does not exist');
     }
 
     try {
@@ -275,7 +303,7 @@ export class ChannelGateway
     } catch (error) {
       socket.disconnect();
       console.error(error);
-      throw new InternalServerErrorException();
+      throw new WsException('Could not quit channel');
     }
   }
 
@@ -288,7 +316,8 @@ export class ChannelGateway
       this.connectedUsersService.removeUserWithSocketId(socket.id);
       console.log('Client disconnected');
     } catch (error) {
-      throw new InternalServerErrorException();
+      console.error(error);
+      throw new WsException('Could not disconnect');
     }
   }
 
@@ -304,20 +333,31 @@ export class ChannelGateway
     try {
       this.connectedUsersService.verifyConnection(socket);
     } catch (error) {
-      throw error;
+      console.error(error);
+      throw new WsException('User did not join channel room');
     }
 
-    this.channelService.banUser(payload);
+    try {
+      await this.channelService.banUser(payload);
+    } catch (error) {
+      console.error(error);
+      throw new WsException('Could not ban user');
+    }
 
-    const bannedSocketId = this.connectedUsersService.getSocket(
-      payload.targetUserId,
-    );
-
-    if (bannedSocketId) {
-      bannedSocketId.leave(payload.channelId.toString());
-      this.connectedUsersService.removeUserWithSocketId(
-        bannedSocketId.id as string,
+    try {
+      const bannedSocketId = this.connectedUsersService.getSocket(
+        payload.targetUserId,
       );
+
+      if (bannedSocketId) {
+        bannedSocketId.leave(payload.channelId.toString());
+        this.connectedUsersService.removeUserWithSocketId(
+          bannedSocketId.id as string,
+        );
+      }
+    } catch (error) {
+      console.error(error);
+      throw new WsException('Could not leave channel');
     }
   }
 
@@ -333,9 +373,15 @@ export class ChannelGateway
     try {
       this.connectedUsersService.verifyConnection(socket);
     } catch (error) {
-      throw error;
+      console.error(error);
+      throw new WsException('User did not join channel room');
     }
-    this.channelService.unbanUser(payload);
+    try {
+      await this.channelService.unbanUser(payload);
+    } catch (error) {
+      console.error(error);
+      throw new WsException('Could not unban user');
+    }
   }
 
   //
@@ -350,7 +396,8 @@ export class ChannelGateway
     try {
       this.connectedUsersService.verifyConnection(socket);
     } catch (error) {
-      throw error;
+      console.error(error);
+      throw new WsException('User did not join channel room');
     }
 
     try {
@@ -359,17 +406,24 @@ export class ChannelGateway
       // et si adminId != TargetId
       await this.channelService.kickUser(payload);
     } catch (error) {
-      throw error;
+      console.error(error);
+      throw new WsException('Could not kick user');
     }
-    const kickedSocketId = this.connectedUsersService.getSocket(
-      payload.targetUserId,
-    );
 
-    if (kickedSocketId) {
-      kickedSocketId.leave(payload.channelId.toString());
-      this.connectedUsersService.removeUserWithSocketId(
-        kickedSocketId.id as string,
+    try {
+      const kickedSocketId = this.connectedUsersService.getSocket(
+        payload.targetUserId,
       );
+
+      if (kickedSocketId) {
+        kickedSocketId.leave(payload.channelId.toString());
+        this.connectedUsersService.removeUserWithSocketId(
+          kickedSocketId.id as string,
+        );
+      }
+    } catch (error) {
+      console.error(error);
+      throw new WsException('Could not leave channel');
     }
   }
 
@@ -385,9 +439,15 @@ export class ChannelGateway
     try {
       this.connectedUsersService.verifyConnection(socket);
     } catch (error) {
-      throw error;
+      console.error(error);
+      throw new WsException('User did not join channel room');
     }
-    this.channelService.muteUser(payload);
+    try {
+      await this.channelService.muteUser(payload);
+    } catch (error) {
+      console.error(error);
+      throw new WsException('Could not mute user');
+    }
   }
 
   //
@@ -402,9 +462,15 @@ export class ChannelGateway
     try {
       this.connectedUsersService.verifyConnection(socket);
     } catch (error) {
-      throw error;
+      console.error(error);
+      throw new WsException('User did not join channel room');
     }
-    this.channelService.unmuteUser(payload);
+    try {
+      await this.channelService.unmuteUser(payload);
+    } catch (error) {
+      console.error(error);
+      throw new WsException('Could not unmute user');
+    }
   }
 
   //
@@ -421,9 +487,15 @@ export class ChannelGateway
     try {
       this.connectedUsersService.verifyConnection(socket);
     } catch (error) {
-      throw error;
+      console.error(error);
+      throw new WsException('User did not join channel room');
     }
-    this.channelService.blockUser(payload);
+    try {
+      await this.channelService.blockUser(payload);
+    } catch (error) {
+      console.error(error);
+      throw new WsException('Could not block user');
+    }
   }
 
   //
@@ -438,9 +510,15 @@ export class ChannelGateway
     try {
       this.connectedUsersService.verifyConnection(socket);
     } catch (error) {
-      throw error;
+      console.error(error);
+      throw new WsException('User did not join channel room');
     }
-    this.channelService.unblockUser(payload);
+    try {
+      await this.channelService.unblockUser(payload);
+    } catch (error) {
+      console.error(error);
+      throw new WsException('Could not unblock user');
+    }
   }
 
   //
@@ -455,9 +533,15 @@ export class ChannelGateway
     try {
       this.connectedUsersService.verifyConnection(socket);
     } catch (error) {
-      throw error;
+      console.error(error);
+      throw new WsException('User did not join channel room');
     }
-    this.channelService.addAdministrator(payload);
+    try {
+      await this.channelService.addAdministrator(payload);
+    } catch (error) {
+      console.error(error);
+      throw new WsException('Could not add admin');
+    }
   }
 
   //
@@ -472,8 +556,60 @@ export class ChannelGateway
     try {
       this.connectedUsersService.verifyConnection(socket);
     } catch (error) {
-      throw error;
+      console.error(error);
+      throw new WsException('User did not join channel room');
     }
-    this.channelService.removeAdministrator(payload);
+    try {
+      await this.channelService.removeAdministrator(payload);
+    } catch (error) {
+      console.error(error);
+      throw new WsException('Could not remove admin');
+    }
+  }
+
+  //
+  //
+  //
+  // !!! tested
+  @SubscribeMessage('addToInviteList')
+  async handleAddToInviteList(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() payload: ActionOnUser,
+  ) {
+    try {
+      this.connectedUsersService.verifyConnection(socket);
+    } catch (error) {
+      console.error(error);
+      throw new WsException('User did not join channel room');
+    }
+    try {
+      await this.channelService.addToInviteList(payload);
+    } catch (error) {
+      console.error(error);
+      throw new WsException('Could not add user to invite list');
+    }
+  }
+
+  //
+  //
+  //
+  // !!! tested
+  @SubscribeMessage('removeFromInviteList')
+  async handleRemoveFromInviteList(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() payload: ActionOnUser,
+  ) {
+    try {
+      this.connectedUsersService.verifyConnection(socket);
+    } catch (error) {
+      console.error(error);
+      throw new WsException('User did not join channel room');
+    }
+    try {
+      await this.channelService.removeFromInviteList(payload);
+    } catch (error) {
+      console.error(error);
+      throw new WsException('Could not remove user from invite list');
+    }
   }
 }

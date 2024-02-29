@@ -42,6 +42,13 @@ export interface ChannelAdmin {
   userId: number;
 }
 
+export interface ChannelInviteList {
+  channelId: number | null;
+  createdAt: Generated<Timestamp>;
+  invitedByUserId: number | null;
+  invitedUserId: number | null;
+}
+
 export interface ChannelMember {
   channelId: number;
   joinedAt: Generated<Timestamp>;
@@ -73,8 +80,8 @@ export interface DirectMessage {
 
 export interface Friend {
   createdAt: Generated<Timestamp>;
-  friendId: number;
-  userId: number;
+  user1_id: number | null;
+  user2_id: number | null;
 }
 
 export interface FriendRequest {
@@ -98,6 +105,14 @@ export interface Game {
   winnerId: number | null;
 }
 
+export interface GameRequest {
+  createdAt: Generated<Timestamp>;
+  points: number;
+  powerUps: boolean;
+  targetId: number | null;
+  userId: number;
+}
+
 export interface MutedUser {
   channelId: number;
   mutedAt: Generated<Timestamp>;
@@ -108,14 +123,6 @@ export interface MutedUser {
 export interface PrivateGameRequest {
   createdAt: Generated<Timestamp>;
   targetId: number;
-  userId: number;
-}
-
-export interface PublicGameRequest {
-  createdAt: Generated<Timestamp>;
-  points: number;
-  powerUps: boolean;
-  targetId: number | null;
   userId: number;
 }
 
@@ -138,6 +145,7 @@ export interface DB {
   blockedUser: BlockedUser;
   channel: Channel;
   channelAdmin: ChannelAdmin;
+  channelInviteList: ChannelInviteList;
   channelMember: ChannelMember;
   channelMessage: ChannelMessage;
   conversation: Conversation;
@@ -145,8 +153,8 @@ export interface DB {
   friend: Friend;
   friendRequest: FriendRequest;
   game: Game;
+  gameRequest: GameRequest;
   mutedUser: MutedUser;
   privateGameRequest: PrivateGameRequest;
-  publicGameRequest: PublicGameRequest;
   user: User;
 }

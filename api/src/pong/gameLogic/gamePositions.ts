@@ -1,4 +1,4 @@
-import { GameStateType } from 'src/types/games/pongGameTypes';
+import { GameStateType } from 'src/types/gameServer/pongGameTypes';
 import {
   BALL_SIZE,
   CANVAS_H,

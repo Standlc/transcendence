@@ -2,15 +2,19 @@ import { Injectable, InternalServerErrorException, NotFoundException, Unauthoriz
 import { db } from 'src/database';
 import { CreateUsersDto } from './dto/create-users.dto';
 import * as bcrypt from 'bcrypt';
-import { AppUser, ListUsers } from 'src/types/clientSchema';
+import { AppUser, AppUserDB, ListUsers } from 'src/types/clientSchema';
 import { userFromIntra } from 'src/auth/oauth.strategy';
 import { randomBytes } from 'crypto';
 import { User } from 'src/types/schema';
 import { Selectable } from 'kysely';
+import { UsersStatusGateway } from 'src/usersStatusGateway/UsersStatus.gateway';
 import { unlink } from 'fs/promises';
+import { UpdateUsersDto } from './dto/update-users.dto';
 
 @Injectable()
 export class UsersService {
+  constructor(private readonly usersStatusGateway: UsersStatusGateway) {}
+
   /**
    * Create a user in the database using createUserDto values
    * @param createUsersDto 
@@ -51,9 +55,9 @@ export class UsersService {
       console.log(error);
       throw new InternalServerErrorException();
     }
-    let user: AppUser | undefined;
+    let userDB: AppUserDB;
     try {
-      user = await db
+      userDB = await db
       .selectFrom('user')
       .select(['avatarUrl', 'bio', 'createdAt', 'email', 'firstname', 'id', 'lastname', 'rating', 'username'])
       .where('username', '=', createUsersDto.username)
@@ -62,7 +66,10 @@ export class UsersService {
       console.log(error);
       throw new InternalServerErrorException();
     }
-    return user;
+    return {
+      ...userDB,
+      status: this.usersStatusGateway.getUserStatus(userDB?.id)
+    };
   }
 
   /**
@@ -130,8 +137,11 @@ export class UsersService {
     if (!user)
       throw new NotFoundException();
     //? Create a AppUser containing every field, except password.
-    const {password, ...appUser} = user;
-    return appUser;
+    const {password, ...appUserDB} = user;
+    return {
+      ...appUserDB,
+      status: this.usersStatusGateway.getUserStatus(appUserDB?.id)
+    };
   }
 
   /**
@@ -144,9 +154,9 @@ export class UsersService {
   async findUsersByName(substring: string): Promise<AppUser[]> {
     //? Fetch the database and search for any user containing a substring in the username field.
     //? Create an array of AppUser containing every field except password of any user that matches the substring.
-    let user: AppUser[]
+    let users: AppUserDB[]
     try {
-      user = await db
+      users = await db
       .selectFrom('user')
       .select(['username', 'bio', 'avatarUrl', 'firstname', 'lastname', 'createdAt', 'email', 'id', 'rating'])
       .where('username', 'like', '%' + substring + '%')
@@ -156,9 +166,9 @@ export class UsersService {
       console.log(error);
       throw new InternalServerErrorException();
     }
-    if (!user)
+    if (!users)
       throw new NotFoundException();
-    return user;
+    return users.map((u) => ({...u, status: this.usersStatusGateway.getUserStatus(u?.id)}))
   }
 
   /**
@@ -183,8 +193,11 @@ export class UsersService {
     }
     if (!user)
       throw new NotFoundException();
-    const {password, ...appUser} = user;
-    return appUser;
+    const {password, ...appUserDB} = user;
+    return {
+      ...appUserDB,
+      status: this.usersStatusGateway.getUserStatus(appUserDB?.id)
+    };
   }
 
   /**
@@ -195,7 +208,7 @@ export class UsersService {
    * @throws InternalServerError if we fail to use the db.
    */
   async getUserByEmail(email: string): Promise<AppUser> {
-    let user: AppUser | undefined;
+    let user: AppUserDB | undefined;
     try {
       user = await db
       .selectFrom('user')
@@ -208,7 +221,10 @@ export class UsersService {
     }
     if (!user)
       throw new NotFoundException();
-    return user;
+    return {
+      ...user,
+      status: this.usersStatusGateway.getUserStatus(user?.id)
+    };
   }
 
   /**
@@ -234,8 +250,11 @@ export class UsersService {
       if (!result)
         throw new UnauthorizedException();
 
-      const {password, ...appUser} = user;
-      return appUser;
+      const {password, ...appUserDB} = user;
+      return {
+        ...appUserDB,
+        status: this.usersStatusGateway.getUserStatus(appUserDB?.id)
+      };
     } catch (error) {
       if (error instanceof UnauthorizedException || error instanceof NotFoundException)
         throw new UnauthorizedException;
@@ -258,6 +277,23 @@ export class UsersService {
     } catch (error) {
       throw new InternalServerErrorException();
     }
+  }
+
+  async updateUser(userId: number, updateUsersDto: UpdateUsersDto) {
+    if (updateUsersDto.bio || updateUsersDto.firstname || updateUsersDto.lastname) {
+      try {
+        const result = await db
+        .updateTable('user')
+        .set({...updateUsersDto})
+        .where('id', '=', userId)
+        .executeTakeFirst()
+      } catch (error) {
+        console.log(error);
+        throw new InternalServerErrorException();
+      }
+    }
+    else
+      throw new UnprocessableEntityException("Empty value");
   }
 
   //TODO return AppUser with the new avatarUrl
