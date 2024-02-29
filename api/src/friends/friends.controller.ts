@@ -2,7 +2,7 @@ import { Controller, Get, Post, Param, Delete, UseGuards, Request, Query, NotFou
 import { FriendsService } from './friends.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { ApiCookieAuth, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiQuery, ApiTags, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
-import { ListUsers } from 'src/types/clientSchema';
+import { AppUser, ListUsers } from 'src/types/clientSchema';
 
 @ApiTags('friends')
 @UseGuards(JwtAuthGuard)
@@ -153,7 +153,7 @@ export class FriendsController {
     description: "The user id of who you want to get a friend list, if not specified, the friend list of yourself is returned. "
   })
   @Get()
-  async findAllFriends(@Request() req, @Query('id') id: number): Promise<ListUsers[]> {
+  async findAllFriends(@Request() req, @Query('id') id: number): Promise<AppUser[]> {
     if (id)
       return await this.friendsService.findAllFriends(id);
     return await this.friendsService.findAllFriends(req.user.id);
