@@ -6,9 +6,10 @@ import { AppUser, AppUserDB, ListUsers } from 'src/types/clientSchema';
 import { userFromIntra } from 'src/auth/oauth.strategy';
 import { randomBytes } from 'crypto';
 import { User } from 'src/types/schema';
-import { Selectable, UnaryOperationNode, UpdateResult } from 'kysely';
-import { UpdateUsersDto } from './dto/update-users.dto';
+import { Selectable } from 'kysely';
 import { UsersStatusGateway } from 'src/usersStatusGateway/UsersStatus.gateway';
+import { unlink } from 'fs/promises';
+import { UpdateUsersDto } from './dto/update-users.dto';
 
 @Injectable()
 export class UsersService {
@@ -293,5 +294,50 @@ export class UsersService {
     }
     else
       throw new UnprocessableEntityException("Empty value");
+  }
+
+  /**
+   * Set the URL avatar for the user
+   * @param userId 
+   * @param avatarUrl 
+   */
+  async setAvatar(userId: number, avatarUrl: string): Promise<AppUser> {
+    try {
+      const result = await db
+      .selectFrom('user')
+      .select('avatarUrl')
+      .where('id', '=', userId)
+      .executeTakeFirst();
+      try {
+        if (result != undefined && result.avatarUrl != null && result.avatarUrl.includes(`/api/users`, 0)) {
+          await unlink(result.avatarUrl.replace(`/api/users/`, ''));
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    } catch (error) {
+      throw new InternalServerErrorException();
+    }
+
+    try {
+      const result = await db
+      .updateTable('user')
+      .set('avatarUrl', avatarUrl)
+      .where('user.id', '=', userId)
+      .executeTakeFirst();
+      const user = await db
+      .selectFrom('user')
+      .selectAll()
+      .where('id', '=', userId)
+      .executeTakeFirstOrThrow();
+      const {password, ...appUserDB} = user;
+      return {
+        ...appUserDB,
+        status: this.usersStatusGateway.getUserStatus(appUserDB?.id)
+      };
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
   }
 }

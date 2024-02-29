@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Param, Delete, UseGuards, Request, Query, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Delete, UseGuards, Request, Query, NotFoundException } from '@nestjs/common';
 import { FriendsService } from './friends.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
-import { ApiCookieAuth, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiQuery, ApiTags, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
+import { ApiCookieAuth, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiQuery, ApiTags, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
 import { AppUser, ListUsers } from 'src/types/clientSchema';
 
 @ApiTags('friends')
@@ -15,6 +15,7 @@ export class FriendsController {
   //#region <-- Request -->
 
   //#region AddFriend
+  @ApiOperation({summary: "Send a friend request to someone"})
   @ApiCreatedResponse({
     description: "Friend request sent, but this endpoint will return 'Friend added' if you tried to request someone who already request you",
     schema: {
@@ -50,6 +51,7 @@ export class FriendsController {
   //#endregion
 
   //#region GetAllFriendRequest
+  @ApiOperation({summary: "Get every current friend request"})
   @ApiOkResponse({
     description: "An array of every user who request sent you a request.",
     schema: {
@@ -78,6 +80,7 @@ export class FriendsController {
   //#endregion
 
   //#region AcceptARequest
+  @ApiOperation({summary: "Accept a friend request"})
   @ApiCreatedResponse({
     description: "Request succesfuly accepted.",
     schema: {
@@ -100,6 +103,7 @@ export class FriendsController {
   //#endregion
 
   //#region DeleteARequest
+  @ApiOperation({summary: "Deny a friend request"})
   @ApiOkResponse({
     description: "Request was succesfuly denied.",
     schema: {
@@ -126,21 +130,37 @@ export class FriendsController {
   //#region <-- Friends -->
 
   //#region GetAllFriend
+  @ApiOperation({summary: "Get an array of every friend"})
   @ApiOkResponse({
     description: "Return an array of friend object",
     schema: {
       type: 'object',
-      properties: {
-        username: {
-          type: 'string'
+      example: [
+        {
+          avatarUrl: null,
+          bio: null,
+          createdAt: "2024-02-16T14:28:58.410Z",
+          email: null,
+          firstname: "john",
+          id: 1,
+          lastname: "doe",
+          rating: 18,
+          username: "joe",
+          status: 1
         },
-        avatarUrl: {
-          type: 'string'
+        {
+          avatarUrl: null,
+          bio: null,
+          createdAt: "2023-02-16T14:28:58.410Z",
+          email: null,
+          firstname: "jack",
+          id: 1,
+          lastname: "doe",
+          rating: 18,
+          username: "jae",
+          status: 1
         },
-        id: {
-          type: 'integer'
-        }
-      }
+      ]
     },
     isArray: true
   })
@@ -161,6 +181,7 @@ export class FriendsController {
   //#endregion
 
   //#region Remove a Friend
+  @ApiOperation({summary: "Remove a friend"})
   @ApiOkResponse({
     description: "Succesfuly remove id from friend list.",
     schema: {
