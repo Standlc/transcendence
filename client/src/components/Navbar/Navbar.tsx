@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 
 export const NavBar = () => {
     const navigate = useNavigate();
-    const [activeButton, setActiveButton] = useState(null);
+    const [activeButton, setActiveButton] = useState<string | null>(null);
 
-    const handleClick = (buttonText) => {
-        setActiveButton(buttonText);
+    const handleClick = (buttonText: string) => {
+        setActiveButton((prevButton) =>
+            prevButton === buttonText ? null : buttonText
+        );
     };
 
     const buttons = ["user", "chat 1", "Play", "+"];

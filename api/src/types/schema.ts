@@ -1,10 +1,18 @@
-import type { ColumnType, Selectable } from "kysely";
+import type { ColumnType } from "kysely";
 
 export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
+
+export interface Achievement {
+  createdAt: Generated<Timestamp>;
+  level: Generated<number>;
+  type: number;
+  updatedAt: Generated<Timestamp>;
+  userId: number;
+}
 
 export interface BannedUser {
   bannedById: number;
@@ -32,6 +40,13 @@ export interface Channel {
 export interface ChannelAdmin {
   channelId: number;
   userId: number;
+}
+
+export interface ChannelInviteList {
+  channelId: number | null;
+  createdAt: Generated<Timestamp>;
+  invitedByUserId: number | null;
+  invitedUserId: number | null;
 }
 
 export interface ChannelMember {
@@ -80,8 +95,10 @@ export interface Game {
   id: Generated<number>;
   isPublic: boolean;
   playerOneId: number;
+  playerOneRatingChange: Generated<number>;
   playerOneScore: Generated<number>;
   playerTwoId: number;
+  playerTwoRatingChange: Generated<number>;
   playerTwoScore: Generated<number>;
   points: number;
   powerUps: boolean;
@@ -123,10 +140,12 @@ export interface User {
 }
 
 export interface DB {
+  achievement: Achievement;
   bannedUser: BannedUser;
   blockedUser: BlockedUser;
   channel: Channel;
   channelAdmin: ChannelAdmin;
+  channelInviteList: ChannelInviteList;
   channelMember: ChannelMember;
   channelMessage: ChannelMessage;
   conversation: Conversation;

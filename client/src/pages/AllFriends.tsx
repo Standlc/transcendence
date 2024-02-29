@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Avatar } from "../UIKit/Avatar";
 import defaultAvatar from "../components/defaultAvatar.png";
-import { Chat } from "../components/Chat/Chat";
+import Chat from "../components/Chat/Chat";
+import { Avatar } from "../UIKit/Avatar";
 
 interface Props {
     allFriends: boolean;
@@ -9,6 +9,7 @@ interface Props {
     setFriendsPending: (friendsPending: boolean) => void;
     setAllFriends: (allFriends: boolean) => void;
     friends: Friend[];
+    SERVER_URL: string;
 }
 
 interface Friend {
@@ -27,9 +28,13 @@ export const AllFriends: React.FC<Props> = ({
     setFriendsPending,
     setAllFriends,
     friends,
+    SERVER_URL,
 }: Props) => {
     const [showChat, setShowChat] = useState(false);
     const [conversations, setConversations] = useState<Conversation[]>([]);
+    const [AllConversation, setallConversation] = useState<Conversation[]>([]);
+    const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
+    const [selectedConversation, setSelectedConversation] = useState<number>(0);
 
     const newConversation = async (userId: number) => {
         try {
@@ -54,24 +59,77 @@ export const AllFriends: React.FC<Props> = ({
         }
     };
 
-    const handleFriendClick = async (friend: Friend) => {
-        const existingConversation = conversations.find(
-            (conversation) => conversation.userId === friend.id
-        );
-        if (existingConversation) {
-            // Si une conversation existe déjà pour cet ami, afficher la conversation
-            setShowChat(true);
-        } else {
-            // Sinon, créer une nouvelle conversation
-            console.log(friend.username);
-            await newConversation(friend.id);
+    const getAllConversation = async () => {
+        try {
+            const response = await fetch("http://localhost:3000/api/dm", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            setallConversation(data);
+            // console.log("Conversation all", data);
+        } catch (error) {
+            console.error("Fetching friends failed:", error);
         }
     };
 
+    const findConversation = async (friendId: number) => {
+        try {
+            const response = await fetch(`${SERVER_URL}/api/dm/findDmId/${friendId}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                // Supposons que la réponse contienne l'ID de la conversation si trouvée
+                setSelectedConversation(data.conversationId);
+                setShowChat(true);
+                setSelectedFriend(
+                    friends.find((friend) => friend.id === friendId) || null
+                );
+            } else if (response.status === 404) {
+                // Aucune conversation trouvée, créez-en une nouvelle
+                newConversation(friendId);
+            } else {
+                // Gérer d'autres réponses inattendues
+                console.error(
+                    "Erreur lors de la recherche de la conversation:",
+                    response.status
+                );
+            }
+        } catch (error) {
+            console.error("Erreur lors de la recherche de la conversation:", error);
+        }
+    };
+
+    useEffect(() => {
+        getAllConversation();
+    }, []);
+
+    const handleFriendClick = (friend: Friend) => {
+        console.log("Friend clicked:", friend);
+        findConversation(friend.id);
+    };
+
+    console.log("SELECTEDFRIEND", selectedFriend);
     return (
         <>
             {showChat ? (
-                <Chat />
+                <Chat
+                    SERVER_URL={SERVER_URL}
+                    conversationID={selectedConversation}
+                    selectedFriend={selectedFriend}
+                />
             ) : (
                 <div>
                     <div

@@ -1,3 +1,5 @@
+import { USER_STATUS } from '../usersStatusTypes';
+
 export type LeaderbordPlayer = {
   id: number;
   rating: number;
@@ -6,4 +8,5 @@ export type LeaderbordPlayer = {
   bio: string | null;
   losses: number;
   wins: number;
+  status: USER_STATUS;
 };

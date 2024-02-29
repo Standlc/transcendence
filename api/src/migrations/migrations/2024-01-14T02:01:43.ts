@@ -1,18 +1,6 @@
 import { Kysely } from 'kysely';
 
 export async function up(db: Kysely<any>): Promise<void> {
-  // await db.schema
-  //   .createTable('player')
-  //   .addColumn('userId', 'integer', (col) =>
-  //     col.references('user.id').notNull(),
-  //   )
-  //   .addColumn('gameId', 'integer', (col) =>
-  //     col.references('game.id').onDelete('cascade').notNull(),
-  //   )
-  //   .addColumn('score', 'integer', (col) => col.notNull().defaultTo(0))
-  //   .addPrimaryKeyConstraint('playerPrimaryKey', ['userId', 'gameId'])
-  //   .execute();
-
   await db.schema
     .alterTable('game')
     .dropColumn('player1_id')
@@ -75,6 +63,4 @@ export async function down(db: Kysely<any>): Promise<void> {
     .dropColumn('powerUps')
     .dropColumn('points')
     .execute();
-
-  // await db.schema.dropTable('player').execute();
 }

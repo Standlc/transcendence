@@ -1,6 +1,6 @@
 export type AppGame = {
-  playerOne: AppPlayer | null;
-  playerTwo: AppPlayer | null;
+  playerOne: GamePlayer | null;
+  playerTwo: GamePlayer | null;
   winnerId: number | null;
   createdAt: Date;
   id: number;
@@ -9,10 +9,11 @@ export type AppGame = {
   isPublic: boolean;
 };
 
-export type AppPlayer = {
+export type GamePlayer = {
   id: number;
   score: number;
   rating: number;
   username: string;
   avatarUrl: string | null;
-}
+  ratingChange: number;
+};

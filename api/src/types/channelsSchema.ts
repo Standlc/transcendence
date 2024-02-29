@@ -1,17 +1,11 @@
-import {
-  Channel,
-  ChannelMessage,
-  DirectMessage,
-  Generated,
-  Timestamp,
-} from './schema';
+import { ChannelMessage, DirectMessage } from './schema';
 
-export type ChannelDataWithoutPassword = Omit<Channel, 'password'>;
-
-export type ChannelCreationData = Omit<
-  Channel,
-  'channelOwner' | 'createdAt' | 'id'
->;
+export interface ChannelCreationData {
+  isPublic: boolean;
+  name: string;
+  password: string | null;
+  photoUrl: string | null;
+}
 
 export type UserId = { userId: number };
 
@@ -19,14 +13,23 @@ export type DirectMessageContent = Omit<DirectMessage, 'createdAt' | 'id'>;
 
 export type ChannelMessageContent = Omit<ChannelMessage, 'createdAt' | 'id'>;
 
+export interface ChannelDataWithoutPassword {
+  channelOwner: number;
+  createdAt: Date;
+  id: number;
+  isPublic: boolean;
+  name: string | null;
+  photoUrl: string | null;
+}
+
 // combine User interface and Channel interface
 export interface MessageWithSenderInfo {
   avatarUrl: string | null;
   username: string;
   channelId: number;
   messageContent: string | null;
-  createdAt: Generated<Timestamp>;
-  messageId: Generated<number>;
+  createdAt: Date;
+  messageId: number;
   senderId: number;
   isOwner: boolean;
   isAdmin: boolean;
@@ -38,11 +41,12 @@ export interface MessageWithSenderInfo {
 export interface DmWithSenderInfo {
   content: string | null;
   conversationId: number;
-  createdAt: Generated<Timestamp>;
-  messageId: Generated<number>;
+  createdAt: Date;
+  messageId: number;
   senderId: number;
   avatarUrl: string | null;
   username: string;
+  senderIsBlocked: boolean;
 }
 
 export interface ConnectToChannel {
@@ -74,4 +78,38 @@ export interface MuteUser {
 export interface BlockUser {
   userId: number;
   targetUserId: number;
+}
+
+export interface ConversationPromise {
+  id: number;
+  createdAt: Date;
+  user1_id: number;
+  user2_id: number;
+}
+
+export interface QuitChannel {
+  channelId: number;
+  userId: number;
+}
+
+export interface ChannelUpdate {
+  isPublic: boolean;
+  name: string | null;
+  password: string | null;
+  photoUrl: string | null;
+}
+
+export interface AllConversationsPromise {
+  id: number;
+  createdAt: Date;
+  user1: {
+    userId: number;
+    avatarUrl: string;
+    username: string;
+  };
+  user2: {
+    userId: number;
+    avatarUrl: string;
+    username: string;
+  };
 }

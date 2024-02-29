@@ -14,9 +14,10 @@ interface Friend {
 
 interface Props {
     loginResponse: LoginResponse | null;
+    SERVER_URL: string;
 }
 
-export const Friends: React.FC<Props> = ({ loginResponse }: Props) => {
+export const Friends: React.FC<Props> = ({ loginResponse, SERVER_URL }: Props) => {
     const [adding, setAdding] = useState(false);
     const [friends, setFriends] = useState<Friend[]>([]);
     const [friendsPending, setFriendsPending] = useState(false);
@@ -75,6 +76,7 @@ export const Friends: React.FC<Props> = ({ loginResponse }: Props) => {
                     setFriendsPending={setFriendsPending}
                     setAllFriends={setAllFriends}
                     friends={friends}
+                    SERVER_URL={SERVER_URL}
                 />
             ) : (
                 <div>

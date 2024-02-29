@@ -1,4 +1,9 @@
-import { DmWithSenderInfo, UserId } from './../types/channelsSchema';
+import {
+  AllConversationsPromise,
+  ConversationPromise,
+  DmWithSenderInfo,
+  UserId,
+} from './../types/channelsSchema';
 import {
   Controller,
   Get,
@@ -10,7 +15,6 @@ import {
   Request,
 } from '@nestjs/common';
 import { DmService } from './dm.service';
-import { Conversation } from '../types/schema';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import {
   ApiBody,
@@ -22,6 +26,7 @@ import {
   ApiUnprocessableEntityResponse,
   ApiNotFoundResponse,
   ApiParam,
+  ApiConflictResponse,
 } from '@nestjs/swagger';
 
 @UseGuards(JwtAuthGuard)
@@ -39,37 +44,20 @@ export class DmController {
     schema: { type: 'object', properties: { userId: { type: 'number' } } },
   })
   @ApiOkResponse({
-    schema: {
-      type: 'object',
-      properties: {
-        id: {
-          type: 'number',
-        },
-        createdAt: {
-          type: 'string',
-        },
-        user1_id: {
-          type: 'number',
-        },
-        user2_id: {
-          type: 'number',
-        },
-      },
-    },
+    description: 'Conversation of user 1 and user 2 created',
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @ApiUnprocessableEntityResponse({
-    description:
-      'Cannot create conversation with yourself | Conversation already exists',
+    description: 'Cannot create conversation with yourself',
   })
   @ApiNotFoundResponse({
     description: 'User not found | Users are not friends',
   })
+  @ApiConflictResponse({
+    description: 'Conversation already exists',
+  })
   @Post()
-  createConveration(
-    @Body() userId: UserId,
-    @Request() req,
-  ): Promise<Conversation> {
+  createConveration(@Body() userId: UserId, @Request() req): Promise<string> {
     return this.dmService.createConversation(userId.userId, req.user.id);
   }
 
@@ -102,9 +90,63 @@ export class DmController {
   @ApiNotFoundResponse({ description: 'No conversations found for this user' })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @Get()
-  getAllConversationsOfTheUser(@Request() req): Promise<Conversation[]> {
+  //
+  //
+  //
+  @ApiOperation({ summary: 'Get all conversations' })
+  @ApiOkResponse({
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: {
+            type: 'number',
+          },
+          createdAt: {
+            type: 'string',
+          },
+          user1: {
+            type: 'object',
+            properties: {
+              userId: {
+                type: 'number',
+              },
+              avatarUrl: {
+                type: 'string',
+              },
+              username: {
+                type: 'string',
+              },
+            },
+          },
+          user2: {
+            type: 'object',
+            properties: {
+              userId: {
+                type: 'number',
+              },
+              avatarUrl: {
+                type: 'string',
+              },
+              username: {
+                type: 'string',
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiNotFoundResponse({ description: 'No conversations found for this user' })
+  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
+  @Get()
+  getAllConversationsOfTheUser(
+    @Request() req,
+  ): Promise<AllConversationsPromise[]> {
     return this.dmService.getAllConversationsOfTheUser(req.user.id);
   }
+
 
   //
   //
@@ -136,7 +178,7 @@ export class DmController {
   getConversation(
     @Param('id') id: string,
     @Request() req,
-  ): Promise<Conversation> {
+  ): Promise<ConversationPromise> {
     return this.dmService.getConversation(Number(id), req.user.id);
   }
 
@@ -171,6 +213,9 @@ export class DmController {
           },
           username: {
             type: 'string',
+          },
+          senderIsBlocked: {
+            type: 'boolean',
           },
         },
       },
