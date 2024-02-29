@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import io from "socket.io-client";
 import { useAuth } from "../RequireAuth/AuthProvider";
-import { Avatar } from "../../UIKit/Avatar";
 import { Timestamp } from "../../../../api/src/types/schema";
 import defaultAvatar from "./../../components/defaultAvatar.png";
 import TextArea from "../../UIKit/TextArea";
+import { Avatar } from "../../UIKit/avatar/Avatar";
 
 interface Props {
     SERVER_URL: string;

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
-import { Avatar } from "../UIKit/Avatar";
 import defaultAvatar from "../components/defaultAvatar.png";
+import { Avatar } from "../UIKit/avatar/Avatar";
 interface Props {
     friendsPending: boolean;
     setAdding: (adding: boolean) => void;

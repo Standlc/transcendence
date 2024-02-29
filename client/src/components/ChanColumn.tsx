@@ -3,8 +3,8 @@ import { LoginResponse } from "./RequireAuth/AuthProvider";
 import defaultAvatar from "./defaultAvatar.png";
 import React, { useEffect, useState } from "react";
 import { Settings } from "@mui/icons-material";
-import { Avatar } from "../UIKit/Avatar";
 import { PutAvatar } from "./PutAvatar";
+import { Avatar } from "../UIKit/avatar/Avatar";
 
 interface Props {
     loginResponse: LoginResponse | null;
@@ -197,9 +197,16 @@ export const ChanColumn: React.FC<Props> = ({
             </div>
             <div className="flex bg-almost-black text-m user-chancolumn items-center justify-between">
                 <div className="flex items-center">
-                    <PutAvatar loginResponse={loginResponse} />
-                    <div>
-                        <div className="font-bold text-left">
+                    {/* <PutAvatar loginResponse={loginResponse} /> */}
+                    <Avatar
+                        imgUrl={loginResponse?.avatarUrl}
+                        size="md"
+                        userId={loginResponse?.id ?? 0}
+                        // status={}
+                        borderRadius={0.5}
+                    />
+                    <div className="ml-[10px]">
+                        <div className="font-bold text-left ">
                             {loginResponse?.username}
                         </div>
                         <div className="text-green text-left">En ligne</div>

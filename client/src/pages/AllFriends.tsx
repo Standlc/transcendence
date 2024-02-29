@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import defaultAvatar from "../components/defaultAvatar.png";
 import Chat from "../components/Chat/Chat";
-import { Avatar } from "../UIKit/Avatar";
+import { Avatar } from "../UIKit/avatar/Avatar";
 
 interface Props {
     allFriends: boolean;
