@@ -26,6 +26,14 @@ export class Utils {
     channel: ChannelUpdate,
   ): Promise<string> {
     try {
+      if (channel.password) {
+        try {
+          await this.passwordSecurityVerification(channel.password);
+        } catch (error) {
+          throw error;
+        }
+      }
+
       let hashedPassword: string | null = null;
       if (channel.password != null) {
         hashedPassword = channel.password
@@ -242,6 +250,32 @@ export class Utils {
   }
 
   // other
+
+  //
+  //
+  //
+  // !!! to test
+  async passwordSecurityVerification(password: string): Promise<void> {
+    if (password.length < 8 || password.length > 20) {
+      throw new UnprocessableEntityException('Invalid password length');
+    }
+    if (!password.match(/[a-zA-Z]/)) {
+      throw new UnprocessableEntityException('Password must contain a letter');
+    }
+    if (!password.match(/[0-9]/)) {
+      throw new UnprocessableEntityException('Password must contain a number');
+    }
+    if (!password.match(/[!@#$%^&*]/)) {
+      throw new UnprocessableEntityException(
+        'Password must contain a special character !@#$%^&*',
+      );
+    }
+    if (!password.match(/^[a-zA-Z0-9!@#$%^&*]+$/)) {
+      throw new UnprocessableEntityException(
+        'Password can only contain letters, numbers, and special characters !@#$%^&*',
+      );
+    }
+  }
 
   //
   //

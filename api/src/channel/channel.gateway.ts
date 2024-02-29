@@ -1,6 +1,5 @@
 import { SocketService } from './socketService.service';
 import { ConnectedUsersService } from './../connectedUsers/connectedUsers.service';
-import { ChannelService } from './channel.service';
 import {
   ConnectedSocket,
   MessageBody,
@@ -24,14 +23,9 @@ import { UseGuards } from '@nestjs/common';
 import { WsAuthGuard } from 'src/auth/ws-auth.guard';
 import { Utils } from './utilsChannel.service';
 
-@WebSocketGateway(
-  /*5050, */ {
-    namespace: 'channel',
-    cors: {
-      origin: '*',
-    },
-  },
-)
+@WebSocketGateway(5050, {
+  namespace: 'socket.io/channel',
+})
 @UseGuards(WsAuthGuard)
 export class ChannelGateway
   implements OnGatewayConnection, OnGatewayDisconnect
@@ -73,7 +67,7 @@ export class ChannelGateway
   //
   //
   //
-  @SubscribeMessage('joinchannel')
+  @SubscribeMessage('joinChannel')
   async handleJoinChannel(
     @ConnectedSocket() socket: Socket,
     @MessageBody() payload: ConnectToChannel,
@@ -166,6 +160,12 @@ export class ChannelGateway
       console.log(
         `Client socket ${socket.id}, joined channel: ${payload.channelId}`,
       );
+
+      this.sendConfirmation(
+        socket,
+        payload.channelId,
+        `User ${payload.userId} joined the channel`,
+      );
     } catch (error) {
       console.error(error);
       this.connectedUsersService.removeUserWithUserId(payload.userId);
@@ -232,7 +232,7 @@ export class ChannelGateway
   //
   //
   //
-  @SubscribeMessage('leavechannel')
+  @SubscribeMessage('leaveChannel')
   async handleLeaveChannel(
     @ConnectedSocket() socket: Socket,
     @MessageBody() payload: ConnectToChannel,
@@ -260,6 +260,12 @@ export class ChannelGateway
     }
 
     try {
+      this.sendConfirmation(
+        socket,
+        payload.channelId,
+        `User ${payload.userId} left the channel`,
+      );
+
       socket.leave(String(payload.channelId));
       this.connectedUsersService.removeUserWithSocketId(socket.id);
       console.log(
@@ -298,6 +304,12 @@ export class ChannelGateway
     }
 
     try {
+      this.sendConfirmation(
+        socket,
+        payload.channelId,
+        `User ${payload.userId} quit the channel`,
+      );
+
       this.socketService.quitChannel(payload);
       socket.leave(String(payload.channelId));
       this.connectedUsersService.removeUserWithSocketId(socket.id);
@@ -353,6 +365,12 @@ export class ChannelGateway
         payload.targetUserId,
       );
 
+      this.sendConfirmation(
+        socket,
+        payload.channelId,
+        `User ${payload.targetUserId} has been banned`,
+      );
+
       if (bannedSocketId) {
         bannedSocketId.leave(payload.channelId.toString());
         this.connectedUsersService.removeUserWithSocketId(
@@ -380,8 +398,15 @@ export class ChannelGateway
       console.error(error);
       throw new WsException('User did not join channel room');
     }
+
     try {
       await this.socketService.unbanUser(payload);
+
+      this.sendConfirmation(
+        socket,
+        payload.channelId,
+        `User ${payload.targetUserId} has been unbanned`,
+      );
     } catch (error) {
       console.error(error);
       throw new WsException('Could not unban user');
@@ -419,6 +444,12 @@ export class ChannelGateway
         payload.targetUserId,
       );
 
+      this.sendConfirmation(
+        socket,
+        payload.channelId,
+        `User ${payload.targetUserId} has been kicked`,
+      );
+
       if (kickedSocketId) {
         kickedSocketId.leave(payload.channelId.toString());
         this.connectedUsersService.removeUserWithSocketId(
@@ -446,8 +477,15 @@ export class ChannelGateway
       console.error(error);
       throw new WsException('User did not join channel room');
     }
+
     try {
       await this.socketService.muteUser(payload);
+
+      this.sendConfirmation(
+        socket,
+        payload.channelId,
+        `User ${payload.targetUserId} has been muted`,
+      );
     } catch (error) {
       console.error(error);
       throw new WsException('Could not mute user');
@@ -469,8 +507,15 @@ export class ChannelGateway
       console.error(error);
       throw new WsException('User did not join channel room');
     }
+
     try {
       await this.socketService.unmuteUser(payload);
+
+      this.sendConfirmation(
+        socket,
+        payload.channelId,
+        `User ${payload.targetUserId} has been unmuted`,
+      );
     } catch (error) {
       console.error(error);
       throw new WsException('Could not unmute user');
@@ -494,6 +539,7 @@ export class ChannelGateway
       console.error(error);
       throw new WsException('User did not join channel room');
     }
+
     try {
       await this.socketService.blockUser(payload);
     } catch (error) {
@@ -517,6 +563,7 @@ export class ChannelGateway
       console.error(error);
       throw new WsException('User did not join channel room');
     }
+
     try {
       await this.socketService.unblockUser(payload);
     } catch (error) {
@@ -540,8 +587,15 @@ export class ChannelGateway
       console.error(error);
       throw new WsException('User did not join channel room');
     }
+
     try {
       await this.socketService.addAdministrator(payload);
+
+      this.sendConfirmation(
+        socket,
+        payload.channelId,
+        `User ${payload.targetUserId} has been added to admin list`,
+      );
     } catch (error) {
       console.error(error);
       throw new WsException('Could not add admin');
@@ -563,8 +617,15 @@ export class ChannelGateway
       console.error(error);
       throw new WsException('User did not join channel room');
     }
+
     try {
       await this.socketService.removeAdministrator(payload);
+
+      this.sendConfirmation(
+        socket,
+        payload.channelId,
+        `User ${payload.targetUserId} has been removed from admin list`,
+      );
     } catch (error) {
       console.error(error);
       throw new WsException('Could not remove admin');
@@ -586,8 +647,15 @@ export class ChannelGateway
       console.error(error);
       throw new WsException('User did not join channel room');
     }
+
     try {
       await this.socketService.addToInviteList(payload);
+
+      this.sendConfirmation(
+        socket,
+        payload.channelId,
+        `User ${payload.targetUserId} has been added to invite list`,
+      );
     } catch (error) {
       console.error(error);
       throw new WsException('Could not add user to invite list');
@@ -609,11 +677,27 @@ export class ChannelGateway
       console.error(error);
       throw new WsException('User did not join channel room');
     }
+
     try {
       await this.socketService.removeFromInviteList(payload);
+
+      this.sendConfirmation(
+        socket,
+        payload.channelId,
+        `User ${payload.targetUserId} has been removed from invite list`,
+      );
     } catch (error) {
       console.error(error);
       throw new WsException('Could not remove user from invite list');
+    }
+  }
+
+  //
+  //
+  //
+  sendConfirmation(socket: Socket, channelId: number, message: string) {
+    if (socket.rooms.has(channelId.toString())) {
+      this.server.to(channelId.toString()).emit('message', message);
     }
   }
 }

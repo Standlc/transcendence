@@ -121,8 +121,6 @@ export class ChannelService {
     channel: ChannelCreationData,
     userId: number,
   ): Promise<ChannelDataWithoutPassword> {
-    // !!! TODO password length, in PUT too
-
     try {
       this.utilsChannelService.verifyLength(channel.name);
     } catch (error) {
@@ -151,6 +149,16 @@ export class ChannelService {
       await this.utilsChannelService.channelNameIsTaken(channel.name, 0);
     } catch (error) {
       throw error;
+    }
+
+    if (channel.password) {
+      try {
+        await this.utilsChannelService.passwordSecurityVerification(
+          channel.password,
+        );
+      } catch (error) {
+        throw error;
+      }
     }
 
     const hashedPassword = channel.password
@@ -387,10 +395,11 @@ export class ChannelService {
   //
   //
   // Channels where user is member and not banned
+  // !!! to redo
   async getAllChannelsOfTheUser(
     userId: number,
   ): Promise<ChannelDataWithoutPassword[]> {
-    let channels: ChannelDataWithoutPassword[]; // !!! to test
+    let channels: ChannelDataWithoutPassword[];
     try {
       channels = (await db
         .selectFrom('channel')
@@ -405,13 +414,9 @@ export class ChannelService {
           'channel.photoUrl',
         ])
         .where('channelMember.userId', '=', userId)
-        .where('bannedUser.bannedId', '!=', userId)
+        .where('bannedUser.bannedId', '!=', userId) // !!! need banned ?
         .execute()) as ChannelDataWithoutPassword[];
       console.log('channels:', channels);
-
-      if (!channels) {
-        throw new NotFoundException('No channels found');
-      }
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException();
