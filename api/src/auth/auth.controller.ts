@@ -1,6 +1,6 @@
 import { Controller, UseGuards, Request, Get,  Post, Res, UseFilters } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { ApiBody, ApiDefaultResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiQuery, ApiTags, ApiUnauthorizedResponse, ApiCreatedResponse } from '@nestjs/swagger';
+import { ApiBody, ApiDefaultResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiQuery, ApiTags, ApiUnauthorizedResponse, ApiCreatedResponse, ApiOperation } from '@nestjs/swagger';
 import { LocalAuthGuard } from './local-auth.guard';
 import { Response, Response as ResponseType } from 'express';
 import { AppUser } from 'src/types/clientSchema';
@@ -20,6 +20,7 @@ export class AuthController {
    * GET /api/auth/oauth
    * This is the route the user will visit to authenticate using the 42 API
    */
+  @ApiOperation({summary: "Redirect user here to redirect them to the 42 API"})
   @ApiDefaultResponse({description: "Nothing to return, the user will be redirected to the 42 API"})
   @Get('oauth')
   @UseGuards(OauthGuard)
@@ -37,6 +38,7 @@ export class AuthController {
    * We could do everything using just the /api/auth/oauth route. But this is less
    * complex to understand.
    */
+  @ApiOperation({summary: "This handle the redirect of 42 API, do not use directly"})
   @ApiQuery({
     name: 'code',
     required: true,
@@ -65,6 +67,7 @@ export class AuthController {
    * This is the route the user will visit to authenticate using an username
    * with a passord
    */
+  @ApiOperation({summary: "Login a user"})
   @ApiBody({
     description: "User credential",
     required: true,
@@ -114,6 +117,7 @@ export class AuthController {
    * This is the route the user will visit to authenticate using an existing
    * token
    */
+  @ApiOperation({summary: "Return AppUser if you have a valid token"})
   @ApiOkResponse({
     description: "User token is valid",
     schema: {
@@ -147,6 +151,7 @@ export class AuthController {
    * GET /api/auth/logout
    * This is the route the user will visit to logout
    */
+  @ApiOperation({summary: "Logout a user"})
   @ApiOkResponse({description: "User logged out"})
   @Get('logout')
   async logout(@Res({ passthrough: true }) res: ResponseType) {

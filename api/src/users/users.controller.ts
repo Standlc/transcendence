@@ -1,9 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Param, Post, Query, Request, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { ApiBody, ApiCookieAuth, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiQuery, ApiTags, ApiUnauthorizedResponse, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
+import { ApiBody, ApiCookieAuth, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags, ApiUnauthorizedResponse, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
 import { CreateUsersDto } from './dto/create-users.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { AppUser, ListUsers } from 'src/types/clientSchema';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 import { UpdateUsersDto } from './dto/update-users.dto';
 
 @ApiInternalServerErrorResponse({ description: "Whenever the backend fail in some point, probably an error with the db." })
@@ -14,6 +17,7 @@ export class UsersController {
 
   //#region register
 
+  @ApiOperation({summary: "Register a user"})
   @ApiCreatedResponse({
     description: "User registered",
     schema: {
@@ -27,7 +31,8 @@ export class UsersController {
         id: 1,
         lastname: "doe",
         rating: 18,
-        username: "joe"
+        username: "joe",
+        status: 1
       }
     }
   })
@@ -54,6 +59,7 @@ export class UsersController {
 
   //#region find
 
+  @ApiOperation({summary: "Find all user mathing a substring"})
   @ApiCookieAuth()
   @ApiOkResponse({
     description: "An array of every user mathing the name substring",
@@ -68,7 +74,8 @@ export class UsersController {
         id: 1,
         lastname: "doe",
         rating: 18,
-        username: "joe"
+        username: "joe",
+        status: 1
       }]
     },
     isArray: true
@@ -86,6 +93,7 @@ export class UsersController {
 
   //#region profile
 
+  @ApiOperation({summary: "Get a user profile"})
   @ApiCookieAuth()
   @ApiOkResponse({
     description: "User object",
@@ -100,7 +108,8 @@ export class UsersController {
         id: 1,
         lastname: "doe",
         rating: 18,
-        username: "joe"
+        username: "joe",
+        status: 1
       }
     },
     isArray: false
@@ -116,6 +125,7 @@ export class UsersController {
   //#endregion
 
   //#region update
+  @ApiOperation({summary: "Update user profile"})
   @ApiCookieAuth()
   @ApiOkResponse({description: "Profile updated"})
   @ApiUnprocessableEntityResponse({description: "Invalid field or empty field"})
@@ -140,6 +150,7 @@ export class UsersController {
 
   //#region list
 
+  @ApiOperation({summary: "Get every user in the database"})
   @ApiCookieAuth()
   @ApiOkResponse({
     description: "An array of every user in the database",
@@ -163,6 +174,71 @@ export class UsersController {
   @Get('list')
   async getUserList(): Promise<ListUsers[] | null> {
     return await this.usersService.getUserList();
+  }
+
+  //#endregion
+
+  //#region avatar
+
+  @ApiOperation({summary: "Upload an avatar"})
+  @ApiCookieAuth()
+  @ApiCreatedResponse({
+    description: "Avatar succesfully uploaded",
+    schema: {
+      type: 'object',
+      example: {
+        avatarUrl: null,
+        bio: null,
+        createdAt: "2024-02-16T14:28:58.410Z",
+        email: null,
+        firstname: "john",
+        id: 1,
+        lastname: "doe",
+        rating: 18,
+        username: "joe",
+        status: 1
+      }
+    },
+  })
+  @ApiBody({
+    description: "This is a multipart/form-data body, the name should be 'file' and the attachement an image binary",
+    type: 'multipart/form-data',
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary'
+        }
+      }
+    }
+  })
+  @UseGuards(JwtAuthGuard)
+  @Post('avatar')
+  @UseInterceptors(FileInterceptor('file',
+    {
+      storage: diskStorage({
+        destination: './public/avatar',
+        filename: (req, file, cb) => {
+          const randomName = Date.now().toString();
+          return cb(null, `${randomName}${extname(file.originalname)}`);
+        }
+      })
+    }
+  ))
+  async uploadAvatar(@Request() req, @UploadedFile() file: Express.Multer.File): Promise<AppUser> {
+    return this.usersService.setAvatar(req.user.id, `/api/users/${file.path}`);
+  }
+
+  @ApiOperation({summary: "Get the avatar using fileId"})
+  @ApiCookieAuth()
+  @ApiParam({name: 'fileId', description: 'Should start with /api/users'})
+  @ApiOkResponse({description: "Image file"})
+  @ApiNotFoundResponse({description: "No such file exist"})
+  @UseGuards(JwtAuthGuard)
+  @Get('avatar/:fileId')
+  async sendAvatar(@Param('fileId') fileId, @Res() res) {
+    res.sendFile(fileId, { root: './public/avatar' });
   }
 
   //#endregion
