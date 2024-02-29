@@ -2,17 +2,21 @@ import { useContext, useEffect } from "react";
 import { Avatar } from "../UIKit/avatar/Avatar";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { LeaderbordPlayer } from "../../../api/src/types/games/games";
+import { LeaderbordPlayer } from "../../../api/src/types/games";
 import { SocketsContext } from "../ContextsProviders/SocketsContext";
 import {
   Tuple,
   WsLeaderboardPlayerUpdate,
-} from "../../../api/src/types/games/socketPayloadTypes";
-import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
+} from "../../../api/src/types/gameServer/socketPayloadTypes";
+import { PlayerRating } from "../UIKit/PlayerRating";
 
 export default function Leaderboard({ limit }: { limit?: number }) {
-  const { gameSocket, addUsersStatusHandler, removeUsersStatusHandler } =
-    useContext(SocketsContext);
+  const {
+    gameSocketOn,
+    gameSocketOff,
+    addUsersStatusHandler,
+    removeUsersStatusHandler,
+  } = useContext(SocketsContext);
   const queryClient = useQueryClient();
 
   const leaderboard = useQuery({
@@ -26,7 +30,6 @@ export default function Leaderboard({ limit }: { limit?: number }) {
   });
 
   const newLeaderboardPlayers = useMutation({
-    mutationKey: ["newLeaderboardPlayers"],
     mutationFn: async (userIds: number[]) => {
       const res = await axios.post<LeaderbordPlayer[]>(
         `/api/players/leaderboard`,
@@ -89,11 +92,11 @@ export default function Leaderboard({ limit }: { limit?: number }) {
       );
     };
 
-    gameSocket.on("leaderboardUpdate", handleLeaderboardUpdate);
+    gameSocketOn("leaderboardUpdate", handleLeaderboardUpdate);
     return () => {
-      gameSocket.off("leaderboardUpdate", handleLeaderboardUpdate);
+      gameSocketOff("leaderboardUpdate", handleLeaderboardUpdate);
     };
-  }, [gameSocket]);
+  }, [gameSocketOn, gameSocketOff]);
 
   useEffect(() => {
     addUsersStatusHandler({
@@ -157,7 +160,7 @@ export function LeaderboardPlayer({
   player: LeaderbordPlayer;
 }) {
   return (
-    <tr className="relative rounded-lg font-extrabold cursor-pointer group">
+    <tr className="relative rounded-lg font-bold cursor-pointer group">
       <td className="absolute w-full h-full p-0">
         <div className="w-full h-full group-hover:bg-[rgba(255,255,255,0.1)] group-odd:bg-[rgba(255,255,255,0.05)] rounded-md "></div>
       </td>
@@ -179,22 +182,20 @@ export function LeaderboardPlayer({
       </td>
 
       <td className="px-5 py-3">
-        <div className="text-indigo-400 text-sm rounded-md px-2 py-[2px] bg-indigo-400 bg-opacity-10 w-min">
-          <InfiniteSlotMachine state={player.rating} />
-        </div>
+        <PlayerRating rating={player.rating} />
       </td>
 
       <td />
 
       <td className="px-5 py-3">
         <div className="text-green-500 flex items-center justify-center">
-          <InfiniteSlotMachine state={player.wins} />
+          {player.wins}
         </div>
       </td>
 
       <td className="px-5 py-3">
         <div className="text-red-500 flex items-center justify-center">
-          <InfiniteSlotMachine state={player.losses} />
+          {player.losses}
         </div>
       </td>
     </tr>

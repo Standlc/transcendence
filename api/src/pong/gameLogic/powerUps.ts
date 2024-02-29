@@ -3,7 +3,7 @@ import {
   POWER_UPS,
   PlayerType,
   PowerUpType,
-} from 'src/types/games/pongGameTypes';
+} from 'src/types/gameServer/pongGameTypes';
 import {
   CANVAS_H,
   FPP,

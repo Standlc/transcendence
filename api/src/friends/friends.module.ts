@@ -7,5 +7,6 @@ import { UsersStatusModule } from 'src/usersStatusGateway/UsersStatus.module';
   imports: [UsersStatusModule],
   controllers: [FriendsController],
   providers: [FriendsService],
+  exports: [FriendsService]
 })
 export class FriendsModule {}

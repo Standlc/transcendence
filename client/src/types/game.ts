@@ -1,3 +1,5 @@
+import { GamePointsTypes } from "@api/types/gameRequests";
+
 export const GAME_POINTS = [10, 21, 42] as const;
 
 export const BALL_STYLES = [
@@ -26,7 +28,7 @@ export type GameSoundEffectsSettingType = {
 };
 
 export interface GamePreferencesType {
-  points: GAME_POINTS_TYPE;
+  points: GamePointsTypes;
   powerUps: boolean;
   soundEffects: GameSoundEffectsSettingType;
   style: BOARD_STYLES_TYPE;

@@ -19,6 +19,16 @@ export default function GamePreferences({ hide }: { hide: () => void }) {
           MATCHING PREFERENCES
         </span>
         <Setting
+          title="Points"
+          onClick={() => {
+            const index = GAME_POINTS.indexOf(gameSettings.points);
+            const nextIndex = index + 1 >= GAME_POINTS.length ? 0 : index + 1;
+            upadteGameSetting("points", GAME_POINTS[nextIndex]);
+          }}
+        >
+          {gameSettings.points}
+        </Setting>
+        <Setting
           title="Power Ups"
           onClick={() => {
             upadteGameSetting("powerUps", !gameSettings.powerUps);
@@ -30,16 +40,6 @@ export default function GamePreferences({ hide }: { hide: () => void }) {
           >
             {gameSettings.powerUps ? "On" : "Off"}
           </div>
-        </Setting>
-        <Setting
-          title="Points"
-          onClick={() => {
-            const index = GAME_POINTS.indexOf(gameSettings.points);
-            const nextIndex = index + 1 >= GAME_POINTS.length ? 0 : index + 1;
-            upadteGameSetting("points", GAME_POINTS[nextIndex]);
-          }}
-        >
-          {gameSettings.points}
         </Setting>
         <span className="text-sm opacity-50 font-bold mt-2">STYLE</span>
         <Setting
@@ -87,7 +87,7 @@ export default function GamePreferences({ hide }: { hide: () => void }) {
 
       <button
         onClick={hide}
-        className="bg-white bg-opacity-0 rounded-md opacity-50 hover:opacity-100 font-bold self-end justify-self-end mt-auto"
+        className="bg-white bg-opacity-0 rounded-md opacity-50 hover:opacity-100 self-end justify-self-end mt-auto"
       >
         Done
       </button>
@@ -95,7 +95,7 @@ export default function GamePreferences({ hide }: { hide: () => void }) {
   );
 }
 
-const Setting = ({
+export const Setting = ({
   title,
   onClick,
   children,
@@ -107,9 +107,9 @@ const Setting = ({
   return (
     <div
       onClick={onClick}
-      className="flex select-none justify-between cursor-pointer items-center rounded-md hover:bg-opacity-15 active:translate-y-[1px] p-5 shadow-md bg-white bg-opacity-5"
+      className="flex select-none justify-between cursor-pointer items-center rounded-md hover:bg-opacity-15 active:translate-y-[1px] p-5 py-4 shadow-md bg-white bg-opacity-5"
     >
-      <span className="font-extrabold">{title}</span>
+      <span className="font-bold">{title}</span>
       <div className="font-extrabold">{children}</div>
     </div>
   );
