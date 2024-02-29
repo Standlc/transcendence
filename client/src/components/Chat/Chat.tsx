@@ -366,7 +366,7 @@ const Chat: React.FC<Props> = ({
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="Write a message..."
                 />
-                <button type="submit">Sendddd</button>
+                <button type="submit">Send</button>
             </form>
         </div>
     );
