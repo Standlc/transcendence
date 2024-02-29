@@ -9,11 +9,13 @@ import PrivateLayout from "./components/PrivateLayout";
 import PublicLayout from "./components/PublicLayout";
 import PlayPage from "./pages/PlayPage";
 import GamePage from "./pages/GamePage";
-import { AppUser } from "./ContextsProviders/UserContext";
 import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { LiveGamesPage } from "./pages/LiveGamesPage";
+import { AchievementsPage } from "./pages/AchievementsPage";
+import { AppUser } from "@api/types/clientSchema";
+import { GameInvitationTestPage } from "./pages/GameInvitationTestPage";
 
 function App() {
   const queryClient = useQueryClient();
@@ -26,7 +28,7 @@ function App() {
     queryKey: ["user"],
     retry: false,
     queryFn: async () => {
-      const res = await axios.get<AppUser>("/api/auth/login");
+      const res = await axios.get<AppUser>("/api/auth/token");
       return res.data;
     },
   });
@@ -65,6 +67,14 @@ function App() {
                 <Route index element={<div>home</div>}></Route>
                 <Route path="/play" element={<PlayPage />} />
                 <Route path="/play/:gameId" element={<GamePage />} />
+                <Route
+                  path="/invite-test"
+                  element={<GameInvitationTestPage />}
+                />
+                <Route
+                  path="/achievements/:userId"
+                  element={<AchievementsPage />}
+                />
                 <Route path="/leaderboard" element={<LeaderboardPage />} />
                 <Route path="/live" element={<LiveGamesPage />} />
               </Route>

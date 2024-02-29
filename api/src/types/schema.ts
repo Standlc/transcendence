@@ -6,6 +6,14 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export interface Achievement {
+  createdAt: Generated<Timestamp>;
+  level: Generated<number>;
+  type: number;
+  updatedAt: Generated<Timestamp>;
+  userId: number;
+}
+
 export interface BannedUser {
   bannedById: number;
   bannedId: number;
@@ -72,8 +80,8 @@ export interface DirectMessage {
 
 export interface Friend {
   createdAt: Generated<Timestamp>;
-  friendId: number;
-  userId: number;
+  user1_id: number | null;
+  user2_id: number | null;
 }
 
 export interface FriendRequest {
@@ -87,12 +95,22 @@ export interface Game {
   id: Generated<number>;
   isPublic: boolean;
   playerOneId: number;
+  playerOneRatingChange: Generated<number>;
   playerOneScore: Generated<number>;
   playerTwoId: number;
+  playerTwoRatingChange: Generated<number>;
   playerTwoScore: Generated<number>;
   points: number;
   powerUps: boolean;
   winnerId: number | null;
+}
+
+export interface GameRequest {
+  createdAt: Generated<Timestamp>;
+  points: number;
+  powerUps: boolean;
+  targetId: number | null;
+  userId: number;
 }
 
 export interface MutedUser {
@@ -105,14 +123,6 @@ export interface MutedUser {
 export interface PrivateGameRequest {
   createdAt: Generated<Timestamp>;
   targetId: number;
-  userId: number;
-}
-
-export interface PublicGameRequest {
-  createdAt: Generated<Timestamp>;
-  points: number;
-  powerUps: boolean;
-  targetId: number | null;
   userId: number;
 }
 
@@ -130,6 +140,7 @@ export interface User {
 }
 
 export interface DB {
+  achievement: Achievement;
   bannedUser: BannedUser;
   blockedUser: BlockedUser;
   channel: Channel;
@@ -142,8 +153,8 @@ export interface DB {
   friend: Friend;
   friendRequest: FriendRequest;
   game: Game;
+  gameRequest: GameRequest;
   mutedUser: MutedUser;
   privateGameRequest: PrivateGameRequest;
-  publicGameRequest: PublicGameRequest;
   user: User;
 }

@@ -1,10 +1,12 @@
 import { Injectable, InternalServerErrorException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { db } from 'src/database';
 import { DeleteResult } from 'kysely';
-import { ListUsers } from 'src/types/clientSchema';
+import { AppUser, AppUserDB, ListUsers } from 'src/types/clientSchema';
+import { UsersStatusGateway } from 'src/usersStatusGateway/UsersStatus.gateway';
 
 @Injectable()
 export class FriendsService {
+  constructor(private usersStatusGateway: UsersStatusGateway) {}
 
   //#region <-- Request -->
 
@@ -47,16 +49,7 @@ export class FriendsService {
     try {
       await db
       .insertInto('friend')
-      .values([
-        {
-          friendId: sourceId,
-          userId: targetId,
-        },
-        {
-          friendId: targetId,
-          userId: sourceId,
-        }
-      ])
+      .values({'user1_id': sourceId, 'user2_id': targetId})
       .executeTakeFirstOrThrow();
 
       await db
@@ -186,7 +179,7 @@ export class FriendsService {
     try {
       requestUsers = await db
       .selectFrom('user')
-      .select(['id', 'username', 'avatarUrl', 'rating'])
+      .select(['id', 'username', 'avatarUrl'])
       .where('id', 'in', arrayRequestId)
       .execute()
     } catch (error) {
@@ -237,41 +230,33 @@ export class FriendsService {
    * @returns An array of Friend
    * @throws NotFound, InternalServerError
    */
-  async findAllFriends(id: number): Promise<ListUsers[]> {
-    let friendsId: {friendId: number}[];
+  async findAllFriends(id: number): Promise<AppUser[]> {
     try {
-      friendsId = await db
-      .selectFrom('friend')
-      .select('friendId')
-      .orderBy('createdAt asc')
-      .groupBy(['friendId', 'createdAt'])
-      .where('userId', '=', id)
-      .execute();
-    } catch (error) {
-      console.log(error);
-      throw new InternalServerErrorException();
-    }
-
-    if (!friendsId || friendsId && friendsId.length === 0)
-      throw new NotFoundException();
-
-    let arrayFriendsId: number[] = [];
-    friendsId.forEach(friendsId => {
-      arrayFriendsId.push(friendsId.friendId);
-    });
-
-    let friendList: ListUsers[];
-    try {
-      friendList = await db
+      const friends = await db
       .selectFrom('user')
-      .select(['avatarUrl', 'id', 'username', 'rating'])
-      .where('id', 'in', arrayFriendsId)
+      .where('id', '!=', id)
+      .innerJoin('friend', (join) =>
+        join.on(({eb, or, and}) => or([
+          and([
+            eb('friend.user1_id', '=', id),
+            eb('friend.user2_id', '=', eb.ref('user.id'))
+          ]),
+          and([
+            eb('friend.user1_id', '=', eb.ref('user.id')),
+            eb('friend.user2_id', '=', id)
+          ])
+        ])),
+      )
+      .select(['user.avatarUrl', 'user.id', 'user.username', 'user.rating', 'user.bio', 'user.createdAt', 'user.email', 'user.firstname', 'user.lastname'])
       .execute();
+      return friends.map(u => ({
+        ...u,
+        status: this.usersStatusGateway.getUserStatus(u?.id)
+      }));
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException();
     }
-    return friendList;
   }
 
   /**
@@ -289,12 +274,12 @@ export class FriendsService {
       .deleteFrom('friend')
       .where(({ eb, or, and }) => or([
         and([
-          eb('userId', '=', selfId),
-          eb('friendId', '=', friendId),
+          eb('user1_id', '=', selfId),
+          eb('user2_id', '=', friendId),
         ]),
         and([
-          eb('friendId', '=', selfId),
-          eb('userId', '=', friendId),
+          eb('user2_id', '=', selfId),
+          eb('user1_id', '=', friendId),
         ])
       ]))
       .execute();
@@ -316,16 +301,22 @@ export class FriendsService {
   async isFriend(selfId: number, friendId: number): Promise<boolean> {
     let result: {
       createdAt: Date;
-      friendId: number;
-      userId: number;
+      user1_id: number | null;
+      user2_id: number | null;
     } | undefined;
     try {
       result = await db
       .selectFrom('friend')
       .selectAll()
-      .where(({ eb, and}) => and([
-        eb('userId', '=', selfId),
-        eb('friendId', '=', friendId)
+      .where(({ eb, or, and }) => or([
+        and([
+          eb('user1_id', '=', selfId),
+          eb('user2_id', '=', friendId),
+        ]),
+        and([
+          eb('user2_id', '=', selfId),
+          eb('user1_id', '=', friendId),
+        ])
       ]))
       .executeTakeFirst()
     } catch (error) {

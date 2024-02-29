@@ -6,7 +6,8 @@ export interface ErrorType {
 
 export interface ErrorContextType {
   error: ErrorType | undefined;
-  setError: React.Dispatch<React.SetStateAction<ErrorType | undefined>>;
+  addError: (error: ErrorType) => void;
+  removeCurrentError: () => void;
 }
 
 export const ErrorContext = React.createContext(

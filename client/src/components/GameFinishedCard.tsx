@@ -1,48 +1,154 @@
-import { useNavigate } from "react-router-dom";
-import { AppGame } from "../../../api/src/types/games/returnTypes";
-import { Avatar } from "../UIKit/Avatar";
-import { memo } from "react";
+import { Avatar } from "../UIKit/avatar/Avatar";
+import { memo, useContext, useMemo } from "react";
+import { EmojiEvents } from "@mui/icons-material";
+import { Link } from "react-router-dom";
+import { useIsUserAPlayer } from "../utils/game/useIsUserAPlayer";
+import { PlayButton } from "../UIKit/PlayButton";
+import { GameSettingsContext } from "../ContextsProviders/GameSettingsContext";
+import { useFindGameMatch } from "../utils/useFindGameMatch";
+import { GamePlayer, UserGame } from "@api/types/games";
+import { UserContext } from "../ContextsProviders/UserContext";
 
-export const GameFinishedCard = memo(({ game }: { game: AppGame }) => {
-  const navigate = useNavigate();
-  const { playerOne, playerTwo } = game;
+export const GameFinishedCard = memo(
+  ({ game, showSettings }: { game: UserGame; showSettings: () => void }) => {
+    const { user } = useContext(UserContext);
+    const isUserAPlayer = useIsUserAPlayer({ gameRecord: game });
 
-  return (
-    <div
-      onClick={() => navigate(`/play/${game.id}`)}
-      className="relative cursor-pointer transition hover:scale-[1.01] origin-bottom hover:shadow-card-xl ease-out shadow-card min-w-[200px] flex-1 rounded-md p-5 flex items-center justify-center"
-    >
-      <div className="flex flex-col w-full justify-center gap-14">
-        <div className="flex items-start gap-3 flex-1">
-          <Avatar imgUrl={undefined} size="xl" userId={playerOne?.id ?? 0} />
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-title font-bold">
-              {playerOne?.username ?? "Unkown"}
-            </span>
-            <div className="text-sm font-title text-indigo-400 font-bold rounded-md px-2 py-[2px] bg-indigo-400 bg-opacity-10">
-              {playerOne?.rating ?? "Unkown"}
-            </div>
-          </div>
-        </div>
+    const { gameSettings } = useContext(GameSettingsContext);
+    const findGame = useFindGameMatch({
+      points: gameSettings.points,
+      powerUps: gameSettings.powerUps,
+    });
 
-        <span className="flex items-center gap-2 absolute self-center font-gameFont text-xl">
-          <span>{playerOne?.score ?? "Unkown"}</span>
-          <span className="text-xs">-</span>
-          <span>{playerTwo?.score ?? "Unkown"}</span>
+    const { playerOne, playerTwo } = game;
+    const winner = useMemo(
+      () => (playerOne?.id === game.winnerId ? playerOne : playerTwo),
+      [game.winnerId]
+    );
+
+    const { playerLeft, playerRight } = useMemo(() => {
+      if (user.id === playerOne.id) {
+        return {
+          playerLeft: playerTwo,
+          playerRight: playerOne,
+        };
+      }
+      return {
+        playerLeft: playerOne,
+        playerRight: playerTwo,
+      };
+    }, [user.id, playerOne.id, playerTwo.id]);
+
+    return (
+      <div className="flex flex-col w-full justify-center gap-7 p-5">
+        <span className="font-[900] text-center text-2xl">
+          {winner?.username} won!
         </span>
 
-        <div className="flex items-end gap-3 self-end">
-          <div className="flex items-center gap-2">
-            <div className="text-sm font-title text-indigo-400 font-bold rounded-md px-2 py-[2px] bg-indigo-400 bg-opacity-10">
-              {playerTwo?.rating ?? "Unkown"}
-            </div>
-            <span className="text-xl font-title font-bold">
-              {playerTwo?.username ?? "Unkown"}
-            </span>
+        <div className="flex flex-col gap-5 justify-center">
+          <PlayerQuickInfos player={playerLeft} winnerId={winner?.id} />
+
+          <span className="flex absolute items-center gap-2 self-center font-gameFont text-xl">
+            <span>{playerLeft.score}</span>
+            <span className="text-xs">-</span>
+            <span>{playerRight.score}</span>
+          </span>
+
+          <PlayerQuickInfos
+            player={playerRight}
+            winnerId={winner?.id}
+            style={{
+              flexDirection: "row-reverse",
+              alignItems: "end",
+            }}
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <PlayButton onClick={() => findGame.mutate()}>
+            <span>{isUserAPlayer ? "New Game" : "Play Online"}</span>
+          </PlayButton>
+          <div className="flex gap-2 w-full">
+            <Link
+              to={"/play"}
+              className="bg-white flex-1 text-center bg-opacity-10 text-white text-opacity-50 hover:text-opacity-100 rounded-md py-2 font-bold text-base active:translate-y-[1px]"
+            >
+              Leave
+            </Link>
+            <button
+              onClick={showSettings}
+              className="bg-white flex-1 text-center bg-opacity-10 text-white text-opacity-50 hover:text-opacity-100 rounded-md py-2 font-bold text-base active:translate-y-[1px]"
+            >
+              Settings
+            </button>
           </div>
-          <Avatar imgUrl={undefined} size="xl" userId={playerTwo?.id ?? 0} />
+        </div>
+      </div>
+    );
+  }
+);
+
+export const PlayerQuickInfos = ({
+  player,
+  winnerId,
+  style,
+  isDisconnected,
+}: {
+  player: GamePlayer;
+  winnerId?: number | undefined;
+  style?: React.CSSProperties;
+  isDisconnected?: boolean;
+}) => {
+  const ratingChange = player.ratingChange ?? 0;
+  return (
+    <div
+      style={{ ...style, opacity: isDisconnected ? 0.3 : 1 }}
+      className="flex font-extrabold items-start gap-3 flex-1"
+    >
+      <PlayerAvatar player={player} winnerId={winnerId} />
+      <div className="flex gap-3 [flex-direction:inherit] items-center">
+        <span className="text-lg">{player.username}</span>
+        <div className="text-sm flex items-center text-indigo-400 rounded-md px-2 py-[2px] bg-indigo-500 bg-opacity-20">
+          {player.rating}
+          {ratingChange > 0 ? (
+            <span className="text-[12px] text-green-500 ml-1 opacity-100">
+              +{player.ratingChange}
+            </span>
+          ) : ratingChange < 0 ? (
+            <span className="text-[12px] text-red-500 ml-1 opacity-100">
+              {player.ratingChange}
+            </span>
+          ) : null}
         </div>
       </div>
     </div>
   );
-});
+};
+
+const PlayerAvatar = ({
+  player,
+  winnerId,
+}: {
+  player: GamePlayer;
+  winnerId: number | undefined;
+}) => {
+  const isWinner = winnerId != null && winnerId === player.id;
+
+  return (
+    <div
+      style={{
+        borderStyle: !isWinner ? "hidden" : "solid",
+      }}
+      className="relative border-[5px] overflow-hidden rounded-2xl border-indigo-600"
+    >
+      <div style={{ margin: isWinner ? "-5px" : "" }} className="relative">
+        <Avatar imgUrl={undefined} size="lg" userId={player.id} />
+      </div>
+      {isWinner && (
+        <div className="absolute -bottom-[5px] -right-[5px] rounded-tl-md bg-indigo-600 text-yellow-400 h-[25px] w-[25px] flex items-center justify-center">
+          <EmojiEvents style={{ fontSize: 16 }} />
+        </div>
+      )}
+    </div>
+  );
+};

@@ -1,20 +1,27 @@
 import {
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
+  forwardRef,
 } from '@nestjs/common';
 import { db } from 'src/database';
 import { ExpressionBuilder, Insertable, Selectable } from 'kysely';
-import { DB, Game, PublicGameRequest } from '../types/schema';
-import { jsonObjectFrom } from 'kysely/helpers/postgres';
-import { AppGame } from 'src/types/games/returnTypes';
+import { DB, Game, GameRequest } from '../types/schema';
+import { jsonBuildObject, jsonObjectFrom } from 'kysely/helpers/postgres';
+import { UserGame } from 'src/types/games';
+import { PlayersRatingChangesType } from 'src/games/players/players.service';
+import { PongGateway } from 'src/pong/Pong.gateway';
 
 @Injectable()
 export class GamesService {
-  constructor() {}
+  constructor(
+    @Inject(forwardRef(() => PongGateway))
+    private readonly gameServer: PongGateway,
+  ) {}
 
-  async getOngoingPublicGames(limit?: number): Promise<AppGame[]> {
-    const games: AppGame[] = await this.selectGame({ ongoing: true })
+  async getOngoingPublicGames(limit?: number): Promise<UserGame[]> {
+    const games: UserGame[] = await this.selectGame({ ongoing: true })
       .where('winnerId', 'is', null)
       .where('isPublic', 'is', true)
       .orderBy('game.createdAt desc')
@@ -23,7 +30,7 @@ export class GamesService {
     return games;
   }
 
-  async getByGameId(gameId: number, userId: number): Promise<AppGame> {
+  async getByGameId(gameId: number, userId: number): Promise<UserGame> {
     const game = await this.selectGame({
       gameId,
     }).executeTakeFirst();
@@ -61,10 +68,28 @@ export class GamesService {
           ]),
         ),
       )
-      .select((eb) => [
-        this.selectGamePlayer(eb, 1),
-        this.selectGamePlayer(eb, 2),
-      ])
+      .innerJoin('user as playerOne', 'playerOne.id', 'game.playerOneId')
+      .select((eb) =>
+        jsonBuildObject({
+          id: eb.ref('playerOne.id'),
+          score: eb.ref('game.playerOneScore'),
+          rating: eb.ref('playerOne.rating'),
+          username: eb.ref('playerOne.username'),
+          avatarUrl: eb.ref('playerOne.avatarUrl'),
+          ratingChange: eb.ref('game.playerOneRatingChange'),
+        }).as('playerOne'),
+      )
+      .innerJoin('user as playerTwo', 'playerTwo.id', 'game.playerTwoId')
+      .select((eb) =>
+        jsonBuildObject({
+          id: eb.ref('playerTwo.id'),
+          score: eb.ref('game.playerTwoScore'),
+          rating: eb.ref('playerTwo.rating'),
+          username: eb.ref('playerTwo.username'),
+          avatarUrl: eb.ref('playerTwo.avatarUrl'),
+          ratingChange: eb.ref('game.playerTwoRatingChange'),
+        }).as('playerTwo'),
+      )
       .select([
         'game.id',
         'game.points',
@@ -87,32 +112,30 @@ export class GamesService {
           'user.avatarUrl',
           'game.points',
           which === 1 ? 'playerOneScore as score' : 'playerTwoScore as score',
+          which === 1
+            ? 'playerOneRatingChange as ratingChange'
+            : 'playerTwoRatingChange as ratingChange',
         ]),
     ).as(which === 1 ? 'playerOne' : 'playerTwo');
   }
 
-  async create(
-    matchingGameRequest: Selectable<PublicGameRequest>,
-    userId: number,
-  ): Promise<Selectable<Game>> {
-    const gameRecord = await this.new({
-      isPublic: !matchingGameRequest.targetId,
-      points: matchingGameRequest.points,
-      powerUps: matchingGameRequest.powerUps,
-      playerOneId: matchingGameRequest.userId,
-      playerTwoId: userId,
-    });
-    return gameRecord;
-  }
-
-  async finishGame(gameId: number, winnerId: number) {
-    await db
+  async finishGame(
+    gameId: number,
+    winnerId: number,
+    playersRatingsChange?: PlayersRatingChangesType,
+  ) {
+    return await db
       .updateTable('game')
       .set({
         winnerId,
+        playerOneRatingChange:
+          playersRatingsChange?.playerOne.ratingChange ?? 0,
+        playerTwoRatingChange:
+          playersRatingsChange?.playerTwo.ratingChange ?? 0,
       })
       .where('game.id', '=', gameId)
-      .execute();
+      .returningAll()
+      .executeTakeFirstOrThrow();
   }
 
   async updatePlayerScore(
@@ -135,19 +158,19 @@ export class GamesService {
       .execute();
   }
 
-  async new(game: Insertable<Game>) {
-    const updatedGame = await db
+  async create(game: Insertable<Game>) {
+    const newGame = await db
       .insertInto('game')
       .values(game)
       .returningAll()
       .executeTakeFirstOrThrow();
-    return updatedGame;
+    return newGame;
   }
 
   async findByUserId(props?: {
     userId?: number;
     ongoing?: boolean;
-  }): Promise<AppGame | undefined> {
+  }): Promise<UserGame | undefined> {
     const game = await this.selectGame({
       playerId: props?.userId,
       ongoing: props?.ongoing,
@@ -155,39 +178,18 @@ export class GamesService {
     return game;
   }
 
-  // playerTwoScore: (eb) => eb('playerTwoScore', '+', 1),
+  async startNew(gameRequest: Selectable<GameRequest>, userId: number) {
+    const gameRecord = await this.create({
+      isPublic: gameRequest.targetId == null,
+      points: gameRequest.points,
+      powerUps: gameRequest.powerUps,
+      playerOneId: gameRequest.userId,
+      playerTwoId: userId,
+    });
+    this.gameServer.startGame(gameRecord);
+  }
 
-  // async completeGamesInfos(games: LiveGameType[]) {
-  //   const gameIds = games.map((game) => game.players.map((p) => p.id)).flat();
-  //   const playersInfos = await this.getPlayersInfos(gameIds);
-
-  //   return games.map((game) => {
-  //     const gameWithInfo: LiveGameDto = {
-  //       players: [],
-  //       id: game.id,
-  //     };
-  //     game.players.forEach((player) => {
-  //       const playerInfo = playersInfos.find((p) => p.id === player.id);
-  //       if (playerInfo) {
-  //         gameWithInfo.players.push({
-  //           ...playerInfo,
-  //           score: player.score,
-  //         });
-  //       }
-  //     });
-  //     return gameWithInfo;
-  //   });
-  // }
-
-  // async getPlayersInfos(playersIds: number[]) {
-  //   if (!playersIds.length) {
-  //     return [];
-  //   }
-  //   const playersInfos = await db
-  //     .selectFrom('user')
-  //     .where('id', 'in', playersIds)
-  //     .select(['rating', 'id', 'avatarUrl', 'username'])
-  //     .execute();
-  //   return playersInfos;
-  // }
+  async delete(gameId: number) {
+    await db.deleteFrom('game').where('id', '=', gameId).execute();
+  }
 }
