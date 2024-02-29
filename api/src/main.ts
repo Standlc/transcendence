@@ -14,10 +14,7 @@ async function bootstrap() {
 
   SwaggerModule.setup('/docs', app, document);
   app.use(cookieParser());
-  app.enableCors({
-    origin: 'http://localhost:3000', // Your frontend origin
-    credentials: true, // To allow sending credentials like cookies, authorization headers with requests
-  });
+  app.enableCors();
   app.setGlobalPrefix('api');
   await app.listen(5000);
 }
