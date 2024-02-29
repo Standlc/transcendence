@@ -296,13 +296,12 @@ export class UsersService {
       throw new UnprocessableEntityException("Empty value");
   }
 
-  //TODO return AppUser with the new avatarUrl
   /**
    * Set the URL avatar for the user
    * @param userId 
    * @param avatarUrl 
    */
-  async setAvatar(userId: number, avatarUrl: string) {
+  async setAvatar(userId: number, avatarUrl: string): Promise<AppUser> {
     try {
       const result = await db
       .selectFrom('user')
@@ -326,7 +325,18 @@ export class UsersService {
       .set('avatarUrl', avatarUrl)
       .where('user.id', '=', userId)
       .executeTakeFirst();
+      const user = await db
+      .selectFrom('user')
+      .selectAll()
+      .where('id', '=', userId)
+      .executeTakeFirstOrThrow();
+      const {password, ...appUserDB} = user;
+      return {
+        ...appUserDB,
+        status: this.usersStatusGateway.getUserStatus(appUserDB?.id)
+      };
     } catch (error) {
+      console.log(error);
       throw new InternalServerErrorException();
     }
   }

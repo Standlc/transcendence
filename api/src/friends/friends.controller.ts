@@ -130,17 +130,32 @@ export class FriendsController {
     description: "Return an array of friend object",
     schema: {
       type: 'object',
-      properties: {
-        username: {
-          type: 'string'
+      example: [
+        {
+          avatarUrl: null,
+          bio: null,
+          createdAt: "2024-02-16T14:28:58.410Z",
+          email: null,
+          firstname: "john",
+          id: 1,
+          lastname: "doe",
+          rating: 18,
+          username: "joe",
+          status: 1
         },
-        avatarUrl: {
-          type: 'string'
+        {
+          avatarUrl: null,
+          bio: null,
+          createdAt: "2023-02-16T14:28:58.410Z",
+          email: null,
+          firstname: "jack",
+          id: 1,
+          lastname: "doe",
+          rating: 18,
+          username: "jae",
+          status: 1
         },
-        id: {
-          type: 'integer'
-        }
-      }
+      ]
     },
     isArray: true
   })

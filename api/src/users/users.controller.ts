@@ -1,6 +1,6 @@
-import { Body, Controller, Get, NotFoundException, Param, Post, Query, Request, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Param, Post, Query, Request, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { ApiBody, ApiCookieAuth, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiQuery, ApiTags, ApiUnauthorizedResponse, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
+import { ApiBody, ApiCookieAuth, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiQuery, ApiTags, ApiUnauthorizedResponse, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
 import { CreateUsersDto } from './dto/create-users.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { AppUser, ListUsers } from 'src/types/clientSchema';
@@ -30,7 +30,8 @@ export class UsersController {
         id: 1,
         lastname: "doe",
         rating: 18,
-        username: "joe"
+        username: "joe",
+        status: 1
       }
     }
   })
@@ -71,7 +72,8 @@ export class UsersController {
         id: 1,
         lastname: "doe",
         rating: 18,
-        username: "joe"
+        username: "joe",
+        status: 1
       }]
     },
     isArray: true
@@ -103,7 +105,8 @@ export class UsersController {
         id: 1,
         lastname: "doe",
         rating: 18,
-        username: "joe"
+        username: "joe",
+        status: 1
       }
     },
     isArray: false
@@ -173,7 +176,24 @@ export class UsersController {
   //#region avatar
 
   @ApiCookieAuth()
-  @ApiCreatedResponse({description: "Avatar succesfully uploaded"})
+  @ApiCreatedResponse({
+    description: "Avatar succesfully uploaded",
+    schema: {
+      type: 'object',
+      example: {
+        avatarUrl: null,
+        bio: null,
+        createdAt: "2024-02-16T14:28:58.410Z",
+        email: null,
+        firstname: "john",
+        id: 1,
+        lastname: "doe",
+        rating: 18,
+        username: "joe",
+        status: 1
+      }
+    },
+  })
   @ApiBody({
     description: "This is a multipart/form-data body, the name should be 'file' and the attachement an image binary",
     type: 'multipart/form-data',
@@ -200,8 +220,8 @@ export class UsersController {
       })
     }
   ))
-  async uploadAvatar(@Request() req, @UploadedFile() file: Express.Multer.File) {
-    this.usersService.setAvatar(req.user.id, `/api/users/${file.path}`);
+  async uploadAvatar(@Request() req, @UploadedFile() file: Express.Multer.File): Promise<AppUser> {
+    return this.usersService.setAvatar(req.user.id, `/api/users/${file.path}`);
   }
 
   @ApiCookieAuth()
