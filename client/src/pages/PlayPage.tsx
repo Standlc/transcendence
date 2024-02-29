@@ -1,5 +1,4 @@
-import { useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { GameSocketContext } from "../ContextsProviders/GameSocketContext";
+import { useContext, useLayoutEffect, useRef, useState } from "react";
 import GameLayout from "../components/gameComponents/GameLayout";
 import GamePreferences from "../components/gameSettings/GameSettings";
 import LiveGames from "../components/LiveGames";
@@ -8,30 +7,18 @@ import GameCanvas from "../components/gameComponents/GameCanvas";
 import { ArrowLink } from "../UIKit/ArrowLink";
 import { createGamePositions } from "../../../api/src/pong/gameLogic/gamePositions";
 import { PlayArrowRounded, SettingsRounded } from "@mui/icons-material";
+import { PlayButton } from "../UIKit/PlayButton";
 import { GameSettingsContext } from "../ContextsProviders/GameSettingsContext";
-import { FindGameMatchButton } from "../components/FindGameMatchButton";
+import { useFindGameMatch } from "../utils/useFindGameMatch";
 
 export default function PlayPage() {
-    const socket = useContext(GameSocketContext);
-    const [privateInvitation, setPrivateInvitation] = useState<{
-        userId: number;
-    }>();
     const gameRef = useRef(createGamePositions({}));
     const [showSettings, setShowSettings] = useState(false);
-    const [privateGameUserId, setPrivateGameUserId] = useState<string>("");
     const { gameSettings } = useContext(GameSettingsContext);
-
-    useEffect(() => {
-        const handlePrivateGameInvite = (data: { userId: number }) => {
-            console.log(data);
-            setPrivateInvitation(data);
-        };
-
-        socket.on("privateGameInvitation", handlePrivateGameInvite);
-        return () => {
-            socket.off("privateGameInvitation", handlePrivateGameInvite);
-        };
-    }, [socket]);
+    const findGame = useFindGameMatch({
+        points: gameSettings.points,
+        powerUps: gameSettings.powerUps,
+    });
 
     useLayoutEffect(() => {
         gameRef.current.ball.vX = 200;
@@ -39,28 +26,11 @@ export default function PlayPage() {
         gameRef.current.ball.nextBounceVelocity.y = 0;
     }, []);
 
-    const inviteFriendToPlay = () => {
-        if (privateGameUserId === "") {
-            return;
-        }
-        socket.emit("privateGameRequest", {
-            targetId: Number(privateGameUserId),
-            powerUps: gameSettings.powerUps,
-            points: gameSettings.points,
-        });
-    };
-
-    const respondPrivateGameInvitation = () => {
-        socket.emit("acceptPrivateGameRequest", {
-            userInvitingId: privateInvitation?.userId,
-        });
-    };
-
     return (
-        <div className="flex justify-center min-h-[100vh] p-5 gap-10 w-[100vw]">
-            <div className="flex flex-col min-h-[100vh] p-5 gap-10 max-w-[1100px] w-full">
+        <div className="flex justify-center min-h-[100vh] p-5 gap-10">
+            <div className="flex flex-col min-h-[100vh] gap-10 max-w-[1100px] w-full">
                 <div className="flex gap-5 flex-wrap justify-center">
-                    <div className="flex-[3] relative flex justify-center">
+                    <div className="flex-[4] relative flex justify-center">
                         <GameLayout>
                             <button
                                 onClick={() => setShowSettings(!showSettings)}
@@ -70,14 +40,12 @@ export default function PlayPage() {
                             </button>
 
                             <div className="absolute z-[2] flex flex-col gap-2">
-                                <FindGameMatchButton>
-                                    <div className="flex gap-3 items-center">
-                                        <PlayArrowRounded
-                                            style={{ margin: "-7px", fontSize: 30 }}
-                                        />
-                                        <span>Play Online</span>
-                                    </div>
-                                </FindGameMatchButton>
+                                <PlayButton onClick={() => findGame.mutate()}>
+                                    <PlayArrowRounded
+                                        style={{ margin: "-7px", fontSize: 30 }}
+                                    />
+                                    <span className="pl-3">Play Online</span>
+                                </PlayButton>
                             </div>
 
                             <GameCanvas gameRef={gameRef} isPaused={false} />

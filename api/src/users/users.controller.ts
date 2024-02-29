@@ -1,9 +1,10 @@
-import { Body, Controller, Get, NotFoundException, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { ApiBody, ApiCookieAuth, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiQuery, ApiTags, ApiUnauthorizedResponse, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
 import { CreateUsersDto } from './dto/create-users.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { AppUser, ListUsers } from 'src/types/clientSchema';
+import { UpdateUsersDto } from './dto/update-users.dto';
 
 @ApiInternalServerErrorResponse({ description: "Whenever the backend fail in some point, probably an error with the db." })
 @ApiTags('users')
@@ -110,6 +111,29 @@ export class UsersController {
   @Get(':id/profile')
   async getUserProfile(@Param('id') userId: number): Promise<AppUser> {
     return await this.usersService.getUserById(userId);
+  }
+
+  //#endregion
+
+  //#region update
+  @ApiCookieAuth()
+  @ApiOkResponse({description: "Profile updated"})
+  @ApiUnprocessableEntityResponse({description: "Invalid field or empty field"})
+  @ApiBody({
+    description: "UpdateUserDto",
+    schema: {
+      type: 'object',
+      example: {
+        bio: "bio",
+        firstname: "john",
+        lastname: "doe"
+      }
+    },
+  })
+  @UseGuards(JwtAuthGuard)
+  @Patch('update')
+  async updateUserProfile(@Request() req, @Body() body: UpdateUsersDto) {
+    await this.usersService.updateUser(req.user.id, body);
   }
 
   //#endregion

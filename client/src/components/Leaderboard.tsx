@@ -1,27 +1,32 @@
 import { useContext, useEffect } from "react";
-import { Avatar } from "../UIKit/Avatar";
+import { Avatar } from "../UIKit/avatar/Avatar";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { LeaderbordPlayer } from "../../../api/src/types/games/games";
-import { GameSocketContext } from "../ContextsProviders/GameSocketContext";
+import { LeaderbordPlayer } from "../../../api/src/types/games";
+import { SocketsContext } from "../ContextsProviders/SocketsContext";
 import {
   Tuple,
   WsLeaderboardPlayerUpdate,
-} from "../../../api/src/types/games/socketPayloadTypes";
-import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
+} from "../../../api/src/types/gameServer/socketPayloadTypes";
+import { PlayerRating } from "../UIKit/PlayerRating";
 
 export default function Leaderboard({ limit }: { limit?: number }) {
-  const socket = useContext(GameSocketContext);
+  const {
+    gameSocketOn,
+    gameSocketOff,
+    addUsersStatusHandler,
+    removeUsersStatusHandler,
+  } = useContext(SocketsContext);
   const queryClient = useQueryClient();
 
   const leaderboard = useQuery({
+    queryKey: ["leaderboard", limit],
     queryFn: async () => {
       const res = await axios.get<LeaderbordPlayer[]>(
         `/api/players/leaderboard${limit ? `?limit=${limit}` : ""}`
       );
       return res.data;
     },
-    queryKey: ["leaderboard", limit],
   });
 
   const newLeaderboardPlayers = useMutation({
@@ -36,7 +41,6 @@ export default function Leaderboard({ limit }: { limit?: number }) {
       queryClient.setQueryData(
         ["leaderboard", limit],
         (prev: LeaderbordPlayer[]) => {
-          console.log("api data", data);
           if (!prev) return data;
           const newLeaderboard = [...prev, ...data];
           newLeaderboard.sort((a, b) => b.rating - a.rating);
@@ -45,15 +49,12 @@ export default function Leaderboard({ limit }: { limit?: number }) {
         }
       );
     },
-    mutationKey: ["newLeaderboardPlayers"],
   });
 
   useEffect(() => {
     const handleLeaderboardUpdate = async (
       data: Tuple<WsLeaderboardPlayerUpdate>
     ) => {
-      console.log("leaderboard update");
-
       queryClient.setQueryData(
         ["leaderboard", limit],
         (prev: LeaderbordPlayer[]) => {
@@ -74,12 +75,12 @@ export default function Leaderboard({ limit }: { limit?: number }) {
                 ? player.losses + 1
                 : player.losses,
               wins: playerUpdate.isWinner ? player.wins + 1 : player.wins,
-              rating: playerUpdate.rating,
+              rating: playerUpdate.prevRating + playerUpdate.ratingChange,
             };
           });
 
           usersToFetch = usersToFetch.filter(
-            (u) => u.rating > prev[prev.length - 1].rating
+            (u) => u.prevRating + u.ratingChange > prev[prev.length - 1].rating
           );
           if (usersToFetch.length) {
             newLeaderboardPlayers.mutate(usersToFetch.flatMap((u) => u.userId));
@@ -91,15 +92,40 @@ export default function Leaderboard({ limit }: { limit?: number }) {
       );
     };
 
-    socket.on("leaderboardUpdate", handleLeaderboardUpdate);
+    gameSocketOn("leaderboardUpdate", handleLeaderboardUpdate);
     return () => {
-      socket.off("leaderboardUpdate", handleLeaderboardUpdate);
+      gameSocketOff("leaderboardUpdate", handleLeaderboardUpdate);
     };
-  }, [socket]);
+  }, [gameSocketOn, gameSocketOff]);
+
+  useEffect(() => {
+    addUsersStatusHandler({
+      key: "leaderboard",
+      statusHandler: (data) => {
+        queryClient.setQueryData(
+          ["leaderboard", limit],
+          (prev: LeaderbordPlayer[]) => {
+            if (!prev) return undefined;
+
+            const newLeaderboard = prev.map((player) => {
+              if (player.id !== data.userId) return player;
+              return {
+                ...player,
+                status: data.status,
+              };
+            });
+
+            return newLeaderboard;
+          }
+        );
+      },
+    });
+    return () => removeUsersStatusHandler("leaderboard");
+  }, []);
 
   return (
     <div className="flex flex-col gap-5">
-      {leaderboard.data && (
+      {leaderboard.data?.length ? (
         <table className="border-separate border-spacing-x-0 border-spacing-y-[2px]">
           <thead className="">
             <tr className="opacity-100">
@@ -114,11 +140,13 @@ export default function Leaderboard({ limit }: { limit?: number }) {
           </thead>
 
           <tbody>
-            {leaderboard.data?.map((player, i) => {
+            {leaderboard.data.map((player, i) => {
               return <LeaderboardPlayer key={i} i={i} player={player} />;
             })}
           </tbody>
         </table>
+      ) : (
+        <span className="text-lg opacity-50">No leaderboard yet</span>
       )}
     </div>
   );
@@ -132,7 +160,7 @@ export function LeaderboardPlayer({
   player: LeaderbordPlayer;
 }) {
   return (
-    <tr className="relative rounded-lg font-extrabold cursor-pointer group">
+    <tr className="relative rounded-lg font-bold cursor-pointer group">
       <td className="absolute w-full h-full p-0">
         <div className="w-full h-full group-hover:bg-[rgba(255,255,255,0.1)] group-odd:bg-[rgba(255,255,255,0.05)] rounded-md "></div>
       </td>
@@ -143,28 +171,31 @@ export function LeaderboardPlayer({
 
       <td className="px-5 py-3">
         <div className="flex gap-3 items-center relative">
-          <Avatar imgUrl={undefined} size="md" userId={player.id} />
+          <Avatar
+            imgUrl={undefined}
+            size="md"
+            userId={player.id}
+            status={player.status}
+          />
           <span className="font-extrabold text-base">{player.username}</span>
         </div>
       </td>
 
       <td className="px-5 py-3">
-        <div className="text-indigo-400 text-sm rounded-md px-2 py-[2px] bg-indigo-400 bg-opacity-10 w-min">
-          <InfiniteSlotMachine state={player.rating} />
-        </div>
+        <PlayerRating rating={player.rating} />
       </td>
 
       <td />
 
       <td className="px-5 py-3">
         <div className="text-green-500 flex items-center justify-center">
-          <InfiniteSlotMachine state={player.wins} />
+          {player.wins}
         </div>
       </td>
 
       <td className="px-5 py-3">
         <div className="text-red-500 flex items-center justify-center">
-          <InfiniteSlotMachine state={player.losses} />
+          {player.losses}
         </div>
       </td>
     </tr>

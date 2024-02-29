@@ -1,8 +1,8 @@
 import { useContext, useEffect, useMemo, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { GameSocketContext } from "../../ContextsProviders/GameSocketContext";
-import { WsPlayerMove } from "../../../../api/src/types/games/socketPayloadTypes";
-import { AppGame } from "../../../../api/src/types/games/returnTypes";
+import { SocketsContext } from "../../ContextsProviders/SocketsContext";
+import { WsPlayerMove } from "../../../../api/src/types/gameServer/socketPayloadTypes";
+import { UserGame } from "../../../../api/src/types/games";
 import { useIsUserAPlayer } from "./useIsUserAPlayer";
 
 const MOVES: Record<string, "up" | "down"> = {
@@ -14,12 +14,12 @@ export const useGameControls = ({
   gameRecord,
   isPaused,
 }: {
-  gameRecord: AppGame | undefined;
+  gameRecord: UserGame | undefined | null;
   isPaused: boolean;
 }) => {
   const { gameId } = useParams();
   const gameIdNumber = useMemo(() => Number(gameId), [gameId]);
-  const socket = useContext(GameSocketContext);
+  const { gameSocket } = useContext(SocketsContext);
   const currMove = useRef<"stop" | "up" | "down">("stop");
   const isUserAPlayer = useIsUserAPlayer({ gameRecord });
 
@@ -33,7 +33,7 @@ export const useGameControls = ({
           gameId: gameIdNumber,
           move: MOVES[e.key],
         };
-        socket.emit("playerMove", payload);
+        gameSocket.emit("playerMove", payload);
       }
     };
 
@@ -47,7 +47,7 @@ export const useGameControls = ({
           gameId: gameIdNumber,
           move: "stop",
         };
-        socket.emit("playerMove", payload);
+        gameSocket.emit("playerMove", payload);
       }
     };
 

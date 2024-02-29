@@ -1,88 +1,93 @@
 import { memo, useContext, useMemo } from "react";
 import { UserContext } from "../../ContextsProviders/UserContext";
 import { GAME_STYLES } from "./gameBackgrounds";
-import { AppGame } from "../../../../api/src/types/games/returnTypes";
-import { Avatar } from "../../UIKit/Avatar";
+import { UserGame } from "@api/types/games";
+import { Avatar } from "../../UIKit/avatar/Avatar";
 import InfiniteSlotMachine from "../../UIKit/InfiniteSlotMachine";
 import { GameSettingsContext } from "../../ContextsProviders/GameSettingsContext";
 import { VolumeOffRounded, VolumeUpRounded } from "@mui/icons-material";
+import { PlayerRating } from "../../UIKit/PlayerRating";
 
 const CONNECTION_BARS = 4;
 
-export default function GameLayout({
-  gameRecord,
-  children,
-  playersPingRtt,
-  isDisconnected,
-}: {
-  gameRecord?: AppGame | undefined;
-  playersPingRtt?: number[];
-  children: any;
-  isDisconnected?: boolean;
-}) {
-  const { user } = useContext(UserContext);
-  const { gameSettings, upadteGameSetting } = useContext(GameSettingsContext);
-  const reverse = useMemo(
-    () => user.id === gameRecord?.playerOne?.id,
-    [user.id, gameRecord?.playerOne?.id]
-  );
+const GameLayout = memo(
+  ({
+    gameRecord,
+    children,
+    playersPingRtt,
+    isDisconnected,
+  }: {
+    gameRecord?: UserGame | undefined;
+    playersPingRtt?: number[];
+    children: any;
+    isDisconnected?: boolean;
+  }) => {
+    const { user } = useContext(UserContext);
+    const { gameSettings, upadteGameSetting } = useContext(GameSettingsContext);
+    const reverse = useMemo(
+      () => gameRecord !== undefined && user.id === gameRecord.playerOne?.id,
+      [user.id, gameRecord?.playerOne?.id]
+    );
 
-  return (
-    <div className="flex flex-col gap-5 justify-center items-center max-h-[90vh] max-w-[100vw] min-w-80">
-      <div
-        style={{
-          opacity: isDisconnected ? "0.5" : "1",
-        }}
-        className="relative flex flex-col gap-5 justify-center items-center transition-opacity max-h-full max-w-full pb-[70px]"
-      >
-        {gameRecord && playersPingRtt && (
-          <PlayersInfos
-            gameRecord={gameRecord}
-            playersPingRtt={playersPingRtt}
-          />
-        )}
-
+    return (
+      <div className="flex flex-col gap-5 justify-center items-center max-h-[90vh] max-w-[100vw] min-w-80">
         <div
           style={{
-            backgroundColor: GAME_STYLES[gameSettings.style].primary,
-            flexDirection: reverse ? "row-reverse" : "unset",
+            opacity: isDisconnected ? "0.5" : "1",
           }}
-          className="self-center relative border-[5px] border-[rgba(255,255,255,0.2)] shadow-[0_10px_0_rgb(28,28,28)] [transfor:perspective(100px)_rotateX(1deg)] origin-bottom flex items-center justify-center max-h-full max-w-full aspect-[800/700]"
+          className="relative flex flex-col gap-5 justify-center items-center transition-opacity max-h-full max-w-full pb-[70px]"
         >
-          {gameRecord && <GameScores gameRecord={gameRecord} />}
+          {gameRecord && playersPingRtt && (
+            <PlayersInfos
+              gameRecord={gameRecord}
+              playersPingRtt={playersPingRtt}
+            />
+          )}
 
           <div
-            className="relative flex items-center justify-center max-h-full max-w-full"
             style={{
-              transform: reverse ? "scaleX(-1)" : "unset",
+              backgroundColor: GAME_STYLES[gameSettings.style].primary,
+              flexDirection: reverse ? "row-reverse" : "unset",
             }}
+            className="self-center relative border-[5px] border-[rgba(255,255,255,0.2)] shadow-[0_10px_0_rgb(28,28,28)] [transfor:perspective(100px)_rotateX(1deg)] origin-bottom flex items-center justify-center max-h-full max-w-full aspect-[800/700]"
           >
-            {GAME_STYLES[gameSettings.style].court}
-            {children}
+            {gameRecord && <GameScores gameRecord={gameRecord} />}
+
+            <div
+              className="relative flex items-center justify-center max-h-full max-w-full"
+              style={{
+                transform: reverse ? "scaleX(-1)" : "unset",
+              }}
+            >
+              {GAME_STYLES[gameSettings.style].court}
+              {children}
+            </div>
+
+            <button
+              onClick={() => {
+                upadteGameSetting("soundEffects", {
+                  ...gameSettings.soundEffects,
+                  isOn: !gameSettings.soundEffects.isOn,
+                });
+              }}
+              className="absolute z-[2] bottom-3 right-3 p-1 flex before:absolute before:top-0 before:left-0 before:content-[''] before:h-[100%] before:w-[100%] before:rounded-full before:bg-white before:opacity-20 opacity-50 hover:opacity-100"
+            >
+              {gameSettings.soundEffects.isOn ? (
+                <VolumeUpRounded fontSize="small" />
+              ) : (
+                <VolumeOffRounded fontSize="small" />
+              )}
+            </button>
           </div>
 
-          <button
-            onClick={() => {
-              upadteGameSetting("soundEffects", {
-                ...gameSettings.soundEffects,
-                isOn: !gameSettings.soundEffects.isOn,
-              });
-            }}
-            className="absolute z-[2] bottom-3 right-3 p-1 flex before:absolute before:top-0 before:left-0 before:content-[''] before:h-[100%] before:w-[100%] before:rounded-full before:bg-white before:opacity-20 opacity-50 hover:opacity-100"
-          >
-            {gameSettings.soundEffects.isOn ? (
-              <VolumeUpRounded fontSize="small" />
-            ) : (
-              <VolumeOffRounded fontSize="small" />
-            )}
-          </button>
+          <TableLegs />
         </div>
-
-        <TableLegs />
       </div>
-    </div>
-  );
-}
+    );
+  }
+);
+
+export default GameLayout;
 
 const TableLegs = memo(() => {
   return (
@@ -94,12 +99,12 @@ const TableLegs = memo(() => {
   );
 });
 
-const GameScores = memo(({ gameRecord }: { gameRecord: AppGame }) => {
+const GameScores = memo(({ gameRecord }: { gameRecord: UserGame }) => {
   return (
     <div className="z-[1] absolute top-0 h-full w-full flex [flex-direction:inherit]">
       <div className="absolute w-full flex justify-around mt-[10%] items-center font-gameFont text-clamp [flex-direction:inherit]">
-        <InfiniteSlotMachine state={gameRecord.playerOne?.score ?? 0} />
-        <InfiniteSlotMachine state={gameRecord.playerTwo?.score ?? 0} />
+        <InfiniteSlotMachine state={gameRecord.playerOne.score} />
+        <InfiniteSlotMachine state={gameRecord.playerTwo.score} />
       </div>
     </div>
   );
@@ -110,13 +115,13 @@ const PlayersInfos = memo(
     gameRecord,
     playersPingRtt,
   }: {
-    gameRecord: AppGame;
+    gameRecord: UserGame;
     playersPingRtt: number[];
   }) => {
     const { user } = useContext(UserContext);
     const reverse = useMemo(
-      () => user.id === gameRecord.playerOne?.id,
-      [user.id, gameRecord.playerOne?.id]
+      () => user.id === gameRecord.playerOne.id,
+      [user.id, gameRecord.playerOne.id]
     );
 
     return (
@@ -131,16 +136,14 @@ const PlayersInfos = memo(
             <Avatar
               size="md"
               imgUrl={undefined}
-              userId={gameRecord.playerOne?.id ?? 0}
+              userId={gameRecord.playerOne.id}
             />
           </div>
           <div className="flex items-center flex-wrap gap-2 [flex-direction:inherit]">
             <span className="text-lg leading-none">
-              {gameRecord.playerOne?.username ?? "unkown"}
+              {gameRecord.playerOne.username}
             </span>
-            <div className="text-sm font-title text-indigo-400 rounded-md px-2 py-[2px] bg-indigo-600 bg-opacity-10">
-              {gameRecord.playerOne?.rating ?? "unkown"}
-            </div>
+            <PlayerRating rating={gameRecord.playerOne.rating} />
             <ConnectionStatus pingRtt={playersPingRtt[0]} />
           </div>
         </div>
@@ -155,16 +158,14 @@ const PlayersInfos = memo(
             <Avatar
               size="md"
               imgUrl={undefined}
-              userId={gameRecord.playerTwo?.id ?? 0}
+              userId={gameRecord.playerTwo.id}
             />
           </div>
           <div className="flex items-center flex-wrap-reverse gap-2 justify-end [flex-direction:inherit]">
             <span className="text-lg leading-none">
-              {gameRecord.playerTwo?.username ?? "unkown"}
+              {gameRecord.playerTwo.username}
             </span>
-            <div className="text-sm font-title text-indigo-400 rounded-md px-2 py-[2px] bg-indigo-600 bg-opacity-10">
-              {gameRecord.playerTwo?.rating ?? "unkown"}
-            </div>
+            <PlayerRating rating={gameRecord.playerTwo.rating} />
             <ConnectionStatus pingRtt={playersPingRtt[1]} />
           </div>
         </div>
@@ -172,6 +173,14 @@ const PlayersInfos = memo(
     );
   }
 );
+
+const ConnectionDescriptions = [
+  "Very low lag",
+  "Low lag",
+  "High lag",
+  "Very high lag",
+  "Disconnected",
+];
 
 const ConnectionStatus = memo(({ pingRtt }: { pingRtt: number }) => {
   const normalized = useMemo(() => {
@@ -181,23 +190,28 @@ const ConnectionStatus = memo(({ pingRtt }: { pingRtt: number }) => {
   }, [pingRtt]);
 
   return (
-    <div className="h-[10px] flex gap-[2px] [flex-direction:inherit]">
-      {Array(normalized)
-        .fill(0)
-        .map((_, i) => (
-          <div
-            key={i}
-            className="h-full w-[4px] bg-green-500 opacity-70 rounded-[2px]"
-          ></div>
-        ))}
-      {Array(CONNECTION_BARS - normalized)
-        .fill(0)
-        .map((_, i) => (
-          <div
-            key={i}
-            className="h-full w-[4px] bg-green-500 opacity-20 rounded-[2px]"
-          ></div>
-        ))}
+    <div className="relative flex justify-center peer">
+      <div className="min-h-[20px] flex gap-[2px] [flex-direction:inherit] peer/connection cursor-pointer py-[5px]">
+        {Array(normalized)
+          .fill(0)
+          .map((_, i) => (
+            <div
+              key={i}
+              className="h-full w-[4px] bg-green-500 opacity-70 rounded-[2px]"
+            ></div>
+          ))}
+        {Array(CONNECTION_BARS - normalized)
+          .fill(0)
+          .map((_, i) => (
+            <div
+              key={i}
+              className="h-full w-[4px] bg-green-500 opacity-20 rounded-[2px]"
+            ></div>
+          ))}
+      </div>
+      <div className="z-[2] cursor-none whitespace-nowrap absolute -top-1 translate-y-[-100%] bg-zinc-950 text-xs font-[500] rounded-md px-2 py-1 opacity-0 [visibility:hidden] peer-hover/connection:opacity-100 scale-90 peer-hover/connection:scale-100 peer-hover/connection:[visibility:visible] origin-bottom transition-all [transition-timing-function:cubic-bezier(0.7,0,0,1.4)]">
+        {ConnectionDescriptions.at(CONNECTION_BARS - normalized)}
+      </div>
     </div>
   );
 });

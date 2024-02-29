@@ -1,69 +1,58 @@
 import { Outlet } from "react-router-dom";
-import { AppUser, UserContext } from "../ContextsProviders/UserContext";
-import { useEffect, useState } from "react";
-import { GameSocketContext } from "../ContextsProviders/GameSocketContext";
-import { Socket, io } from "socket.io-client";
+import { UserContext } from "../ContextsProviders/UserContext";
+import { SocketsContext } from "../ContextsProviders/SocketsContext";
 import { ErrorContext } from "../ContextsProviders/ErrorContext";
 import { ErrorModal } from "./ErrorModal";
 import { GameSettingsContext } from "../ContextsProviders/GameSettingsContext";
 import { useGamePreferences } from "../utils/game/useGamePreferences";
 import { useErrorQueue } from "../utils/useErrorQueue";
+import { useUsersStatusSocket } from "../utils/useUsersStatusSocket";
+import { useGameSocket } from "../utils/useGameSocket";
+import { GameRequestModal } from "./GameRequestModal";
+import { AppUser } from "@api/types/clientSchema";
+import { GameInvitationModal } from "./GameInvitationsModal";
 
-export default function PrivateLayout({ user }: { user: number }) {
-    const [gameSocket, setGameSocket] = useState<Socket>();
-    const [gameSettings, upadteGameSetting] = useGamePreferences();
+export default function PrivateLayout({ user }: { user: AppUser }) {
     const { error, addError, removeCurrentError } = useErrorQueue();
+    const { gameSocket, gameSocketOn, gameSocketOff } = useGameSocket(addError);
+    const { usersStatusSocket, addHandler, removeHandler } =
+        useUsersStatusSocket(addError);
+    const [gameSettings, upadteGameSetting] = useGamePreferences();
 
-    useEffect(() => {
-        const connection = io("");
-        setGameSocket(connection);
-        return () => {
-            connection.disconnect();
-        };
-    }, []);
-
-    useEffect(() => {
-        if (!gameSocket) return;
-        const handleErrors = (err: Error) => {
-            gameSocket.disconnect();
-            // setGameSocket(undefined);
-            // console.log(err);
-        };
-
-        const handleServerError = (message: string) => {
-            addError({ message: "something went wrong with the game server" });
-        };
-
-        gameSocket.on("connect_error", handleErrors);
-        gameSocket.on("connect_failed", handleErrors);
-        gameSocket.on("error", handleServerError);
-        return () => {
-            if (!gameSocket) return;
-            gameSocket.off("connect_error", handleErrors);
-            gameSocket.off("connect_failed", handleErrors);
-            gameSocket.off("error", handleServerError);
-        };
-    }, [gameSocket]);
-
-    if (!gameSocket) {
+    if (!gameSocket || !usersStatusSocket) {
         // todo: add a nice loader like Discord before connection is established
-        return null;
+        return (
+            <ErrorContext.Provider value={{ error, addError, removeCurrentError }}>
+                {error && <ErrorModal />}
+            </ErrorContext.Provider>
+        );
     }
 
     return (
         <UserContext.Provider value={{ user }}>
-            <GameSocketContext.Provider value={gameSocket}>
+            <SocketsContext.Provider
+                value={{
+                    gameSocket,
+                    gameSocketOn,
+                    gameSocketOff,
+                    usersStatusSocket,
+                    addUsersStatusHandler: addHandler,
+                    removeUsersStatusHandler: removeHandler,
+                }}
+            >
                 <ErrorContext.Provider value={{ error, addError, removeCurrentError }}>
                     <GameSettingsContext.Provider
                         value={{ gameSettings, upadteGameSetting }}
                     >
-                        <div className="min-h-[100vh] min-w-[100vw] w-full h-full">
+                        <div className="min-h-[100vh] w-full h-full">
                             {error && <ErrorModal />}
+                            <GameRequestModal />
+                            <GameInvitationModal />
                             <Outlet />
                         </div>
                     </GameSettingsContext.Provider>
                 </ErrorContext.Provider>
-            </GameSocketContext.Provider>
+            </SocketsContext.Provider>
         </UserContext.Provider>
     );
 }

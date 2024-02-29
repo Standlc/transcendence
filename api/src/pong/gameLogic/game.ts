@@ -5,7 +5,7 @@ import {
   PlayerType,
   BallType,
   GameStateType,
-} from '../../types/games/pongGameTypes';
+} from '../../types/gameServer/pongGameTypes';
 import { Game } from 'src/types/schema';
 import {
   BALL_SIZE,
@@ -27,7 +27,7 @@ import {
 import { createGamePositions } from './gamePositions';
 import { handlePowerUps, placeNewPowerUps } from './powerUps';
 
-export async function startGameInterval(
+export function startGameInterval(
   game: GameType,
   gameStateUpdateHandler: () => void,
   scoreHandler: (player: PlayerType) => void,
@@ -43,7 +43,7 @@ export async function startGameInterval(
     throwBall(game);
   }, THROW_BALL_TIMEMOUT);
 
-  game.intervalId = setInterval(async () => {
+  game.intervalId = setInterval(() => {
     if (game.isPaused) return;
 
     if (checkIsWinner(game)) {
@@ -142,7 +142,9 @@ export const generateRandom = (min: number, max: number) => {
 };
 
 export function initialize(game: Selectable<Game>): GameType {
+  const now = Date.now();
   return {
+    startTime: now,
     isPaused: true,
     gameId: game.id,
     roomId: game.id.toString(),
@@ -151,7 +153,7 @@ export function initialize(game: Selectable<Game>): GameType {
     isPublic: game.isPublic,
     intervalId: undefined,
     disconnectionIntervalId: undefined,
-    nextUpdateTime: Date.now() + INTERVAL_MS,
+    nextUpdateTime: now + INTERVAL_MS,
     game: createGamePositions({
       playerOneId: game.playerOneId,
       playerTwoId: game.playerTwoId,
