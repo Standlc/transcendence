@@ -4,18 +4,15 @@ import defaultAvatar from "./defaultAvatar.png";
 import React, { useEffect, useState } from "react";
 import { Settings } from "@mui/icons-material";
 import { Avatar } from "../UIKit/Avatar";
+import { PutAvatar } from "./PutAvatar";
 
 interface Props {
     loginResponse: LoginResponse | null;
     setCurrentPage: (page: string, timestamp: number) => void; // Ajouter un deuxième paramètre
     setConversationID: (conversationID: number) => void;
-    setSelectedFriend: (friend: { id: number; username: string } | null) => void;
-}
-
-interface Friend {
-    id: number;
-    username: string;
-    avatarUrl: string | null;
+    setSelectedFriend: (
+        friend: { id: number; username: string; avatarUrl: string | null } | null
+    ) => void;
 }
 
 interface Conversation {
@@ -66,34 +63,6 @@ export const ChanColumn: React.FC<Props> = ({
 
     const handleSettingClick = () => {
         navigate("/settings");
-    };
-
-    const putAvatar = () => {
-        if (loginResponse?.avatarUrl) {
-            return (
-                <>
-                    <div className="avatar bg-greyple mt-6">
-                        <img
-                            className="rounded-full"
-                            src={loginResponse.avatarUrl}
-                            alt="avatar"
-                        />
-                    </div>
-                </>
-            );
-        } else {
-            return (
-                <>
-                    <span className="avatar bg-greyple mt-6">
-                        <img
-                            className="rounded-full"
-                            src={defaultAvatar}
-                            alt="avatar"
-                        />
-                    </span>
-                </>
-            );
-        }
     };
 
     const getAllConversation = async () => {
@@ -215,8 +184,6 @@ export const ChanColumn: React.FC<Props> = ({
                             });
                             setCurrentPage("chatbox", Date.now());
                             setActiveButton(index);
-
-                            // Gestion du clic sur une conversation
                         }}
                     >
                         <Avatar
@@ -230,7 +197,7 @@ export const ChanColumn: React.FC<Props> = ({
             </div>
             <div className="flex bg-almost-black text-m user-chancolumn items-center justify-between">
                 <div className="flex items-center">
-                    {putAvatar()}
+                    <PutAvatar loginResponse={loginResponse} />
                     <div>
                         <div className="font-bold text-left">
                             {loginResponse?.username}

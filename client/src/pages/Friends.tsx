@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Chat } from "../components/Chat/Chat";
 import { FriendsAdd } from "./FriendsAdd";
 import { LoginResponse } from "../components/RequireAuth/AuthProvider";
 import { FriendsInvitation } from "./FriendsInvitation";

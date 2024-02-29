@@ -11,16 +11,6 @@ export const Login = () => {
     const [password, setPassword] = useState("");
     const { login } = useAuth();
 
-    // const handleSubmit = async (event) => {
-    //     event.preventDefault();
-    //     // Imwhiteplement your authentication logic here
-    //     console.log("Login attempt with:", username, password);
-    //     // On success:
-    //     navigate("/home"); // Redirect to the home route or dashboard
-    // };
-
-    // ...state declarations and other code...
-
     useEffect(() => {
         checkCookie();
     }, []);

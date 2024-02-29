@@ -32,7 +32,6 @@ export const AllFriends: React.FC<Props> = ({
 }: Props) => {
     const [showChat, setShowChat] = useState(false);
     const [conversations, setConversations] = useState<Conversation[]>([]);
-    const [AllConversation, setallConversation] = useState<Conversation[]>([]);
     const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
     const [selectedConversation, setSelectedConversation] = useState<number>(0);
 
@@ -59,40 +58,43 @@ export const AllFriends: React.FC<Props> = ({
         }
     };
 
-    const getAllConversation = async () => {
+    const delFriends = async (id: number) => {
         try {
-            const response = await fetch("http://localhost:3000/api/dm", {
-                method: "GET",
+            const response = await fetch(`http://localhost:3000/api/friends?id=${id}`, {
+                method: "DELETE",
                 headers: {
                     "Content-Type": "application/json",
                 },
             });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            if (response.ok) {
+                const data = await response.text();
+                console.log("Friends deleted:", data);
+            } else {
+                console.error("Friends failed delete", response.status);
             }
-
-            const data = await response.json();
-            setallConversation(data);
-            // console.log("Conversation all", data);
         } catch (error) {
-            console.error("Fetching friends failed:", error);
+            console.error("Network error:", error);
         }
     };
 
     const findConversation = async (friendId: number) => {
         try {
-            const response = await fetch(`${SERVER_URL}/api/dm/findDmId/${friendId}`, {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            });
+            const response = await fetch(
+                `http://localhost:3000/api/findDmId/${friendId}`,
+                {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
 
             if (response.ok) {
                 const data = await response.json();
                 // Supposons que la réponse contienne l'ID de la conversation si trouvée
+
                 setSelectedConversation(data.conversationId);
+                console.log("Conversation found:", data);
                 setShowChat(true);
                 setSelectedFriend(
                     friends.find((friend) => friend.id === friendId) || null
@@ -112,13 +114,14 @@ export const AllFriends: React.FC<Props> = ({
         }
     };
 
-    useEffect(() => {
-        getAllConversation();
-    }, []);
-
     const handleFriendClick = (friend: Friend) => {
         console.log("Friend clicked:", friend);
         findConversation(friend.id);
+    };
+
+    const handleDeleteClick = (friend: Friend) => {
+        console.log("Friend clicked:", friend);
+        delFriends(friend.id);
     };
 
     console.log("SELECTEDFRIEND", selectedFriend);
@@ -253,7 +256,10 @@ export const AllFriends: React.FC<Props> = ({
                                             </div>
                                         </div>
                                     </div>
-                                    <button className="bg-blurple hover:bg-blurple-hover text-white font-bold py-2 px-4 rounded mr-[10px] ">
+                                    <button
+                                        onClick={() => handleDeleteClick(friend)}
+                                        className="bg-blurple hover:bg-blurple-hover text-white font-bold py-2 px-4 rounded mr-[10px] "
+                                    >
                                         supprimer
                                     </button>
                                 </div>

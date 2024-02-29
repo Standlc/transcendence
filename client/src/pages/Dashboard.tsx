@@ -10,11 +10,14 @@ export const Dashboard = () => {
     const { loginResponse } = useAuth();
     // Note: currentPage now contains both 'page' and 'refreshKey'
     const [currentPage, setCurrentPage] = useState({ page: "", refreshKey: 0 });
-    const SERVER_URL = "http://localhost:5000";
+    // const SERVER_URL = "http://localhost:5000";
+    const SERVER_URL = "http://localhost:3000/socket.io";
+
     const [conversationID, setConversationID] = useState<number>(0);
     const [selectedFriend, setSelectedFriend] = useState<{
         id: number;
         username: string;
+        avatarUrl: string | null;
     } | null>(null);
 
     const changePage = (page: string, refreshKey: number = Date.now()) => {
