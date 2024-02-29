@@ -97,12 +97,12 @@ export const GameRequestModal = () => {
           </div>
         </div>
 
-        <div
+        <button
           className="self-end opacity-50 hover:opacity-100 hover:text-red-600"
           onClick={() => cancel.mutate()}
         >
           Cancel
-        </div>
+        </button>
       </div>
     </ModalLayout>
   );
@@ -130,7 +130,8 @@ export const PlayerInfos = ({
       <div className="flex gap-3 [flex-direction:inherit] items-center">
         <span
           style={{
-            opacity: player?.username ? 1 : 0.5,
+            opacity: player ? 1 : 0.5,
+            fontWeight: player ? "bold" : "normal"
           }}
           className="text-lg"
         >

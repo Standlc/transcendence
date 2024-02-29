@@ -34,7 +34,7 @@ export class GameRequestsController {
     @Body() body: PublicGameRequestDto,
     @Request() req: Request & { user: { id: number } },
   ): Promise<UserGameRequest | undefined> {
-    if (body.points > 42 || body.points < 10) {
+    if (body.points !== 42 && body.points !== 21 && body.points !== 10) {
       throw new BadRequestException();
     }
     const userId: number = req.user.id;

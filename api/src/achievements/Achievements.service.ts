@@ -23,9 +23,7 @@ export class AchievementsService {
     loser: PlayerType & PlayerRatingChangeType,
     game: GameType,
   ) {
-    const achievements = await this.getUserAchievementQuery(
-      winner.id,
-    ).execute();
+    const achievements = await this.getUserAchievementQuery(userId).execute();
 
     const updatedAchievements: Selectable<Achievement>[] = [];
     const pushAchievement = (a: Selectable<Achievement>) =>
@@ -60,16 +58,16 @@ export class AchievementsService {
           achievements,
           pushAchievement,
         );
-        await this.handleMarathonMan(
-          userId,
-          game.startTime,
-          achievements,
-          pushAchievement,
-        );
       }
       await this.handleWinningStreak(userId, achievements, pushAchievement);
     }
 
+    await this.handleMarathonMan(
+      userId,
+      game.startTime,
+      achievements,
+      pushAchievement,
+    );
     await this.handleSocialButterfly(userId, achievements, pushAchievement);
     await this.handleVeteranPlayer(userId, achievements, pushAchievement);
     await this.handleRookieRiser(
@@ -251,7 +249,6 @@ export class AchievementsService {
         winnerId,
         loserId,
       ]);
-      console.log(previousGameWithLoser);
       if (previousGameWithLoser && previousGameWithLoser.winnerId === loserId) {
         pushAchievement(await this.unlock(winnerId, ACHIEVEMENTS.REVENGE, 0));
       }

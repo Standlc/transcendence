@@ -408,6 +408,8 @@ export class PongGateway {
         loserWithRatingChange,
         game,
       );
+    // console.log("player one:", playerOneAchievements);
+    // console.log("player two:", playerTwoAchievements);
     this.sendAchievementsUpdates(playerTwo.id, playerTwoAchievements);
   }
 

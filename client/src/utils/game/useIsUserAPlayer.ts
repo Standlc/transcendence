@@ -10,9 +10,9 @@ export const useIsUserAPlayer = ({
   const { user } = useContext(UserContext);
   const isUserAPlayer = useMemo(
     () =>
-      gameRecord?.playerOne?.id === user.id ||
-      gameRecord?.playerTwo?.id === user.id,
-    [user.id, gameRecord?.playerOne?.id, gameRecord?.playerTwo?.id]
+      gameRecord?.playerOne.id === user.id ||
+      gameRecord?.playerTwo.id === user.id,
+    [user.id, gameRecord?.playerOne.id, gameRecord?.playerTwo.id]
   );
 
   return isUserAPlayer;
