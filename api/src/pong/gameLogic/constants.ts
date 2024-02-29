@@ -5,7 +5,7 @@
 export const CANVAS_H = 700;
 export const CANVAS_W = 800;
 // BALL
-export const BALL_SIZE = 20;
+export const BALL_SIZE = 16;
 // PADDLE
 export const PADDLE_H = 80;
 export const PADDLE_W = 10;

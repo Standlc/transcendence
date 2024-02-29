@@ -28,7 +28,7 @@ export const NewGameAchievements = ({
       </div>
       <button
         onClick={hide}
-        className="self-end font-bold text-base opacity-50 hover:opacity-100"
+        className="self-end text-base opacity-50 hover:opacity-100"
       >
         Close
       </button>

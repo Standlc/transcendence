@@ -88,12 +88,12 @@ export const SendGameInvitationModal = ({
             <span>Send invitation</span>
           </PlayButton>
 
-          <div
+          <button
             className="self-end opacity-50 hover:opacity-100 hover:text-red-600"
             onClick={() => hide()}
           >
             Cancel
-          </div>
+          </button>
         </div>
       </div>
     </ModalLayout>

@@ -2,28 +2,25 @@ import { Avatar } from "../UIKit/avatar/Avatar";
 import { memo, useContext, useMemo } from "react";
 import { EmojiEvents } from "@mui/icons-material";
 import { Link } from "react-router-dom";
-import { useIsUserAPlayer } from "../utils/game/useIsUserAPlayer";
-import { PlayButton } from "../UIKit/PlayButton";
-import { GameSettingsContext } from "../ContextsProviders/GameSettingsContext";
-import { useFindGameMatch } from "../utils/useFindGameMatch";
 import { GamePlayer, UserGame } from "@api/types/games";
 import { UserContext } from "../ContextsProviders/UserContext";
 
 export const GameFinishedCard = memo(
-  ({ game, showSettings }: { game: UserGame; showSettings: () => void }) => {
+  ({
+    game,
+    showSettings,
+    PlayButton,
+  }: {
+    game: UserGame;
+    showSettings: () => void;
+    PlayButton: () => JSX.Element;
+  }) => {
     const { user } = useContext(UserContext);
-    const isUserAPlayer = useIsUserAPlayer({ gameRecord: game });
-
-    const { gameSettings } = useContext(GameSettingsContext);
-    const findGame = useFindGameMatch({
-      points: gameSettings.points,
-      powerUps: gameSettings.powerUps,
-    });
 
     const { playerOne, playerTwo } = game;
     const winner = useMemo(
-      () => (playerOne?.id === game.winnerId ? playerOne : playerTwo),
-      [game.winnerId]
+      () => (playerOne.id === game.winnerId ? playerOne : playerTwo),
+      [game.winnerId, playerOne.id]
     );
 
     const { playerLeft, playerRight } = useMemo(() => {
@@ -37,16 +34,16 @@ export const GameFinishedCard = memo(
         playerLeft: playerOne,
         playerRight: playerTwo,
       };
-    }, [user.id, playerOne.id, playerTwo.id]);
+    }, [user.id, playerOne.id]);
 
     return (
       <div className="flex flex-col w-full justify-center gap-7 p-5">
         <span className="font-[900] text-center text-2xl">
-          {winner?.username} won!
+          {winner.username} won!
         </span>
 
         <div className="flex flex-col gap-5 justify-center">
-          <PlayerQuickInfos player={playerLeft} winnerId={winner?.id} />
+          <PlayerQuickInfos player={playerLeft} winnerId={winner.id} />
 
           <span className="flex absolute items-center gap-2 self-center font-gameFont text-xl">
             <span>{playerLeft.score}</span>
@@ -56,7 +53,7 @@ export const GameFinishedCard = memo(
 
           <PlayerQuickInfos
             player={playerRight}
-            winnerId={winner?.id}
+            winnerId={winner.id}
             style={{
               flexDirection: "row-reverse",
               alignItems: "end",
@@ -65,19 +62,18 @@ export const GameFinishedCard = memo(
         </div>
 
         <div className="flex flex-col gap-2">
-          <PlayButton onClick={() => findGame.mutate()}>
-            <span>{isUserAPlayer ? "New Game" : "Play Online"}</span>
-          </PlayButton>
+          <PlayButton />
+
           <div className="flex gap-2 w-full">
             <Link
               to={"/play"}
-              className="bg-white flex-1 text-center bg-opacity-10 text-white text-opacity-50 hover:text-opacity-100 rounded-md py-2 font-bold text-base active:translate-y-[1px]"
+              className="bg-white flex-1 text-center bg-opacity-5 hover:bg-opacity-10 rounded-md py-2 text-base active:translate-y-[1px]"
             >
               Leave
             </Link>
             <button
               onClick={showSettings}
-              className="bg-white flex-1 text-center bg-opacity-10 text-white text-opacity-50 hover:text-opacity-100 rounded-md py-2 font-bold text-base active:translate-y-[1px]"
+              className="bg-white flex-1 text-center bg-opacity-5 hover:bg-opacity-10 rounded-md py-2 text-base active:translate-y-[1px]"
             >
               Settings
             </button>
@@ -95,7 +91,7 @@ export const PlayerQuickInfos = ({
   isDisconnected,
 }: {
   player: GamePlayer;
-  winnerId?: number | undefined;
+  winnerId: number;
   style?: React.CSSProperties;
   isDisconnected?: boolean;
 }) => {
@@ -130,9 +126,9 @@ const PlayerAvatar = ({
   winnerId,
 }: {
   player: GamePlayer;
-  winnerId: number | undefined;
+  winnerId: number;
 }) => {
-  const isWinner = winnerId != null && winnerId === player.id;
+  const isWinner = winnerId === player.id;
 
   return (
     <div
