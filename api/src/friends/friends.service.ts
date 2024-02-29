@@ -49,16 +49,7 @@ export class FriendsService {
     try {
       await db
       .insertInto('friend')
-      .values([
-        {
-          friendId: sourceId,
-          userId: targetId,
-        },
-        {
-          friendId: targetId,
-          userId: sourceId,
-        }
-      ])
+      .values({'user1_id': sourceId, 'user2_id': targetId})
       .executeTakeFirstOrThrow();
 
       await db
@@ -188,7 +179,7 @@ export class FriendsService {
     try {
       requestUsers = await db
       .selectFrom('user')
-      .select(['id', 'username', 'avatarUrl', 'rating'])
+      .select(['id', 'username', 'avatarUrl'])
       .where('id', 'in', arrayRequestId)
       .execute()
     } catch (error) {
@@ -240,51 +231,32 @@ export class FriendsService {
    * @throws NotFound, InternalServerError
    */
   async findAllFriends(id: number): Promise<AppUser[]> {
-    let friends1_Id: {user1_id: number | null}[];
-    let friends2_Id: {user2_id: number | null}[];
     try {
-      friends1_Id = await db
-      .selectFrom('friend')
-      .select('user1_id')
-      .orderBy('createdAt asc')
-      .groupBy(['user1_id', 'createdAt'])
-      .where('user2_id', '=', id)
-      .execute();
-      friends2_Id = await db
-      .selectFrom('friend')
-      .select('user2_id')
-      .orderBy('createdAt asc')
-      .groupBy(['user2_id', 'createdAt'])
-      .where('user1_id', '=', id)
-      .execute();
-    } catch (error) {
-      console.log(error);
-      throw new InternalServerErrorException();
-    }
-
-    if ((!friends1_Id && !friends2_Id) || (friends1_Id.length === 0 && friends2_Id.length === 0))
-      throw new NotFoundException();
-
-    let arrayFriendsId: (number | null)[] = [];
-    friends1_Id.forEach(friend1_Id => {
-      arrayFriendsId.push(friend1_Id.user1_id);
-    });
-    friends2_Id.forEach(friend2_Id => {
-      arrayFriendsId.push(friend2_Id.user2_id);
-    });
-
-    let friendList: AppUserDB[];
-    try {
-      friendList = await db
+      const friends = await db
       .selectFrom('user')
-      .select(['avatarUrl', 'id', 'username', 'rating', 'bio', 'createdAt', 'email', 'firstname', 'lastname'])
-      .where('id', 'in', arrayFriendsId)
+      .where('id', '!=', id)
+      .innerJoin('friend', (join) =>
+        join.on(({eb, or, and}) => or([
+          and([
+            eb('friend.user1_id', '=', id),
+            eb('friend.user2_id', '=', eb.ref('user.id'))
+          ]),
+          and([
+            eb('friend.user1_id', '=', eb.ref('user.id')),
+            eb('friend.user2_id', '=', id)
+          ])
+        ])),
+      )
+      .select(['user.avatarUrl', 'user.id', 'user.username', 'user.rating', 'user.bio', 'user.createdAt', 'user.email', 'user.firstname', 'user.lastname'])
       .execute();
+      return friends.map(u => ({
+        ...u,
+        status: this.usersStatusGateway.getUserStatus(u?.id)
+      }));
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException();
     }
-    return friendList.map(u => ({...u, status: this.usersStatusGateway.getUserStatus(u?.id)}))
   }
 
   /**
