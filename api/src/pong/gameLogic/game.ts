@@ -93,6 +93,7 @@ function throwBall(gameState: GameType) {
 }
 
 function checkIsWinner(game: GameType) {
+  // return game.game.playerOne.score === 2 || game.game.playerTwo.score === 2;
   return (
     game.game.playerOne.score === game.points ||
     game.game.playerTwo.score === game.points

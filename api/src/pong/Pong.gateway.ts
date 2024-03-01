@@ -12,7 +12,7 @@ import {
   PlayersRatingChangesType,
   PlayersService,
 } from '../games/players/players.service';
-import { Game, GameRequest } from 'src/types/schema';
+import { Game } from 'src/types/schema';
 import { Selectable } from 'kysely';
 import { initialize, startGameInterval } from './gameLogic/game';
 import {
@@ -28,13 +28,14 @@ import {
 import { getOtherPlayer, getWinner } from './gameLogic/utils';
 import {
   DISCONNECTION_END_GAME_TIMEMOUT,
+  INTERVAL_MS,
   PLAYER_PING_INTERVAL,
 } from './gameLogic/constants';
 import { handlePlayerMove } from './gameLogic/paddle';
 import { UsersStatusGateway } from 'src/usersStatusGateway/UsersStatus.gateway';
 import { AchievementsService } from 'src/achievements/Achievements.service';
 import { UserAchievement } from 'src/types/achievements';
-import { UserGameInvitation, UserGameRequest } from 'src/types/gameRequests';
+import { UserGameInvitation } from 'src/types/gameRequests';
 
 const getPlayer = (
   game: GameStateType,
@@ -142,20 +143,29 @@ export class PongGateway {
       });
   }
 
-  startGame(gameRecord: Selectable<Game>) {
+  async startGame(gameRecord: Selectable<Game>) {
     const gameState = initialize(gameRecord);
     this.games.set(gameState.gameId, gameState);
-    this.joinUsersToGameRoom(gameRecord);
+    this.joinUsersToGameRoom(gameRecord, gameState.roomId);
     this.usersStatusGateway.setUserAsPlaying(gameRecord.playerOneId);
     this.usersStatusGateway.setUserAsPlaying(gameRecord.playerTwoId);
+
+    if (gameRecord.isPublic) {
+      this.emitNewLiveGame(gameState);
+    }
+
+    this.sendTo(gameState.roomId, 'gameStart', gameState.roomId);
+    await this.sendGameStartCountdown(gameState);
+    gameState.isPaused = false;
+
+    const now = Date.now();
+    gameState.startTime = now;
+    gameState.nextUpdateTime = now + INTERVAL_MS;
 
     this.runGame(
       gameState,
       gameRecord.isPublic
         ? {
-            onGameStart: () => {
-              this.emitNewLiveGame(gameState);
-            },
             onPlayerScore: () => {
               this.sendLiveGameUpdate(gameState);
             },
@@ -164,7 +174,6 @@ export class PongGateway {
             },
           }
         : {
-            onGameStart: () => {},
             onPlayerScore: () => {},
             onGameEnd: async () => {
               await this.handlePrivateGameEnd(gameState);
@@ -173,33 +182,30 @@ export class PongGateway {
     );
   }
 
-  joinUsersToGameRoom(gameRecord: Selectable<Game>) {
-    this.server
-      .in(gameRecord.playerOneId.toString())
-      .socketsJoin(gameRecord.id.toString());
-    this.server
-      .in(gameRecord.playerTwoId.toString())
-      .socketsJoin(gameRecord.id.toString());
+  async joinUsersToGameRoom(gameRecord: Selectable<Game>, roomId: string) {
+    this.server.in(gameRecord.playerOneId.toString()).socketsJoin(roomId);
+    this.server.in(gameRecord.playerTwoId.toString()).socketsJoin(roomId);
+
+    // console.log(
+    //   'Player One sockets',
+    //   (await this.server.in(gameRecord.playerOneId.toString()).fetchSockets()).length,
+    // );
+    // console.log(
+    //   'Player Two sockets',
+    //   (await this.server.in(gameRecord.playerTwoId.toString()).fetchSockets()).length,
+    // );
   }
 
   async runGame(
     gameState: GameType,
     {
-      onGameStart,
       onPlayerScore,
       onGameEnd,
     }: {
-      onGameStart: () => void;
       onPlayerScore: () => void;
       onGameEnd: () => Promise<void>;
     },
   ) {
-    onGameStart();
-    this.sendTo(gameState.roomId, 'gameStart', gameState.roomId);
-    await this.sendGameStartCountdown(gameState);
-    gameState.isPaused = false;
-    gameState.startTime = Date.now();
-
     const handleEmitGameState = () => {
       this.sendTo(gameState.roomId, 'updateGameState', gameState.game);
     };
@@ -408,8 +414,6 @@ export class PongGateway {
         loserWithRatingChange,
         game,
       );
-    // console.log("player one:", playerOneAchievements);
-    // console.log("player two:", playerTwoAchievements);
     this.sendAchievementsUpdates(playerTwo.id, playerTwoAchievements);
   }
 
