@@ -7,7 +7,7 @@ import { formatDate } from "../../utils/timeFormating";
 
 const ACHIEVEMENTS_LEVELS_COLORS = {
   1: "#ff924b",
-  2: "#c8c8c8",
+  2: "#d5d5d5",
   3: "#ffdd00",
 };
 
