@@ -46,19 +46,24 @@ export class AuthController {
   })
   @ApiOkResponse({
     description: "This will redirect to either localhost:3000/ if a jwt as been generated, or localhost:3000/login?code=x if something went wrong. Note that x will be replaced with a string of the error."
-  }) 
+  })
   @Get('redirect')
   @UseGuards(OauthGuard)
   @UseFilters(HttpExceptionFilter)
-  async redirect(@Request() req, @Res() res: Response) {
-    const token: string = await this.authService.login(req.user.id);
+  async redirect(@Request() req, @Res() res: Response): Promise<string | undefined> {
+    const userWithoutPsw: Partial<AppUser> = req.user;
+    const token: string = await this.authService.login(userWithoutPsw);
     let date = new Date();
     date.setDate(date.getDate() + 7);
     res.cookie('token', token, {expires: date});
-    res.redirect(process.env.FRONTEND_URL ? process.env.FRONTEND_URL : '');
+    if (process.env.FRONTEND_URL) {
+      res.redirect(process.env.FRONTEND_URL);
+      return undefined;
+    }
+    return "This server is missing a front end to redirect...";
   }
 
-    //#endregion
+  //#endregion
 
   //#region login
 
@@ -95,13 +100,14 @@ export class AuthController {
         username: "joe"
       }
     }
-  }) 
+  })
   @ApiUnauthorizedResponse({description: "User credential is invalid"})
   @ApiInternalServerErrorResponse({ description: "Whenever the backend fail in some point, probably an error with the db." })
   @UseGuards(LocalAuthGuard)
   @Post('login')
   async loginWithPassword(@Request() req, @Res({ passthrough: true }) res: ResponseType): Promise<AppUser> {
-    const token: string = await this.authService.login(req.user.id);
+    const userWithoutPsw: Partial<AppUser> = req.user;
+    const token: string = await this.authService.login(userWithoutPsw);
     let date = new Date();
     date.setDate(date.getDate() + 7);
     res.cookie('token', token, {expires: date});

@@ -1,7 +1,8 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { Request } from "express";
 import { Strategy } from "passport-jwt";
+import { AppUser } from "src/types/clientSchema";
 import { UsersService } from "src/users/users.service";
 
 @Injectable()
@@ -27,16 +28,27 @@ export class jwtStrategy extends PassportStrategy(Strategy) {
 
   /**
    * This function acutally doesnt validate anything as jwt handle the
-   * validation of the extracted token.
+   * validation of the extracted token. We just validate if the id exist in our
+   * database. Someone could have a valid token that was issue for an account
+   * that has been deleted. Token is valid for seven days.
+   * Someone who is having a valid token without a user id field should never
+   * occurs, it probably means someone succesfully generate a token, they might
+   * know the JWT_SECRET we use
    * @param payload
    * @returns UserID
+   * @throws UnauthorizedException
    */
-  async validate(payload: {id: number}): Promise<{id: number} | undefined> {
+  async validate(payload: Partial<AppUser>): Promise<Partial<AppUser> | undefined> {
     try {
+      if (!payload.id) {
+        console.warn("Someone has a valid token that doesn't contain a user id field")
+        throw "Missing information from the payload";
+      }
       const user = await this.usersService.getUserById(payload.id);
-      return payload;
+      return { id: user.id };
     } catch (error) {
-      return undefined;
+      console.log(error);
+      throw new UnauthorizedException();
     }
   }
 }
