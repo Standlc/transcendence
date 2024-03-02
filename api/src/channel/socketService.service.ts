@@ -721,7 +721,7 @@ export class SocketService {
   //
   //
   //
-  async verifyPassword(channelId: number, password: string): Promise<boolean> {
+  async verifyPassword(channelId: number, password: string): Promise<void> {
     try {
       const channelPwd = await db
         .selectFrom('channel')
@@ -729,15 +729,16 @@ export class SocketService {
         .where('id', '=', channelId)
         .executeTakeFirstOrThrow();
 
-      if (channelPwd.password === null && password !== null) return true;
+      if (!channelPwd.password) return;
 
       const match = await bcrypt.compare(
         password,
         channelPwd.password as string,
       );
 
-      return match;
+      if (match == false) throw new UnauthorizedException('Invalid password');
     } catch (error) {
+      if (error instanceof UnauthorizedException) throw error;
       throw new InternalServerErrorException();
     }
   }
@@ -882,7 +883,7 @@ export class SocketService {
   //
   //
   //
-  // !!! to test
+  // !!! tested
   async isInInviteList(userId: number, channelId: number) {
     try {
       const userInList = await db

@@ -65,8 +65,6 @@ export interface ConnectToChannel {
   channelId: number;
   userId: number;
   password: string;
-  isPublic: boolean;
-  channelOwner: number;
 }
 
 export interface ConnectToDm {

@@ -22,6 +22,7 @@ import {
 import { UseGuards } from '@nestjs/common';
 import { WsAuthGuard } from 'src/auth/ws-auth.guard';
 import { Utils } from './utilsChannel.service';
+import { db } from 'src/database';
 
 @WebSocketGateway(5050, {
   namespace: 'socket.io/channel',
@@ -96,11 +97,15 @@ export class ChannelGateway
       throw new WsException('User is banned');
     }
 
-    // !!! to test
     try {
+      const channelInfo = await db
+        .selectFrom('channel')
+        .select(['channelOwner', 'isPublic'])
+        .where('id', '=', payload.channelId)
+        .executeTakeFirstOrThrow();
       if (
-        payload.userId !== payload.channelOwner &&
-        payload.isPublic == false
+        payload.userId !== channelInfo.channelOwner &&
+        channelInfo.isPublic == false
       ) {
         await this.socketService.isInInviteList(
           payload.userId,
@@ -113,20 +118,13 @@ export class ChannelGateway
     }
 
     try {
-      if (payload.password !== null) {
-        await this.socketService.verifyPassword(
-          payload.channelId,
-          payload.password,
-        );
-      }
+      await this.socketService.verifyPassword(
+        payload.channelId,
+        payload.password,
+      );
     } catch (error) {
       console.error(error);
       throw new WsException('Invalid password');
-    }
-
-    if (!payload.channelId) {
-      console.error('No channel id provided');
-      throw new WsException('No channel id provided');
     }
 
     try {

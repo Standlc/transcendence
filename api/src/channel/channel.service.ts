@@ -12,7 +12,6 @@ import {
   ChannelDataWithoutPassword,
   ChannelUpdate,
   MessageWithSenderInfo,
-  UserInfo,
 } from 'src/types/channelsSchema';
 import * as bcrypt from 'bcrypt';
 import { Utils } from './utilsChannel.service';
