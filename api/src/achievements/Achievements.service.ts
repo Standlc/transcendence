@@ -30,17 +30,11 @@ export class AchievementsService {
       updatedAchievements.push(a);
 
     if (userId === winner.id) {
-      await this.handleFirstVictory(winner.id, achievements, pushAchievement);
+      await this.handleFirstVictory(userId, achievements, pushAchievement);
       await this.handleUnderdogVictory(
         userId,
         winner.prevRating,
         loser.prevRating,
-        achievements,
-        pushAchievement,
-      );
-      await this.handleShutout(
-        winner.id,
-        loser.score,
         achievements,
         pushAchievement,
       );
@@ -52,6 +46,12 @@ export class AchievementsService {
         pushAchievement,
       );
       if (game.userDisconnectedId === undefined) {
+        await this.handleShutout(
+          winner.id,
+          loser.score,
+          achievements,
+          pushAchievement,
+        );
         await this.handleQuickWitted(
           userId,
           game.startTime,

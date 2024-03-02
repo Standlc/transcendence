@@ -36,6 +36,7 @@ import { UsersStatusGateway } from 'src/usersStatusGateway/UsersStatus.gateway';
 import { AchievementsService } from 'src/achievements/Achievements.service';
 import { UserAchievement } from 'src/types/achievements';
 import { UserGameInvitation } from 'src/types/gameRequests';
+import { UsersStatusService } from 'src/usersStatusGateway/UsersStatusService';
 
 const getPlayer = (
   game: GameStateType,
@@ -75,7 +76,9 @@ export class PongGateway {
     private readonly gamesService: GamesService,
     private readonly wsGuard: WsAuthGuard,
     private readonly players: PlayersService,
+    @Inject(forwardRef(() => UsersStatusGateway))
     private readonly usersStatusGateway: UsersStatusGateway,
+    private readonly usersStatusService: UsersStatusService,
     private readonly achievementsService: AchievementsService,
   ) {}
 
@@ -227,8 +230,7 @@ export class PongGateway {
           message: 'Error while setting game as finished.',
         });
       }
-      this.usersStatusGateway.setUserAsOnline(gameState.game.playerOne.id);
-      this.usersStatusGateway.setUserAsOnline(gameState.game.playerTwo.id);
+      await this.setUsersAsOnline(gameState.game);
       this.games.delete(gameState.gameId);
     };
 
@@ -302,6 +304,24 @@ export class PongGateway {
         userId: userId,
       });
     }, 1000);
+  }
+
+  async setUsersAsOnline(game: GameStateType) {
+    const { playerOne, playerTwo } = game;
+    try {
+      if (!(await this.usersStatusService.isUserPlaying(playerOne.id))) {
+        this.usersStatusGateway.setUserAsOnline(playerOne.id);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+    try {
+      if (!(await this.usersStatusService.isUserPlaying(playerTwo.id))) {
+        this.usersStatusGateway.setUserAsOnline(playerTwo.id);
+      }
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   async sendGameStartCountdown(game: GameType): Promise<void> {
@@ -415,6 +435,9 @@ export class PongGateway {
         game,
       );
     this.sendAchievementsUpdates(playerTwo.id, playerTwoAchievements);
+
+    console.log('player one:', playerOneAchievements);
+    console.log('player two:', playerTwoAchievements);
   }
 
   sendAchievementsUpdates(userId: number, achievements: UserAchievement[]) {

@@ -2,7 +2,6 @@ import { Module, forwardRef } from '@nestjs/common';
 import { GamesService } from './games.service';
 import { PongGameModule } from 'src/pong/Pong.module';
 import { GamesController } from './games.controller';
-import { PlayersModule } from 'src/games/players/players.module';
 
 @Module({
   imports: [forwardRef(() => PongGameModule)],

@@ -11,6 +11,7 @@ import { useGameSocket } from "../utils/useGameSocket";
 import { GameRequestModal } from "./GameRequestModal";
 import { AppUser } from "@api/types/clientSchema";
 import { GameInvitationModal } from "./GameInvitationsModal";
+import { RejoinGameNotification } from "./RejoinGameNotification";
 
 export default function PrivateLayout({ user }: { user: AppUser }) {
   const { error, addError, removeCurrentError } = useErrorQueue();
@@ -46,6 +47,7 @@ export default function PrivateLayout({ user }: { user: AppUser }) {
           >
             <div className="min-h-[100vh] w-full h-full">
               {error && <ErrorModal />}
+              <RejoinGameNotification />
               <GameRequestModal />
               <GameInvitationModal />
               <Outlet />
