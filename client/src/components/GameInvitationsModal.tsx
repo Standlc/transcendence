@@ -10,8 +10,10 @@ import axios from "axios";
 import { ErrorContext } from "../ContextsProviders/ErrorContext";
 import MultiModalLayout from "../UIKit/MultiModalLayout";
 import { useGame } from "../utils/useGame";
+import { useParams } from "react-router-dom";
 
 export const GameInvitationModal = () => {
+  const { gameId } = useParams();
   const currentGameRequest = useGameRequest();
   const { gameSocketOn, gameSocketOff } = useContext(SocketsContext);
   const gameInvitations = useGameInvitations();
@@ -79,10 +81,11 @@ export const GameInvitationModal = () => {
     };
   }, [gameSocketOn, gameSocketOff]);
 
+  // FIX THIS
   if (
     currentGameRequest.data ||
     !gameInvitations.data?.length ||
-    (gameRecord.data && gameRecord.data.winnerId == null)
+    (gameRecord.data && gameRecord.data.winnerId == null && gameId != null)
   ) {
     return null;
   }
@@ -125,6 +128,7 @@ export const GameInvitationModal = () => {
 
             <div className="flex flex-col">
               <PlayButton
+                isDisabled={acceptInvitation.isPending}
                 onClick={() => {
                   acceptInvitation.mutate(invitation.inviterUser.id);
                 }}
@@ -132,6 +136,7 @@ export const GameInvitationModal = () => {
                 Play
               </PlayButton>
               <button
+                disabled={declineInvitation.isPending}
                 onClick={() =>
                   declineInvitation.mutate(invitation.inviterUser.id)
                 }

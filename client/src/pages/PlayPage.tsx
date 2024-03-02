@@ -40,7 +40,10 @@ export default function PlayPage() {
               </button>
 
               <div className="absolute z-[2] flex flex-col gap-2">
-                <PlayButton onClick={() => findGame.mutate()}>
+                <PlayButton
+                  isDisabled={findGame.isPending}
+                  onClick={() => findGame.mutate()}
+                >
                   <PlayArrowRounded style={{ margin: "-7px", fontSize: 30 }} />
                   <span className="pl-3">Play Online</span>
                 </PlayButton>

@@ -19,8 +19,10 @@ export const GameRequestModal = () => {
   const cancel = useMutation({
     mutationFn: async () => {
       const res = await axios.delete(`/api/game-requests`);
-      queryClient.setQueryData(["currentGameRequest"], null);
       return res.data;
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(["currentGameRequest"], null);
     },
     onError: () => {
       addError({ message: "something went wrong" });
@@ -38,7 +40,12 @@ export const GameRequestModal = () => {
     return () => {
       gameSocketOff("gameInvitationRefused", handleInvitationRefused);
     };
-  }, [gameSocketOn, gameSocketOff, gameRequest.data]);
+  }, [
+    gameSocketOn,
+    gameSocketOff,
+    gameRequest.data,
+    gameRequest.data?.targetUser,
+  ]);
 
   if (!gameRequest.data) {
     return null;
@@ -98,6 +105,7 @@ export const GameRequestModal = () => {
         </div>
 
         <button
+          disabled={cancel.isPending}
           className="self-end opacity-50 hover:opacity-100 hover:text-red-600"
           onClick={() => cancel.mutate()}
         >
@@ -131,7 +139,7 @@ export const PlayerInfos = ({
         <span
           style={{
             opacity: player ? 1 : 0.5,
-            fontWeight: player ? "bold" : "normal"
+            fontWeight: player ? "bold" : "normal",
           }}
           className="text-lg"
         >

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Inject,
   Injectable,
   InternalServerErrorException,
@@ -60,7 +61,22 @@ export class GameRequestsService {
       .where('userId', '!=', userId)
       .where('powerUps', 'is', req.powerUps)
       .where('targetId', 'is', null)
-      .selectAll()
+      .leftJoin('blockedUser', (join) =>
+        join.on((eb) =>
+          eb.or([
+            eb.and([
+              eb('blockedById', '=', userId),
+              eb('blockedId', '=', eb.ref('gameRequest.userId')),
+            ]),
+            eb.and([
+              eb('blockedById', '=', eb.ref('gameRequest.userId')),
+              eb('blockedId', '=', userId),
+            ]),
+          ]),
+        ),
+      )
+      .where('blockedId', 'is', null)
+      .selectAll('gameRequest')
       .executeTakeFirst();
     return match;
   }
@@ -215,5 +231,11 @@ export class GameRequestsService {
       .where('targetId', '=', targetId)
       .select(['userId', 'targetId'])
       .executeTakeFirst();
+  }
+
+  verifyGamePointsOrThrow(points: number) {
+    if (points !== 42 && points !== 21 && points !== 10) {
+      throw new BadRequestException();
+    }
   }
 }

@@ -53,7 +53,10 @@ export const GameFinishedModal = ({ gameRecord }: { gameRecord: UserGame }) => {
           gameRecord.isPublic
             ? () => {
                 return (
-                  <PlayButton onClick={() => findGame.mutate()}>
+                  <PlayButton
+                    isDisabled={findGame.isPending}
+                    onClick={() => findGame.mutate()}
+                  >
                     <span>{isUserAPlayer ? "New Game" : "Play Online"}</span>
                   </PlayButton>
                 );
@@ -61,6 +64,7 @@ export const GameFinishedModal = ({ gameRecord }: { gameRecord: UserGame }) => {
             : () => {
                 return (
                   <button
+                    disabled={rematch.isPending}
                     className="hover:-translate-y-[1px] flex-auto flex items-center py-4 px-5 justify-center overflow-hidden active:translate-y-0 rounded-lg bg-green-600 font-[900] text-2xl shadow-lg"
                     onClick={() => rematch.mutate(rematchSettings)}
                   >
