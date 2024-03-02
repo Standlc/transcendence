@@ -9,24 +9,26 @@ export const Login = () => {
     const navigate = useNavigate();
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const { login } = useAuth();
+    const { login, loginResponse } = useAuth();
 
     useEffect(() => {
-        checkCookie();
-    }, []);
+        if (loginResponse) {
+            navigate("/"); // User is already logged in, redirect them to the dashboard or home page
+        } else {
+            checkCookie();
+        }
+    }, [loginResponse]);
 
     const checkCookie = async () => {
         try {
             const response = await fetch("http://localhost:3000/api/auth/token");
             if (response.ok) {
                 const data = await response.json();
-                console.log("Data received:", data);
                 login(data);
-                console.log("LOGIN", login);
-                navigate("/home"); // Redirect to the home route or dashboard
-                // Handle the received data as needed
+                navigate("/"); // Redirect to the root route or dashboard
             } else {
                 console.error("Failed to fetch data:", response.status);
+                // No action needed here if not authenticated, as the user is already on the login page
             }
         } catch (error) {
             console.error("Error fetching data:", error);
@@ -35,7 +37,6 @@ export const Login = () => {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-
         try {
             const response = await fetch("http://localhost:3000/api/auth/login", {
                 method: "POST",
@@ -44,14 +45,10 @@ export const Login = () => {
                 },
                 body: JSON.stringify({ username, password }),
             });
-            console.log(JSON.stringify({ username, password }));
-
             if (response.ok) {
                 const data = await response.json();
-                console.log("Login successful:", data);
                 login(data);
-                console.log("LOGIN", login);
-                navigate("/home"); // Rediriger vers la route home ou dashboard
+                navigate("/"); // Redirect to the root route or dashboard after login
             } else {
                 console.error("Login failed:", response.status);
             }

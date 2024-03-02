@@ -3,6 +3,7 @@ import { FriendsAdd } from "./FriendsAdd";
 import { LoginResponse } from "../components/RequireAuth/AuthProvider";
 import { FriendsInvitation } from "./FriendsInvitation";
 import { AllFriends } from "./AllFriends";
+import { AppUser } from "@api/types/clientSchema";
 
 // Assuming the Friend interface is defined as follows:
 interface Friend {
@@ -12,7 +13,7 @@ interface Friend {
 }
 
 interface Props {
-    loginResponse: LoginResponse | null;
+    loginResponse: AppUser | null;
     SERVER_URL: string;
 }
 

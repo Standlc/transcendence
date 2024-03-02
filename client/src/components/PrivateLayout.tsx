@@ -9,10 +9,14 @@ import { useErrorQueue } from "../utils/useErrorQueue";
 import { useUsersStatusSocket } from "../utils/useUsersStatusSocket";
 import { useGameSocket } from "../utils/useGameSocket";
 import { GameRequestModal } from "./GameRequestModal";
-import { AppUser } from "@api/types/clientSchema";
 import { GameInvitationModal } from "./GameInvitationsModal";
+import { AppUser } from "@api/types/clientSchema";
 
-export default function PrivateLayout({ user }: { user: AppUser }) {
+interface PrivateLayoutProps {
+    user: AppUser;
+}
+
+export default function PrivateLayout({ user }: PrivateLayoutProps) {
     const { error, addError, removeCurrentError } = useErrorQueue();
     const { gameSocket, gameSocketOn, gameSocketOff } = useGameSocket(addError);
     const { usersStatusSocket, addHandler, removeHandler } =

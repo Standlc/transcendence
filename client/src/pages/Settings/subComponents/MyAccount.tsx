@@ -1,12 +1,12 @@
 import { useNavigate } from "react-router-dom";
-import { LoginResponse } from "../../../components/RequireAuth/AuthProvider";
 import defaultAvatar from "../../../components/defaultAvatar.png";
+import { AppUser } from "@api/types/clientSchema";
 
-export const MonCompte = ({ loginResponse }: { loginResponse: LoginResponse }) => {
+export const MonCompte = ({ loginResponse }: { loginResponse: AppUser }) => {
     const navigate = useNavigate();
 
     const handleOnClick = () => {
-        navigate("/home");
+        navigate("/");
     };
 
     return (

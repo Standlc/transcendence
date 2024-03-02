@@ -5,13 +5,18 @@ import { NavBar } from "../components/Navbar/Navbar";
 import { useAuth } from "../components/RequireAuth/AuthProvider";
 import { Friends } from "./Friends";
 import Chat from "../components/Chat/Chat";
+import { AppUser } from "@api/types/clientSchema";
 
-export const Dashboard = () => {
-    const { loginResponse } = useAuth();
+interface Props {
+    SERVER_URL: string;
+    loginResponse: AppUser | null;
+}
+
+export const Dashboard: React.FC<Props> = ({ SERVER_URL, loginResponse }: Props) => {
     // Note: currentPage now contains both 'page' and 'refreshKey'
+    console.log("Current DASHBOARD loginResponse:", loginResponse);
     const [currentPage, setCurrentPage] = useState({ page: "", refreshKey: 0 });
     // const SERVER_URL = "http://localhost:5000";
-    const SERVER_URL = "http://localhost:3000/socket.io";
 
     const [conversationID, setConversationID] = useState<number>(0);
     const [selectedFriend, setSelectedFriend] = useState<{
@@ -50,12 +55,12 @@ export const Dashboard = () => {
     return (
         <div className="result-page bg-dark-but-not-black">
             <NavBar />
-            <ChanColumn
+            {/* <ChanColumn
                 loginResponse={loginResponse}
                 setCurrentPage={changePage}
                 setConversationID={setConversationID}
                 setSelectedFriend={setSelectedFriend}
-            />
+            /> */}
             {renderPage()}
         </div>
     );

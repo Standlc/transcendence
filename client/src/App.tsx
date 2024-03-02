@@ -4,6 +4,7 @@ import {
     RouterProvider,
     createBrowserRouter,
     createRoutesFromElements,
+    Navigate,
 } from "react-router-dom";
 import PrivateLayout from "./components/PrivateLayout";
 import PublicLayout from "./components/PublicLayout";
@@ -19,46 +20,14 @@ import { Register } from "./pages/Register";
 import { Friends } from "./pages/Friends";
 import { Login } from "./pages/Login";
 import { Settings } from "./pages/Settings";
+import { AppUser } from "@api/types/clientSchema";
 
 function App() {
     const { loginResponse } = useAuth();
     const queryClient = useQueryClient();
-    const [credentials, setCredentials] = useState({
-        username: "",
-        password: "",
-    });
+    const SERVER_URL = "http://localhost:3000/socket.io";
 
-    const userId = loginResponse?.id || 0;
-
-    const getUser = useQuery({
-        queryKey: ["user"],
-        retry: false,
-        queryFn: async () => {
-            const res = await axios.get<AppUser>("/api/auth/login");
-            return res.data;
-        },
-    });
-
-    const logUser = useMutation({
-        mutationKey: ["logUser", credentials],
-        mutationFn: async () => {
-            const res = await axios.post<AppUser>("/api/auth/login", {
-                username: credentials.username,
-                password: credentials.password,
-            });
-            return res.data;
-        },
-        onSuccess: (data) => {
-            queryClient.setQueryData(["user"], data);
-        },
-        onError: () => {
-            // -> handle login error
-        },
-    });
-
-    if (getUser.isLoading) {
-        return null;
-    }
+    // Vérifier si l'utilisateur est connecté
 
     return (
         <AuthProvider>
@@ -66,23 +35,54 @@ function App() {
                 router={createBrowserRouter(
                     createRoutesFromElements(
                         <>
-                            <Route element={<PrivateLayout user={userId} />}>
-                                <Route index path="/" element={<Login />} />
-                                <Route path="/play" element={<PlayPage />} />
-                                <Route path="/play/:gameId" element={<GamePage />} />
-                                <Route
-                                    path="/leaderboard"
-                                    element={<LeaderboardPage />}
-                                />
-                                <Route path="/live" element={<LiveGamesPage />} />
-                                <Route path="/home" element={<Dashboard />} />
-                                <Route path="/create-account" element={<Register />} />
-                                <Route
-                                    path="/friends"
-                                    element={<Friends loginResponse={loginResponse} />}
-                                />
-                                <Route path="/settings" element={<Settings />} />
-                            </Route>
+                            {loginResponse ? (
+                                <Route element={<PrivateLayout user={loginResponse} />}>
+                                    <Route
+                                        path="/home" // Utiliser /home comme chemin pour le tableau de bord
+                                        element={
+                                            <Dashboard
+                                                SERVER_URL={SERVER_URL}
+                                                loginResponse={loginResponse}
+                                            />
+                                        }
+                                    />
+                                    <Route path="/play" element={<PlayPage />} />
+                                    <Route
+                                        path="/play/:gameId"
+                                        element={<GamePage />}
+                                    />
+                                    <Route
+                                        path="/leaderboard"
+                                        element={<LeaderboardPage />}
+                                    />
+                                    <Route path="/live" element={<LiveGamesPage />} />
+                                    <Route
+                                        path="/friends"
+                                        element={
+                                            <Friends
+                                                SERVER_URL={SERVER_URL}
+                                                loginResponse={loginResponse}
+                                            />
+                                        }
+                                    />
+                                    <Route path="/settings" element={<Settings />} />
+                                    {/* Ajouter une redirection de la racine (/) vers /home pour les utilisateurs authentifiés */}
+                                    <Route
+                                        path="/"
+                                        element={<Navigate to="/home" replace />}
+                                    />
+                                </Route>
+                            ) : (
+                                <Route element={<PublicLayout />}>
+                                    <Route path="/login" element={<Login />} />
+                                    <Route path="/register" element={<Register />} />
+                                    {/* Rediriger la racine (/) vers /login pour les utilisateurs non authentifiés */}
+                                    <Route
+                                        path="/"
+                                        element={<Navigate to="/login" replace />}
+                                    />
+                                </Route>
+                            )}
                         </>
                     )
                 )}

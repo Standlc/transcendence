@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { LoginResponse } from "../components/RequireAuth/AuthProvider";
 import defaultAvatar from "../components/defaultAvatar.png";
 import { Avatar } from "../UIKit/avatar/Avatar";
+import { AppUser } from "@api/types/clientSchema";
 interface Props {
     adding: boolean;
     setFriendsPending: (friendsPending: boolean) => void;
@@ -16,7 +16,7 @@ export const FriendsAdd: React.FC<Props> = ({
     setAllFriends,
 }: Props) => {
     const [username, setUsername] = useState("");
-    const [usersFound, setUsersFound] = useState<LoginResponse[]>([]);
+    const [usersFound, setUsersFound] = useState<AppUser[]>([]);
 
     const add = async (userId: number) => {
         try {

@@ -5,58 +5,80 @@ import React, {
     ReactNode,
     useEffect,
 } from "react";
-import { Timestamp } from "../../../../api/src/types/schema";
-
-// Define a TypeScript type for loginResponse
-export interface LoginResponse {
-    // Define the properties you expect to receive from the login API response
-    // For example, if you expect a 'username' property, you can define it like this:
-    username: string;
-    avatarUrl: string | null;
-    bio: string | null;
-    createdAt: Timestamp;
-    email: string | null;
-    id: number;
-    lastname: string | null;
-    firstname: string | null;
-    rating: number;
-    // Add other properties as needed
-}
+import { AppUser } from "@api/types/clientSchema";
 
 interface AuthProviderProps {
     children: ReactNode;
 }
 
 const AuthContext = createContext<{
-    loginResponse: LoginResponse | null;
-    login: (data: LoginResponse) => void;
+    loginResponse: AppUser | null;
+    login: (data: AppUser) => void;
     logout: () => void;
-}>(
-    // Provide an initial value for the context, specifying the loginResponse is initially null
-    { loginResponse: null, login: () => {}, logout: () => {} }
-);
+}>({ loginResponse: null, login: () => {}, logout: () => {} });
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-    const [loginResponse, setLoginResponse] = useState<LoginResponse | null>(null);
+    const [loginResponse, setLoginResponse] = useState<AppUser | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const storedLoginResponse = localStorage.getItem("loginResponse");
-        if (storedLoginResponse) {
-            setLoginResponse(JSON.parse(storedLoginResponse));
-        }
+        const checkAuth = async () => {
+            try {
+                const storedLoginResponse = localStorage.getItem("loginResponse");
+                console.log("Stored login response:", storedLoginResponse);
+                if (storedLoginResponse) {
+                    const userData = JSON.parse(storedLoginResponse);
+                    console.log("User data:", userData);
+                    setLoginResponse(userData);
+                } else {
+                    await checkAuthCookie();
+                }
+            } catch (error) {
+                console.error("Error checking authentication:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        checkAuth();
     }, []);
 
-    const login = (data: LoginResponse) => {
+    const checkAuthCookie = async () => {
+        try {
+            const response = await fetch("http://localhost:3000/api/auth/token", {
+                method: "GET",
+                credentials: "include", // Important for cookies to be sent and received
+            });
+            if (response.ok) {
+                const data: AppUser = await response.json();
+                login(data); // Appel de la fonction login lorsque l'authentification réussit
+            } else {
+                console.log("Not authenticated via cookie");
+                // Gérer la non-authentification ici, par exemple, rediriger vers la page de connexion
+            }
+        } catch (error) {
+            console.error("Error checking auth cookie:", error);
+        }
+    };
+
+    const login = (data: AppUser) => {
+        console.log("Logging in with data:", data);
         setLoginResponse(data);
-        // Stockez les informations de connexion dans localStorage
         localStorage.setItem("loginResponse", JSON.stringify(data));
+        console.log("loginResponse set:", data);
     };
 
     const logout = () => {
+        console.log("Logging out");
         setLoginResponse(null);
-        // Assurez-vous également de nettoyer le localStorage
-        localStorage.removeItem("loginResponse");
+        localStorage.removeItem("loginResponse"); // Suppression des données de connexion lors de la déconnexion
+        // Autres actions de déconnexion...
     };
+
+    if (loading) {
+        // Affichage d'un indicateur de chargement pendant la vérification de l'authentification
+        return <div>Loading...</div>;
+    }
 
     return (
         <AuthContext.Provider value={{ loginResponse, login, logout }}>
@@ -66,5 +88,5 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 };
 
 export const useAuth = () => {
-    return useContext(AuthContext);
+    return useContext(AuthContext); // Récupération du contexte d'authentification dans les composants
 };
