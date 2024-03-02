@@ -13,7 +13,6 @@ import {
   DmWithSenderInfo,
 } from 'src/types/channelsSchema';
 import { FriendsService } from 'src/friends/friends.service';
-import { on } from 'events';
 
 @Injectable()
 export class DmService {

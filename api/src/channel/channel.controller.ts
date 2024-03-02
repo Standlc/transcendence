@@ -132,11 +132,22 @@ export class UserController {
           isPublic: {
             type: 'boolean',
           },
-          name: {
-            type: 'string',
-          },
-          photoUrl: {
-            type: 'string | null',
+          users: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                userId: {
+                  type: 'number',
+                },
+                username: {
+                  type: 'string',
+                },
+                avatarUrl: {
+                  type: 'string',
+                },
+              },
+            },
           },
         },
       },
@@ -205,7 +216,6 @@ export class UserController {
     description:
       'Invalid channel name length (1-49) | \
       Invalid photo url length (1-49) | \
-      A private or protected channel must have a password | \
       A public channel cannot have a password | \
       Channel name already exists | \
       Invalid password length | \
@@ -248,12 +258,6 @@ export class UserController {
         },
         isPublic: {
           type: 'boolean',
-        },
-        name: {
-          type: 'string',
-        },
-        photoUrl: {
-          type: 'string | null',
         },
       },
     },
@@ -304,7 +308,6 @@ export class UserController {
       'No data to update | \
       Invalid channel name length (1-49) | \
       Invalid photoUrl length (1-49) | \
-      A private or protected channel must have a password | \
       A public channel cannot have a password | \
       Channel name already exists | \
       Invalid isPublic value | \

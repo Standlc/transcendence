@@ -236,7 +236,6 @@ export class SocketService {
   //
   //
   //
-  // !!! change throw exceptions to return everywhere because of socket disconnection ?
   async unmuteUser(payload: ActionOnUser): Promise<void> {
     if (
       (await this.utilsChannelService.isChannelMember(

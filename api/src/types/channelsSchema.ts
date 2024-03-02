@@ -18,8 +18,20 @@ export interface ChannelDataWithoutPassword {
   createdAt: Date;
   id: number;
   isPublic: boolean;
-  name: string | null;
-  photoUrl: string | null;
+}
+
+export interface ChannelDataWithUsersWithoutPassword {
+  channelOwner: number;
+  createdAt: Date;
+  id: number;
+  isPublic: boolean;
+  users: UserInfo[];
+}
+
+export interface UserInfo {
+  userId: number;
+  username: string;
+  avatarUrl: string;
 }
 
 // combine User interface and Channel interface

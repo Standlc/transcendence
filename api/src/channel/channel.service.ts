@@ -8,9 +8,11 @@ import {
 import { db } from 'src/database';
 import {
   ChannelCreationData,
+  ChannelDataWithUsersWithoutPassword,
   ChannelDataWithoutPassword,
   ChannelUpdate,
   MessageWithSenderInfo,
+  UserInfo,
 } from 'src/types/channelsSchema';
 import * as bcrypt from 'bcrypt';
 import { Utils } from './utilsChannel.service';
@@ -311,7 +313,9 @@ export class ChannelService {
     }
 
     try {
-      // !!! to export everywhere
+      // !!! test type variable
+      console.log(typeof channel.isPublic);
+      // !!! need to ask Seth
       //
       const isPublicString = channel.isPublic.toString();
       let isPublicBoolean: boolean;
@@ -371,9 +375,8 @@ export class ChannelService {
       throw error;
     }
 
-    let channel: ChannelDataWithoutPassword;
     try {
-      channel = (await db
+      const channel = (await db
         .selectFrom('channel')
         .where('id', '=', channelId)
         .select([
@@ -385,26 +388,30 @@ export class ChannelService {
           'photoUrl',
         ])
         .executeTakeFirst()) as ChannelDataWithoutPassword;
+
+      return channel;
     } catch (error) {
       throw new InternalServerErrorException();
     }
-    return channel;
   }
 
   //
   //
   //
   // Channels where user is member and not banned
-  // !!! to redo
   async getAllChannelsOfTheUser(
     userId: number,
-  ): Promise<ChannelDataWithoutPassword[]> {
-    let channels: ChannelDataWithoutPassword[];
+  ): Promise<ChannelDataWithUsersWithoutPassword[]> {
     try {
-      channels = (await db
+      const channelsInfo = await db
         .selectFrom('channel')
         .leftJoin('channelMember', 'channel.id', 'channelMember.channelId')
-        .leftJoin('bannedUser', 'channel.id', 'bannedUser.channelId')
+        .leftJoin('user', 'channelMember.userId', 'user.id')
+        .leftJoin('bannedUser', (join) =>
+          join
+            .onRef('channel.id', '=', 'bannedUser.channelId')
+            .on('bannedUser.bannedId', '=', userId),
+        )
         .select([
           'channel.channelOwner',
           'channel.createdAt',
@@ -412,15 +419,42 @@ export class ChannelService {
           'channel.isPublic',
           'channel.name',
           'channel.photoUrl',
+          'channelMember.userId',
+          'user.username',
+          'user.avatarUrl',
+          'bannedUser.bannedId',
         ])
         .where('channelMember.userId', '=', userId)
-        .where('bannedUser.bannedId', '!=', userId) // !!! need banned ?
-        .execute()) as ChannelDataWithoutPassword[];
-      console.log('channels:', channels);
+        .where('bannedUser.bannedId', 'is', null)
+        .execute();
+
+      const channelsWithUsers: ChannelDataWithUsersWithoutPassword[] = [];
+
+      for (const channelInfo of channelsInfo) {
+        const usersInfo = await db
+          .selectFrom('channelMember')
+          .leftJoin('user', 'channelMember.userId', 'user.id')
+          .select(['channelMember.userId', 'user.username', 'user.avatarUrl'])
+          .where('channelMember.channelId', '=', channelInfo.id)
+          .execute();
+
+        const channelWithUsers: ChannelDataWithUsersWithoutPassword = {
+          channelOwner: channelInfo.channelOwner,
+          createdAt: channelInfo.createdAt,
+          id: channelInfo.id,
+          isPublic: channelInfo.isPublic,
+          users: usersInfo.map((userInfo) => ({
+            userId: userInfo.userId,
+            username: userInfo.username as string,
+            avatarUrl: userInfo.avatarUrl as string,
+          })),
+        };
+        channelsWithUsers.push(channelWithUsers);
+      }
+
+      return channelsWithUsers;
     } catch (error) {
-      if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException();
     }
-    return channels;
   }
 }
