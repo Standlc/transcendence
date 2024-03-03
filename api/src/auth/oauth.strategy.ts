@@ -147,7 +147,7 @@ export class Oauth2Strategy extends PassportStrategy(Strategy) {
     }); //config
   }
 
-  async validate(accessToken: string): Promise<AppUser | undefined> {
+  async validate(accessToken: string): Promise<Partial<AppUser>> {
     // ? Add the token in authorization headers
     const config = {
       headers: { Authorization: `Bearer ${accessToken}` }
@@ -162,7 +162,7 @@ export class Oauth2Strategy extends PassportStrategy(Strategy) {
           config
         ).pipe(
           catchError((error: AxiosError) => {
-            throw error; // ? throw if anything fail 
+            throw error; // ? throw if anything fail
           }),
         )
       );
