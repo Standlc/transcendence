@@ -1,4 +1,5 @@
 import {
+  AllConversationsPromise,
   ConversationPromise,
   DmWithSenderInfo,
   UserId,
@@ -76,11 +77,33 @@ export class DmController {
           createdAt: {
             type: 'string',
           },
-          user1_id: {
-            type: 'number',
+          user1: {
+            type: 'object',
+            properties: {
+              userId: {
+                type: 'number',
+              },
+              avatarUrl: {
+                type: 'string',
+              },
+              username: {
+                type: 'string',
+              },
+            },
           },
-          user2_id: {
-            type: 'number',
+          user2: {
+            type: 'object',
+            properties: {
+              userId: {
+                type: 'number',
+              },
+              avatarUrl: {
+                type: 'string',
+              },
+              username: {
+                type: 'string',
+              },
+            },
           },
         },
       },
@@ -89,8 +112,23 @@ export class DmController {
   @ApiNotFoundResponse({ description: 'No conversations found for this user' })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @Get()
-  getAllConversationsOfTheUser(@Request() req): Promise<ConversationPromise[]> {
+  getAllConversationsOfTheUser(
+    @Request() req,
+  ): Promise<AllConversationsPromise[]> {
     return this.dmService.getAllConversationsOfTheUser(req.user.id);
+  }
+
+  //
+  //
+  //
+  @ApiOperation({ summary: 'Find a conversation' })
+  @ApiParam({ name: 'userId', type: 'number' })
+  @ApiOkResponse({ type: Number })
+  @ApiNotFoundResponse({ description: 'Conversation not found' })
+  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
+  @Get('findDmId/:userId')
+  findDmId(@Param('userId') userId: number, @Request() req): Promise<number> {
+    return this.dmService.findDmId(userId, req.user.id);
   }
 
   //
@@ -167,7 +205,7 @@ export class DmController {
     },
   })
   @ApiNotFoundResponse({
-    description: 'Conversation not found | No messages found',
+    description: 'Conversation not found',
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @Get(':id/messages')

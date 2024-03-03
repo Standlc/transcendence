@@ -18,8 +18,20 @@ export interface ChannelDataWithoutPassword {
   createdAt: Date;
   id: number;
   isPublic: boolean;
-  name: string | null;
-  photoUrl: string | null;
+}
+
+export interface ChannelDataWithUsersWithoutPassword {
+  channelOwner: number;
+  createdAt: Date;
+  id: number;
+  isPublic: boolean;
+  users: UserInfo[];
+}
+
+export interface UserInfo {
+  userId: number;
+  username: string;
+  avatarUrl: string;
 }
 
 // combine User interface and Channel interface
@@ -53,8 +65,6 @@ export interface ConnectToChannel {
   channelId: number;
   userId: number;
   password: string;
-  isPublic: boolean;
-  channelOwner: number;
 }
 
 export interface ConnectToDm {
@@ -85,6 +95,21 @@ export interface ConversationPromise {
   createdAt: Date;
   user1_id: number;
   user2_id: number;
+}
+
+export interface AllConversationsPromise {
+  id: number;
+  createdAt: Date;
+  user1: {
+    userId: number;
+    avatarUrl: string;
+    username: string;
+  };
+  user2: {
+    userId: number;
+    avatarUrl: string;
+    username: string;
+  };
 }
 
 export interface QuitChannel {

@@ -10,7 +10,6 @@ import {
   ApiUnauthorizedResponse,
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
-import { Channel } from './../types/schema';
 import {
   Body,
   Controller,
@@ -67,10 +66,10 @@ export class UserController {
             type: 'string | null',
           },
           createdAt: {
-            type: 'Generated<Timestamp>',
+            type: 'Date',
           },
           messageId: {
-            type: 'Generated<number>',
+            type: 'number',
           },
           senderId: {
             type: 'number',
@@ -96,8 +95,7 @@ export class UserController {
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @ApiNotFoundResponse({
-    description:
-      'User not found | Channel not found | User is not a member of the channel | No messages found',
+    description: 'Channel not found | User is not a member of the channel',
   })
   @ApiUnauthorizedResponse({ description: 'User is banned' })
   @Get(':channelId/messages')
@@ -126,26 +124,36 @@ export class UserController {
             type: 'number',
           },
           createdAt: {
-            type: 'Generated<Timestamp>',
+            type: 'Date',
           },
           id: {
-            type: 'Generated<number>',
+            type: 'number',
           },
           isPublic: {
-            type: 'Generated<boolean>',
+            type: 'boolean',
           },
-          name: {
-            type: 'string',
-          },
-          photoUrl: {
-            type: 'string | null',
+          users: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                userId: {
+                  type: 'number',
+                },
+                username: {
+                  type: 'string',
+                },
+                avatarUrl: {
+                  type: 'string',
+                },
+              },
+            },
           },
         },
       },
     },
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @ApiNotFoundResponse({ description: 'User not found | No channels found' })
   @Get()
   async getAllChannelsOfTheUser(
     @Request() req,
@@ -186,13 +194,13 @@ export class UserController {
           type: 'number',
         },
         createdAt: {
-          type: 'Generated<Timestamp>',
+          type: 'Date',
         },
         id: {
-          type: 'Generated<number>',
+          type: 'number',
         },
         isPublic: {
-          type: 'Generated<boolean>',
+          type: 'boolean',
         },
         name: {
           type: 'string',
@@ -204,10 +212,17 @@ export class UserController {
     },
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @ApiNotFoundResponse({ description: 'User not found' })
   @ApiUnprocessableEntityResponse({
     description:
-      'A public channel cannot have a password | Invalid channel name length | Channel name already exists',
+      'Invalid channel name length (1-49) | \
+      Invalid photo url length (1-49) | \
+      A public channel cannot have a password | \
+      Channel name already exists | \
+      Invalid password length | \
+      Password must contain a letter | \
+      Password must contain a number | \
+      Password must contain a special character !@#$%^&* | \
+      Password can only contain letters, numbers, and special characters !@#$%^&*',
   })
   @Post()
   createChannel(
@@ -236,25 +251,19 @@ export class UserController {
           type: 'number',
         },
         createdAt: {
-          type: 'Generated<Timestamp>',
+          type: 'Date',
         },
         id: {
-          type: 'Generated<number>',
+          type: 'number',
         },
         isPublic: {
-          type: 'Generated<boolean>',
-        },
-        name: {
-          type: 'string',
-        },
-        photoUrl: {
-          type: 'string | null',
+          type: 'boolean',
         },
       },
     },
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @ApiNotFoundResponse({ description: 'User not found | Channel not found' })
+  @ApiNotFoundResponse({ description: 'Channel not found' })
   @Get(':channelId')
   async getChannel(
     @Param('channelId') channelId: number,
@@ -276,17 +285,8 @@ export class UserController {
     schema: {
       type: 'object',
       properties: {
-        channelOwner: {
-          type: 'number',
-        },
-        createdAt: {
-          type: 'Generated<Timestamp>',
-        },
-        id: {
-          type: 'Generated<number>',
-        },
         isPublic: {
-          type: 'Generated<boolean>',
+          type: 'boolean',
         },
         name: {
           type: 'string',
@@ -302,14 +302,26 @@ export class UserController {
   })
   @ApiOkResponse({ description: 'Channel updated' })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @ApiNotFoundResponse({ description: 'User not found | Channel not found' })
+  @ApiNotFoundResponse({ description: 'Channel not found' })
   @ApiUnprocessableEntityResponse({
     description:
-      'Invalid channel name length | Channel name already exists | Same as current or Invalid photoUrl | Invalid photoUrl',
+      'No data to update | \
+      Invalid channel name length (1-49) | \
+      Invalid photoUrl length (1-49) | \
+      A public channel cannot have a password | \
+      Channel name already exists | \
+      Invalid isPublic value | \
+      Invalid password length | \
+      Password must contain a letter | \
+      Password must contain a number | \
+      Password must contain a special character !@#$%^&* | \
+      Password can only contain letters, numbers, and special characters !@#$%^&* | \
+      Unable to hash password |',
   })
   @ApiUnauthorizedResponse({
     description:
-      'Invalid password | Only the owner or the admin can update this data',
+      'Only the owner can change the channel status \
+      | Only the owner can change the channel password',
   })
   @Put(':channelId')
   updateChannel(
@@ -331,7 +343,8 @@ export class UserController {
     type: 'number',
   })
   @ApiOkResponse({ description: 'Channel deleted' })
-  @ApiNotFoundResponse({ description: 'User not found | Channel not found' })
+  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
+  @ApiNotFoundResponse({ description: 'Channel not found' })
   @ApiUnauthorizedResponse({
     description: 'Only the owner can delete this channel',
   })
