@@ -16,10 +16,7 @@ import { WsAuthGuard } from 'src/auth/ws-auth.guard';
 import { ConnectedUsersService } from 'src/connectedUsers/connectedUsers.service';
 
 @WebSocketGateway(5050, {
-  namespace: 'dm',
-  cors: {
-    origin: '*',
-  },
+  namespace: 'socket.io/dm',
 })
 @UseGuards(WsAuthGuard)
 export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -97,6 +94,12 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
       console.log(
         `User ${payload.userId} joined conversation ${payload.conversationId}`,
       );
+
+      if (socket.rooms.has(payload.conversationId.toString())) {
+        this.server
+          .to(payload.conversationId.toString())
+          .emit('message', 'User joined conversation');
+      }
       this.connectedUsersService.addUser(payload.userId, socket);
     } catch (error) {
       console.error(error);
@@ -113,10 +116,16 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() payload: ConnectToDm,
   ) {
     try {
+      if (socket.rooms.has(payload.conversationId.toString())) {
+        this.server
+          .to(payload.conversationId.toString())
+          .emit('message', 'User left conversation');
+      }
       socket.leave(payload.conversationId.toString());
       console.log(
         `User ${payload.userId} left conversation ${payload.conversationId}`,
       );
+
       this.connectedUsersService.removeUserWithSocketId(socket.id);
     } catch (error) {
       console.error(error);
