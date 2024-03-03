@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, UnauthorizedException, UnprocessableEntityException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { AppUser, AppUserDB } from 'src/types/clientSchema';
@@ -96,11 +96,18 @@ export class AuthService {
    * @param userId
    * @returns true or false, depending if the code was valid
    */
-  async isTwoFactorAuthenticationCodeValid(TwoFactorAuthenticationCode: string, userId: number) {
-    return authenticator.verify({
-      token: TwoFactorAuthenticationCode,
-      secret: await this.usersService.getTwoFactorAuthenticationSecret(userId)
-    })
+  async isTwoFactorAuthenticationCodeValid(TwoFactorAuthenticationCode: string, userId: number): Promise<boolean> {
+    try {
+      return authenticator.verify({
+        token: TwoFactorAuthenticationCode,
+        secret: await this.usersService.getTwoFactorAuthenticationSecret(userId)
+      })
+    } catch (error) {
+      console.log(error);
+      if (error instanceof NotFoundException)
+        throw new UnprocessableEntityException("You tried to validate a 2FA for a user that do not have a secret set !")
+      throw error;
+    }
   }
 
   /**

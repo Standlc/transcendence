@@ -17,7 +17,7 @@ export class UsersService {
 
   /**
    * Create a user in the database using createUserDto values
-   * @param createUsersDto 
+   * @param createUsersDto
    * @returns AppUser
    * @throws InternalServerError
    * @throws UnprocessableEntity
@@ -59,7 +59,7 @@ export class UsersService {
     try {
       userDB = await db
       .selectFrom('user')
-      .select(['avatarUrl', 'bio', 'createdAt', 'email', 'firstname', 'id', 'lastname', 'rating', 'username'])
+      .select(['avatarUrl', 'bio', 'createdAt', 'email', 'firstname', 'id', 'lastname', 'rating', 'username', 'isTwoFactorAuthenticationEnabled'])
       .where('username', '=', createUsersDto.username)
       .executeTakeFirstOrThrow()
     } catch (error) {
@@ -77,7 +77,7 @@ export class UsersService {
    * but we don't communicate to them, since they will use oauth to connect.
    * They will be able to change the password if they want to connect without
    * oauth though.
-   * @param intraUser 
+   * @param intraUser
    * @throws InternalServerError if the db fail
    * @throws UnprocessableEntity if the username is already taken
    */
@@ -116,7 +116,7 @@ export class UsersService {
 
   /**
    * Look for userId in the db
-   * @param userId 
+   * @param userId
    * @returns AppUser
    * @throws InternalServerError
    * @throws NotFound
@@ -137,7 +137,7 @@ export class UsersService {
     if (!user)
       throw new NotFoundException();
     //? Create a AppUser containing every field, except password.
-    const {password, ...appUserDB} = user;
+    const {password, TwoFactorAuthenticationSecret, ...appUserDB} = user;
     return {
       ...appUserDB,
       status: this.usersStatusGateway.getUserStatus(appUserDB?.id)
@@ -146,7 +146,7 @@ export class UsersService {
 
   /**
    * Looking for any user with a substring of there username that match the substring parameter.
-   * @param substring 
+   * @param substring
    * @returns An array of User that match the substring
    * @throws InternalServerError
    * @throws NotFound
@@ -158,7 +158,7 @@ export class UsersService {
     try {
       users = await db
       .selectFrom('user')
-      .select(['username', 'bio', 'avatarUrl', 'firstname', 'lastname', 'createdAt', 'email', 'id', 'rating'])
+      .select(['username', 'bio', 'avatarUrl', 'firstname', 'lastname', 'createdAt', 'email', 'id', 'rating', 'isTwoFactorAuthenticationEnabled'])
       .where('username', 'like', '%' + substring + '%')
       .execute();
     }
@@ -173,7 +173,7 @@ export class UsersService {
 
   /**
    * Return AppUser that match the username in the database.
-   * @param username 
+   * @param username
    * @returns AppUser
    * @throws InternalServerError
    * @throws NotFound
@@ -193,7 +193,7 @@ export class UsersService {
     }
     if (!user)
       throw new NotFoundException();
-    const {password, ...appUserDB} = user;
+    const {password, TwoFactorAuthenticationSecret, ...appUserDB} = user;
     return {
       ...appUserDB,
       status: this.usersStatusGateway.getUserStatus(appUserDB?.id)
@@ -202,7 +202,7 @@ export class UsersService {
 
   /**
    * Looking for a user matching the email string passed as parameter.
-   * @param email 
+   * @param email
    * @returns an AppUser
    * @throws NotFound if no user was found with this email
    * @throws InternalServerError if we fail to use the db.
@@ -212,7 +212,7 @@ export class UsersService {
     try {
       user = await db
       .selectFrom('user')
-      .select(['avatarUrl', 'bio', 'createdAt', 'email', 'firstname', 'id', 'lastname', 'username', 'rating'])
+      .select(['avatarUrl', 'bio', 'createdAt', 'email', 'firstname', 'id', 'lastname', 'username', 'rating', 'isTwoFactorAuthenticationEnabled'])
       .where('email', '=', email)
       .executeTakeFirst();
     } catch (error) {
@@ -230,8 +230,8 @@ export class UsersService {
   /**
    * Look for the username in the db, compare the password, return user,
    * without password if the password match.
-   * @param name 
-   * @param pass 
+   * @param name
+   * @param pass
    * @returns AppUser
    * @throws Unauthorized
    * @throws InternalServerError
@@ -250,7 +250,7 @@ export class UsersService {
       if (!result)
         throw new UnauthorizedException();
 
-      const {password, ...appUserDB} = user;
+      const {password, TwoFactorAuthenticationSecret, ...appUserDB} = user;
       return {
         ...appUserDB,
         status: this.usersStatusGateway.getUserStatus(appUserDB?.id)
@@ -298,8 +298,8 @@ export class UsersService {
 
   /**
    * Set the URL avatar for the user
-   * @param userId 
-   * @param avatarUrl 
+   * @param userId
+   * @param avatarUrl
    */
   async setAvatar(userId: number, avatarUrl: string): Promise<AppUser> {
     try {
@@ -330,7 +330,7 @@ export class UsersService {
       .selectAll()
       .where('id', '=', userId)
       .executeTakeFirstOrThrow();
-      const {password, ...appUserDB} = user;
+      const {password, TwoFactorAuthenticationSecret, ...appUserDB} = user;
       return {
         ...appUserDB,
         status: this.usersStatusGateway.getUserStatus(appUserDB?.id)
@@ -340,4 +340,67 @@ export class UsersService {
       throw new InternalServerErrorException();
     }
   }
+
+  /**
+   * Set secret in the table user, for the matching user id
+   * @param userId
+   * @param secret
+   */
+  async setTwoFactorAuthenticationSecret(userId: number, secret: string) {
+    try {
+      await db
+      .updateTable('user')
+      .set('TwoFactorAuthenticationSecret', secret)
+      .where('id', '=', userId)
+      .executeTakeFirstOrThrow();
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  /**
+   * Return secret matching userID
+   * @param userId
+   * @returns
+   * @throws NotFoundException
+   * @throws InternatServerErrorException
+   */
+  async getTwoFactorAuthenticationSecret(userId: number): Promise<string> {
+    let res: {
+      TwoFactorAuthenticationSecret: string | null;
+  } | undefined;
+    try {
+      res = await db
+      .selectFrom('user')
+      .select('TwoFactorAuthenticationSecret')
+      .where('id', '=', userId)
+      .executeTakeFirst();
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
+    if (!res || !res.TwoFactorAuthenticationSecret)
+      throw new NotFoundException();
+    return res.TwoFactorAuthenticationSecret;
+  }
+
+
+  /**
+   * Set bool to true when turning 2FA on
+   * @param userId
+   */
+  async turnOnTwoFactorAuthentication(userId: number) {
+    try {
+      await db
+      .updateTable('user')
+      .set('isTwoFactorAuthenticationEnabled', true)
+      .where('id', '=', userId)
+      .executeTakeFirstOrThrow();
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
 }
