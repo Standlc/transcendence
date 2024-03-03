@@ -125,6 +125,7 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
       console.log(
         `User ${payload.userId} left conversation ${payload.conversationId}`,
       );
+
       this.connectedUsersService.removeUserWithSocketId(socket.id);
     } catch (error) {
       console.error(error);

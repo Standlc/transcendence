@@ -20,7 +20,7 @@ export class Utils {
   //
   //
   //
-  // !!! to test
+  // !!! tested
   async updateChannelAsOwner(
     channelId: number,
     channel: ChannelUpdate,
@@ -65,7 +65,7 @@ export class Utils {
   //
   //
   //
-  // !!! to test
+  // !!! tested
   async updateChannelAsAdmin(
     name: string | null,
     photoUrl: string | null,
@@ -88,7 +88,7 @@ export class Utils {
 
   //
   //
-  // !!! to test
+  // !!! tested
   async channelNameIsTaken(
     name: string | null,
     channelId: number,
@@ -113,7 +113,7 @@ export class Utils {
   //
   //
   //
-  // !!! to test
+  // !!! tested
   verifyLength(name: string | null): void {
     if (!name || name == null) return;
     if (name.length < 1 || name.length > 49) {
@@ -124,14 +124,8 @@ export class Utils {
   //
   //
   //
-  // !!! to test
+  // !!! tested
   canSetPassword(isPublic: string, password: string | null): void {
-    if (isPublic === 'false' && (!password || password == null)) {
-      throw new UnprocessableEntityException(
-        'A private or protected channel must have a password',
-      );
-    }
-
     if (isPublic === 'true' && password) {
       throw new UnprocessableEntityException(
         'A public channel cannot have a password',
@@ -142,7 +136,7 @@ export class Utils {
   //
   //
   //
-  // !!! to test
+  // !!! tested
   dataCanBeUpdated(channel: ChannelUpdate): void {
     if (
       !channel.isPublic &&
@@ -178,7 +172,7 @@ export class Utils {
   //
   //
   //
-  // !!! to test
+  // !!! tested
   async userAuthorizedToUpdate(
     isPublic: boolean,
     password: string | null,
@@ -196,14 +190,19 @@ export class Utils {
 
       if (currentStatus.isPublic !== isPublic) {
         isPublicUpdated = true;
-        console.log('isPublic updated to:', isPublic);
+        console.log('isPublic updating to:', isPublic);
       }
+
       if (
-        password != null &&
-        currentStatus.password != null &&
-        bcrypt.compareSync(password, currentStatus.password)
+        (!password && !currentStatus.password) ||
+        (password != null &&
+          currentStatus.password != null &&
+          bcrypt.compareSync(password, currentStatus.password) == true)
       ) {
         console.log('passwords match');
+        passwordUpdated = false;
+      } else {
+        console.log('passwords do not match');
         passwordUpdated = true;
       }
     } catch (error) {
@@ -215,6 +214,7 @@ export class Utils {
         'Only the owner can change the channel status',
       );
     }
+
     if (passwordUpdated == true && userIsOwner == false) {
       throw new UnauthorizedException(
         'Only the owner can change the channel password',
@@ -254,7 +254,7 @@ export class Utils {
   //
   //
   //
-  // !!! to test
+  // !!! tested
   async passwordSecurityVerification(password: string): Promise<void> {
     if (password.length < 8 || password.length > 20) {
       throw new UnprocessableEntityException('Invalid password length');
@@ -279,7 +279,7 @@ export class Utils {
 
   //
   //
-  //
+  // !!! tested
   async channelExists(channelId: number): Promise<void> {
     let channelIdExists: { id: number }[];
     try {
