@@ -57,9 +57,9 @@ export class GameRequestsService {
   ): Promise<Selectable<GameRequest> | undefined> {
     const match = await db
       .selectFrom('gameRequest')
-      .where('points', '=', req.points)
+      .where('gameRequest.points', '=', req.points)
       .where('userId', '!=', userId)
-      .where('powerUps', 'is', req.powerUps)
+      .where('gameRequest.powerUps', 'is', req.powerUps)
       .where('targetId', 'is', null)
       .leftJoin('blockedUser', (join) =>
         join.on((eb) =>
@@ -75,6 +75,17 @@ export class GameRequestsService {
           ]),
         ),
       )
+      .leftJoin('game as gameRequestUserCurrentGame', (join) =>
+        join
+          .on((eb) =>
+            eb.or([
+              eb('playerOneId', '=', eb.ref('gameRequest.userId')),
+              eb('playerTwoId', '=', eb.ref('gameRequest.userId')),
+            ]),
+          )
+          .on('gameRequestUserCurrentGame.winnerId', 'is', null),
+      )
+      .where('gameRequestUserCurrentGame.playerOneId', 'is', null)
       .where('blockedId', 'is', null)
       .selectAll('gameRequest')
       .executeTakeFirst();

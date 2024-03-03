@@ -1,33 +1,23 @@
 import { useContext, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ErrorContext } from "../ContextsProviders/ErrorContext";
-import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import ModalLayout from "../UIKit/ModalLayout";
 import { UserContext } from "../ContextsProviders/UserContext";
 import { Avatar } from "../UIKit/avatar/Avatar";
 import { PlayerRating } from "../UIKit/PlayerRating";
 import { useGameRequest } from "../utils/useGameRequest";
 import { SocketsContext } from "../ContextsProviders/SocketsContext";
+import { useCancelGameRequest } from "../utils/useCancelGameRequest";
+import { useParams } from "react-router-dom";
+import { useFetchGame } from "../utils/useFetchGame";
 
 export const GameRequestModal = () => {
   const { user } = useContext(UserContext);
   const { gameSocketOn, gameSocketOff } = useContext(SocketsContext);
   const gameRequest = useGameRequest();
-  const { addError } = useContext(ErrorContext);
   const queryClient = useQueryClient();
-
-  const cancel = useMutation({
-    mutationFn: async () => {
-      const res = await axios.delete(`/api/game-requests`);
-      return res.data;
-    },
-    onSuccess: () => {
-      queryClient.setQueryData(["currentGameRequest"], null);
-    },
-    onError: () => {
-      addError({ message: "something went wrong" });
-    },
-  });
+  const cancel = useCancelGameRequest();
+  const { gameId } = useParams();
+  const gameRecord = useFetchGame(Number(gameId));
 
   useEffect(() => {
     if (!gameRequest.data || !gameRequest.data?.targetUser) return;
@@ -47,7 +37,7 @@ export const GameRequestModal = () => {
     gameRequest.data?.targetUser,
   ]);
 
-  if (!gameRequest.data) {
+  if (!gameRequest.data || (gameRecord.data && !gameRecord.data.winnerId)) {
     return null;
   }
 

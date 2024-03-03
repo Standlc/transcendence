@@ -146,6 +146,7 @@ export function initialize(game: Selectable<Game>): GameType {
   const now = Date.now();
   return {
     startTime: now,
+    endTime: 0,
     isPaused: true,
     gameId: game.id,
     roomId: game.id.toString(),

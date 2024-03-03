@@ -25,12 +25,6 @@ export const GameFinishedModal = ({ gameRecord }: { gameRecord: UserGame }) => {
     [user.id, gameRecord.playerOne.id]
   );
 
-  const [rematchSettings, setRematchSettings] = useState({
-    points: gameRecord.points as GamePointsTypes,
-    powerUps: gameRecord.powerUps,
-    targetId: opponentId,
-  });
-
   const queryClient = useQueryClient();
   const isUserAPlayer = useIsUserAPlayer({ gameRecord });
 
@@ -65,8 +59,14 @@ export const GameFinishedModal = ({ gameRecord }: { gameRecord: UserGame }) => {
                 return (
                   <button
                     disabled={rematch.isPending}
-                    className="hover:-translate-y-[1px] flex-auto flex items-center py-4 px-5 justify-center overflow-hidden active:translate-y-0 rounded-lg bg-green-600 font-[900] text-2xl shadow-lg"
-                    onClick={() => rematch.mutate(rematchSettings)}
+                    className="hover:-translate-y-[1px] flex-auto flex items-center py-4 px-5 justify-center overflow-hidden active:translate-y-[1px] rounded-lg bg-green-600 font-[900] text-2xl shadow-lg"
+                    onClick={() =>
+                      rematch.mutate({
+                        points: gameRecord.points as GamePointsTypes,
+                        powerUps: gameRecord.powerUps,
+                        targetId: opponentId,
+                      })
+                    }
                   >
                     <span>Rematch</span>
                   </button>

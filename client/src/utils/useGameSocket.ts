@@ -3,12 +3,29 @@ import { Socket, io } from "socket.io-client";
 import { ErrorType } from "../ContextsProviders/ErrorContext";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
+import { UserGame } from "@api/types/games";
 
 export const useGameSocket = (addError: (error: ErrorType) => void) => {
   const [gameSocket, setGameSocket] = useState<Socket>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  const fetchGameRecord = useMutation({
+    mutationFn: async (gameId: number) => {
+      const res = await axios.get<UserGame>(`/api/games/${gameId}`);
+      return res.data;
+    },
+    onSuccess: (gameRecord) => {
+      queryClient.setQueryData(["currentGame"], gameRecord);
+      queryClient.setQueryData(["gameRecord", gameRecord.id], gameRecord);
+    },
+    onError: (error) => {
+      console.log(error);
+      addError({ message: error.message });
+    },
+  });
 
   useEffect(() => {
     const connection = io();
@@ -37,6 +54,11 @@ export const useGameSocket = (addError: (error: ErrorType) => void) => {
       navigate(`/play/${gameId}`);
       console.log("start", `/play/${gameId}`);
       queryClient.setQueryData(["currentGameRequest"], null);
+
+      const gameIdToNumber = Number(gameId);
+      if (!isNaN(gameIdToNumber)) {
+        fetchGameRecord.mutate(gameIdToNumber);
+      }
     };
 
     gameSocket.on("connect_error", handleErrors);
