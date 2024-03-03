@@ -21,13 +21,13 @@ import { usePingServer } from "../utils/game/usePingServer";
 import { UserAchievement } from "@api/types/achievements";
 import { NewGameAchievements } from "../components/achievements/NewGameAchievements";
 import { useGameRequest } from "../utils/useGameRequest";
-import { useGame } from "../utils/useGame";
 import { useGameInvitations } from "../utils/useGameInvitations";
 import { GameFinishedModal } from "../components/GameFinishedModal";
+import { useFetchGame } from "../utils/useFetchGame";
 
 export default function GamePage() {
   const { gameId } = useParams();
-  const gameIdNumber = useMemo(() => Number(gameId), [gameId]);
+  const gameIdToNumber = useMemo(() => Number(gameId), [gameId]);
   const queryClient = useQueryClient();
   const { gameSocket, gameSocketOn, gameSocketOff } =
     useContext(SocketsContext);
@@ -38,7 +38,7 @@ export default function GamePage() {
   const gameRef = useRef<GameStateType>(createGamePositions({}));
   const [achievements, setAchievements] = useState<UserAchievement[]>();
   const [playersPingRtt, setPlayersPingRtt] = useState([0, 0]);
-  const gameRecord = useGame();
+  const gameRecord = useFetchGame(gameIdToNumber);
   useGameControls({ gameRecord: gameRecord.data, isPaused });
   const isPlayerDisconnected = usePingServer({ gameRecord: gameRecord.data });
   const gameRequest = useGameRequest();
@@ -49,6 +49,7 @@ export default function GamePage() {
     setPlayerDisconnectionInfo(undefined);
     setStartCountdown(undefined);
     setIsPaused(true);
+    setAchievements(undefined);
   }, [gameId]);
 
   const updatePlayersScores = (
@@ -56,7 +57,7 @@ export default function GamePage() {
     playerTwoScore: number
   ) => {
     queryClient.setQueryData(
-      ["gameRecord", gameId],
+      ["gameRecord", gameIdToNumber],
       (prev: UserGame | undefined) => {
         if (!prev) return undefined;
         const prevCopy = { ...prev };
@@ -99,9 +100,10 @@ export default function GamePage() {
 
     const handleGameEnd = (data: WsGameEndType) => {
       queryClient.setQueryData(
-        ["gameRecord", gameId],
+        ["gameRecord", gameIdToNumber],
         (prev: UserGame | undefined) => {
-          if (!prev) return undefined;
+          if (!prev || data.id !== gameRecord.data?.id) return undefined;
+
           const prevCopy = { ...prev };
           prevCopy.winnerId = data.winnerId;
           prevCopy.playerOne = {
@@ -163,15 +165,15 @@ export default function GamePage() {
       gameSocketOff("startCountdown", handleGameStartCountdown);
       gameSocketOff("achievements", handleNewAchievements);
     };
-  }, [gameSocketOn, gameSocketOff, gameIdNumber]);
+  }, [gameSocketOn, gameSocketOff, gameIdToNumber, gameRecord.data?.id]);
 
   useEffect(() => {
-    const payload: WsGameIdType = { gameId: gameIdNumber };
+    const payload: WsGameIdType = { gameId: gameIdToNumber };
     gameSocket.emit("joinRoom", payload);
     return () => {
       gameSocket.emit("leaveGame", payload);
     };
-  }, [gameSocket, gameIdNumber]);
+  }, [gameSocket, gameIdToNumber]);
 
   if (gameRecord.error) {
     return (
@@ -192,8 +194,8 @@ export default function GamePage() {
   return (
     <div className="flex justify-center h-[100vh] p-5 gap-5">
       <div className="max-w-[1100px] contents">
-        {gameRequest.data ||
-        gameInvitations.data?.length ? null : achievements ? (
+        {(gameRequest.data || gameInvitations.data?.length) &&
+        gameRecord.data.winnerId != null ? null : achievements ? (
           <ModalLayout>
             <NewGameAchievements
               achievements={achievements}

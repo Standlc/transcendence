@@ -14,10 +14,26 @@ export const useSoundEffects = (volume: number) => {
 
   const sounds = useMemo(() => {
     return {
-      wallHit: () => wallHitSound1.play(),
-      paddleHit: () => paddleHitSound.play(),
-      score: () => gameOverSound.play(),
-      powerUp: () => powerUpSound.play(),
+      wallHit: async () => {
+        try {
+          await wallHitSound1.play();
+        } catch (error) {}
+      },
+      paddleHit: async () => {
+        try {
+          await paddleHitSound.play();
+        } catch (error) {}
+      },
+      score: async () => {
+        try {
+          await gameOverSound.play();
+        } catch (error) {}
+      },
+      powerUp: async () => {
+        try {
+          await powerUpSound.play();
+        } catch (error) {}
+      },
     };
   }, [wallHitSound1, paddleHitSound, gameOverSound, powerUpSound]);
 

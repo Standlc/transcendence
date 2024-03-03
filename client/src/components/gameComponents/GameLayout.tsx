@@ -184,7 +184,7 @@ const ConnectionDescriptions = [
 
 const ConnectionStatus = memo(({ pingRtt }: { pingRtt: number }) => {
   const normalized = useMemo(() => {
-    const normalized = 1 - (pingRtt > 50 ? 50 : pingRtt) / 50;
+    const normalized = 1 - (pingRtt > 100 ? 100 : pingRtt) / 100;
     const connectionQuality = Math.round(normalized * CONNECTION_BARS);
     return connectionQuality;
   }, [pingRtt]);

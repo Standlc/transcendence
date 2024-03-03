@@ -78,6 +78,7 @@ export const SendGameInvitationModal = ({
 
         <div className="flex flex-col gap-5">
           <PlayButton
+            isDisabled={gameInvitation.isPending}
             onClick={() => {
               gameInvitation.mutate({
                 ...settings,

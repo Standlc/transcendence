@@ -9,8 +9,8 @@ import { PlayButton } from "../UIKit/PlayButton";
 import axios from "axios";
 import { ErrorContext } from "../ContextsProviders/ErrorContext";
 import MultiModalLayout from "../UIKit/MultiModalLayout";
-import { useGame } from "../utils/useGame";
 import { useParams } from "react-router-dom";
+import { useFetchGame } from "../utils/useFetchGame";
 
 export const GameInvitationModal = () => {
   const { gameId } = useParams();
@@ -18,7 +18,7 @@ export const GameInvitationModal = () => {
   const { gameSocketOn, gameSocketOff } = useContext(SocketsContext);
   const gameInvitations = useGameInvitations();
   const queryClient = useQueryClient();
-  const gameRecord = useGame();
+  const gameRecord = useFetchGame(Number(gameId));
   const { addError } = useContext(ErrorContext);
 
   const declineInvitation = useMutation({

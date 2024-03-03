@@ -1,4 +1,4 @@
-import { ObjectType, PlayerType } from 'src/types/gameServer/pongGameTypes';
+import { ObjectType, PlayerType } from '../../types/gameServer/pongGameTypes';
 import { CANVAS_H } from './constants';
 
 export function movePaddle(paddle: ObjectType, time: number) {
