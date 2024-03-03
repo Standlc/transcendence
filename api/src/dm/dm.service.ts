@@ -1,8 +1,10 @@
+import { LiveChatSocket } from './../liveChatSocket/liveChatSocket.gateway';
 import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  UnauthorizedException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { db } from 'src/database';
@@ -16,7 +18,10 @@ import { FriendsService } from 'src/friends/friends.service';
 
 @Injectable()
 export class DmService {
-  constructor(private friendsService: FriendsService) {}
+  constructor(
+    private friendsService: FriendsService,
+    private readonly liveChatSocket: LiveChatSocket,
+  ) {}
 
   //
   //
@@ -60,6 +65,18 @@ export class DmService {
       throw new NotFoundException('User not found');
     }
 
+    try {
+      await this.userIsBlocked(userId, user2);
+    } catch (error) {
+      throw error;
+    }
+
+    try {
+      await this.userIsBlocked(user2, userId);
+    } catch (error) {
+      throw error;
+    }
+
     if ((await this.friendsService.isFriend(userId, user2)) == false) {
       throw new NotFoundException('Users are not friends');
     }
@@ -80,6 +97,13 @@ export class DmService {
     } catch (error) {
       throw new InternalServerErrorException();
     }
+
+    // !!! test of the global socket that will notify the user about the new conversation
+    this.liveChatSocket.handleNewConversation({
+      id: 1, // !!! modify
+      user1: userId,
+      user2: user2,
+    });
     return `Conversation of user ${userId} and user ${user2} created`;
   }
 
@@ -316,6 +340,29 @@ export class DmService {
       console.log('Direct Message:', directMessage);
     } catch (error) {
       throw new InternalServerErrorException('Unable to send message');
+    }
+  }
+
+  //
+  //
+  //
+  async userIsBlocked(user1: number, user2: number): Promise<void> {
+    try {
+      const users = await db
+        .selectFrom('blockedUser')
+        .select(['blockedId', 'blockedById'])
+        .where('blockedId', '=', user1)
+        .where('blockedById', '=', user2)
+        .executeTakeFirst();
+
+      if (users) {
+        throw new UnauthorizedException(
+          `User ${users.blockedById} blocked user ${users.blockedId}`,
+        );
+      }
+    } catch (error) {
+      if (error instanceof UnauthorizedException) throw error;
+      throw new InternalServerErrorException();
     }
   }
 }

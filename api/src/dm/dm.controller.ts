@@ -27,6 +27,7 @@ import {
   ApiNotFoundResponse,
   ApiParam,
   ApiConflictResponse,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 
 @UseGuards(JwtAuthGuard)
@@ -56,6 +57,7 @@ export class DmController {
   @ApiConflictResponse({
     description: 'Conversation already exists',
   })
+  @ApiUnauthorizedResponse({ description: 'User 1 blocked user 2' })
   @Post()
   createConveration(@Body() userId: UserId, @Request() req): Promise<string> {
     return this.dmService.createConversation(userId.userId, req.user.id);
