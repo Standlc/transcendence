@@ -247,7 +247,7 @@ export class FriendsService {
           ])
         ])),
       )
-      .select(['user.avatarUrl', 'user.id', 'user.username', 'user.rating', 'user.bio', 'user.createdAt', 'user.email', 'user.firstname', 'user.lastname'])
+      .select(['user.avatarUrl', 'user.id', 'user.username', 'user.rating', 'user.bio', 'user.createdAt', 'user.email', 'user.firstname', 'user.lastname', 'user.isTwoFactorAuthenticationEnabled'])
       .execute();
       return friends.map(u => ({
         ...u,
