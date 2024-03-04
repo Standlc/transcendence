@@ -303,7 +303,9 @@ const Chat: React.FC<Props> = ({
                     <span className="ml-[20px]">|</span>
                 </div>
                 <div>
-                    <button className="ml-2 mt-4">Play</button>
+                    <button className="ml-4 mt-4 bg-green rounded-lg py-1 px-3">
+                        Play
+                    </button>
                 </div>
             </div>
             <div className="flex w-[200px] justify-center">

@@ -10,6 +10,7 @@ export const Settings = () => {
     const user = useAuth();
     const [showConfirmAvatarPopup, setShowConfirmAvatarPopup] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
+    const navigate = useNavigate();
 
     const handleClickChangeAvatar = () => {
         setShowConfirmAvatarPopup(true);
@@ -26,6 +27,16 @@ export const Settings = () => {
 
     const handleCancelChange = () => {
         setShowConfirmAvatarPopup(false);
+    };
+
+    const logout = async () => {
+        const response = await fetch("http://localhost:3000/api/auth/logout");
+        console.log("LOGOUT", response);
+        navigate("/");
+    };
+
+    const handleCloseClick = () => {
+        navigate("/home");
     };
 
     return (
@@ -87,12 +98,39 @@ export const Settings = () => {
                     </button>
                     <button className="ml-10 hover:underline">Delete Avatar</button>
                 </div>
+                <div className="mt-20 text-left">
+                    <button
+                        onClick={() => logout()}
+                        className="bg-red-500 hover:bg-red-700  rounded-lg py-2 px-2.5"
+                    >
+                        LOG OUT
+                    </button>
+                </div>
             </div>
 
             {/* Section des informations de l'utilisateur à droite */}
-            <div className="flex-1 mt-40">
+            <div className="flex-1">
                 <div className="items-center justify-center h-full">
-                    <div className="rounded-b-xl settings-account bg-discord-black flex flex-col items-center justify-center p-4">
+                    <div className="mt-20">
+                        <button onClick={handleCloseClick}>
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="15" y1="9" x2="9" y2="15" />
+                                <line x1="9" y1="9" x2="15" y2="15" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div className="rounded-b-xl settings-account bg-discord-black flex flex-col items-center justify-center p-4 mt-20">
                         <div className="flex flex-row items-center">
                             <div className="rounded-full bg-greyple p-1">
                                 {user.loginResponse?.avatarUrl ? (
