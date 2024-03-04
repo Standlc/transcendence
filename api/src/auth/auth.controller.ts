@@ -57,7 +57,11 @@ export class AuthController {
     const token: string = await this.authService.login(req.user.id);
     let date = new Date();
     date.setDate(date.getDate() + 7);
-    res.cookie('token', token, {expires: date});
+    res.cookie('token', token, {
+      expires: date,
+      sameSite: 'strict',
+      httpOnly: true
+    });
     if (process.env.FRONTEND_URL) {
       res.redirect(process.env.FRONTEND_URL);
       return undefined;
@@ -114,7 +118,11 @@ export class AuthController {
     const token: string = await this.authService.login(req.user.id);
     let date = new Date();
     date.setDate(date.getDate() + 7);
-    res.cookie('token', token, {expires: date});
+    res.cookie('token', token, {
+      expires: date,
+      sameSite: 'strict',
+      httpOnly: true
+    });
     if (req.user.isTwoFactorAuthenticationEnabled)
       return { isTwoFactorAuthenticationEnabled: req.user.isTwoFactorAuthenticationEnabled };
     return req.user;
@@ -198,7 +206,11 @@ export class AuthController {
     const token: string = await this.authService.loginWith2fa(req.user.id);
     let date = new Date();
     date.setDate(date.getDate() + 7);
-    res.cookie('token', token, {expires: date});
+    res.cookie('token', token, {
+      expires: date,
+      sameSite: 'strict',
+      httpOnly: true
+    });
     return await this.usersService.getUserById(req.user.id);
   }
 
@@ -247,7 +259,11 @@ export class AuthController {
   @ApiOkResponse({description: "User logged out"})
   @Get('logout')
   async logout(@Res({ passthrough: true }) res: ResponseType) {
-    res.cookie('token', '', {expires: new Date() });
+    res.cookie('token', '', {
+      expires: new Date(),
+      sameSite: 'strict',
+      httpOnly: true
+    });
   }
 
   //#endregion
