@@ -73,7 +73,6 @@ export class AuthController {
 
   //#region login
 
-  //todo some change to swagger docs
   /**
    * POST /api/auth/login
    * This is the route the user will visit to authenticate using an username
