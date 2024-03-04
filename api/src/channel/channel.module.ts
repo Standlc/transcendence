@@ -9,9 +9,10 @@ import { Utils } from './utilsChannel.service';
 import { SocketService } from './socketService.service';
 import { FriendsModule } from 'src/friends/friends.module';
 import { UsersStatusModule } from 'src/usersStatusGateway/UsersStatus.module';
+import { BlockedUserModule } from 'src/blocked-user/blocked-user.module';
 
 @Module({
-  imports: [FriendsModule, UsersStatusModule],
+  imports: [FriendsModule, UsersStatusModule, BlockedUserModule],
   controllers: [UserController],
   providers: [
     ChannelGateway,
