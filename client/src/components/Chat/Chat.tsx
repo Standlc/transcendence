@@ -163,9 +163,10 @@ const Chat: React.FC<Props> = ({
         if (selectedFriend) {
             getUserProfile(selectedFriend.id);
         }
+        return;
 
         if (conversationID) {
-            socketRef.current = io(SERVER_URL + "/dm");
+            socketRef.current = io("/dm");
 
             socketRef.current.on("connect", () => {
                 console.log("Connected to server");

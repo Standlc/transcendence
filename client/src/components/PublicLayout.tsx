@@ -1,10 +1,10 @@
 import { Outlet } from "react-router-dom";
 
 export default function PublicLayout() {
-
-  return (
-    <div>
-      <Outlet />
-    </div>
-  );
+    console.log("PublicLayout");
+    return (
+        <div>
+            <Outlet />
+        </div>
+    );
 }

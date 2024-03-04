@@ -25,7 +25,10 @@ import { Utils } from './utilsChannel.service';
 import { db } from 'src/database';
 
 @WebSocketGateway(5050, {
-  namespace: 'socket.io/channel',
+  namespace: '/channel',
+  cors: {
+    origin: '*',
+  },
 })
 @UseGuards(WsAuthGuard)
 export class ChannelGateway

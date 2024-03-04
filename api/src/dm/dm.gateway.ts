@@ -16,7 +16,10 @@ import { WsAuthGuard } from 'src/auth/ws-auth.guard';
 import { ConnectedUsersService } from 'src/connectedUsers/connectedUsers.service';
 
 @WebSocketGateway(5050, {
-  namespace: 'socket.io/dm',
+  namespace: 'dm',
+  cors: {
+    origin: '*',
+  },
 })
 @UseGuards(WsAuthGuard)
 export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {

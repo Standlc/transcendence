@@ -55,12 +55,12 @@ export const Dashboard: React.FC<Props> = ({ SERVER_URL, loginResponse }: Props)
     return (
         <div className="result-page bg-dark-but-not-black">
             <NavBar />
-            {/* <ChanColumn
+            <ChanColumn
                 loginResponse={loginResponse}
                 setCurrentPage={changePage}
                 setConversationID={setConversationID}
                 setSelectedFriend={setSelectedFriend}
-            /> */}
+            />
             {renderPage()}
         </div>
     );

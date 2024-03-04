@@ -29,6 +29,8 @@ function App() {
 
     // Vérifier si l'utilisateur est connecté
 
+    console.log(loginResponse);
+
     return (
         <AuthProvider>
             <RouterProvider
@@ -67,19 +69,22 @@ function App() {
                                     />
                                     <Route path="/settings" element={<Settings />} />
                                     {/* Ajouter une redirection de la racine (/) vers /home pour les utilisateurs authentifiés */}
-                                    <Route
+                                    {/* <Route
                                         path="/"
                                         element={<Navigate to="/home" replace />}
-                                    />
+                                    /> */}
                                 </Route>
                             ) : (
                                 <Route element={<PublicLayout />}>
                                     <Route path="/login" element={<Login />} />
-                                    <Route path="/register" element={<Register />} />
+                                    <Route
+                                        path="/create-account"
+                                        element={<Register />}
+                                    />
                                     {/* Rediriger la racine (/) vers /login pour les utilisateurs non authentifiés */}
                                     <Route
                                         path="/"
-                                        element={<Navigate to="/login" replace />}
+                                        element={<Navigate to="/login" />}
                                     />
                                 </Route>
                             )}
