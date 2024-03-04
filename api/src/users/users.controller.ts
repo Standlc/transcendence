@@ -9,12 +9,16 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { UpdateUsersDto } from './dto/update-users.dto';
 import { isStrongPassword } from 'class-validator';
+import { BlockedUserService } from 'src/blocked-user/blocked-user.service';
 
 @ApiInternalServerErrorResponse({ description: "Whenever the backend fail in some point, probably an error with the db." })
 @ApiTags('users')
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly blockUserService: BlockedUserService
+  ) {}
 
   //#region register
 
@@ -118,10 +122,13 @@ export class UsersController {
     isArray: false
   })
   @ApiNotFoundResponse({description: "No user was found with that ID"})
+  @ApiUnprocessableEntityResponse({description: "When you try to retrieve a profile of someone who block you"})
   @ApiUnauthorizedResponse({description: "You need to be logged in the access this route"})
   @UseGuards(JwtAuthGuard)
   @Get(':id/profile')
-  async getUserProfile(@Param('id') userId: number): Promise<AppUser> {
+  async getUserProfile(@Request() req, @Param('id') userId: number): Promise<AppUser> {
+    if (await this.blockUserService.hasUserBlock(userId, req.user.id))
+      throw new UnprocessableEntityException("This user blocked you");
     return await this.usersService.getUserById(userId);
   }
 
@@ -254,7 +261,7 @@ export class UsersController {
   @ApiNotFoundResponse({description: "No such file exist"})
   @UseGuards(JwtAuthGuard)
   @Get('avatar/:fileId')
-  async sendAvatar(@Param('fileId') fileId, @Res() res) {
+  async getAvatar(@Param('fileId') fileId, @Res() res) {
     res.sendFile(fileId, { root: './public/avatar' });
   }
 
