@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Param, Post, Query, Request, Res, UploadedFile, UseGuards, UseInterceptors, ParseFilePipeBuilder, HttpStatus } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Param, Post, Query, Request, Res, UploadedFile, UseGuards, UseInterceptors, ParseFilePipeBuilder, HttpStatus, UnprocessableEntityException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { ApiBody, ApiCookieAuth, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags, ApiUnauthorizedResponse, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
 import { CreateUsersDto } from './dto/create-users.dto';
@@ -8,6 +8,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { UpdateUsersDto } from './dto/update-users.dto';
+import { isStrongPassword } from 'class-validator';
 
 @ApiInternalServerErrorResponse({ description: "Whenever the backend fail in some point, probably an error with the db." })
 @ApiTags('users')
@@ -52,6 +53,8 @@ export class UsersController {
   })
   @Post('register')
   async createUser(@Body() body: CreateUsersDto): Promise<AppUser> {
+    if (!isStrongPassword(body.password))
+      throw new UnprocessableEntityException("Password is not strong enough");
     return await this.usersService.createUser(body);
   }
 
