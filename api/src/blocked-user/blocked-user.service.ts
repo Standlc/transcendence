@@ -1,6 +1,7 @@
 import { Inject, Injectable, InternalServerErrorException, UnprocessableEntityException, forwardRef } from '@nestjs/common';
 import { db } from 'src/database';
 import { FriendsService } from 'src/friends/friends.service';
+import { ListUsers } from 'src/types/clientSchema';
 
 @Injectable()
 export class BlockedUserService {
@@ -12,6 +13,10 @@ export class BlockedUserService {
     // ? Cant block itself
     if (blockedById === blockedId)
       throw new UnprocessableEntityException("You can't block yourself");
+
+    // ? Can't block someone already blocked
+    if (await this.hasUserBlock(blockedById, blockedId))
+      throw new UnprocessableEntityException("User already blocked");
 
     // ? Delete friendship
     if (await this.friendsService.isFriend(blockedById, blockedId))
@@ -95,6 +100,31 @@ export class BlockedUserService {
       ]))
       .execute();
     } catch (error) {
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async listBlockedUser(blockedById: number): Promise<ListUsers[]> {
+    try {
+      const blockedIdList = await db
+      .selectFrom('blockedUser')
+      .select('blockedId')
+      .where('blockedById', '=', blockedById)
+      .execute();
+      if (blockedIdList.length <= 0)
+        return [];
+      let arrayBlockedId: number[] = [];
+      blockedIdList.forEach(element => {
+        arrayBlockedId.push(element.blockedId);
+      });
+      const blockedUserList = await db
+      .selectFrom('user')
+      .select(['id', 'username', 'avatarUrl'])
+      .where('id', 'in', arrayBlockedId)
+      .execute();
+      return blockedUserList;
+    } catch (error) {
+      console.log(error);
       throw new InternalServerErrorException();
     }
   }
