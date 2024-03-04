@@ -64,10 +64,13 @@ export const FriendsInvitation: React.FC<Props> = ({
             );
 
             if (response.ok) {
-                const data = await response.json();
-                console.log("Friend accepted:", data);
+                // Si l'ami a été accepté avec succès, filtrez-le hors de l'état local
+                setFriendsRequest((currentFriendsRequest) =>
+                    currentFriendsRequest.filter((friend) => friend.id !== id)
+                );
+                console.log("Friend accepted:", await response.json());
             } else {
-                console.error("Friend accept : ", response.status);
+                console.error("Friend accept failed: ", response.status);
             }
         } catch (error) {
             console.error("Network error:", error);

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import defaultAvatar from "../components/defaultAvatar.png";
 import Chat from "../components/Chat/Chat";
 import { Avatar } from "../UIKit/Avatar";
+import ModalLayout from "../UIKit/ModalLayout";
+import { ConfirmPopUp } from "../components/ConfirmPopUp";
 
 interface Props {
     allFriends: boolean;
@@ -34,6 +36,13 @@ export const AllFriends: React.FC<Props> = ({
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
     const [selectedConversation, setSelectedConversation] = useState<number>(0);
+    const [localFriends, setLocalFriends] = useState<Friend[]>(friends);
+    const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+    const [friendToDelete, setFriendToDelete] = useState<Friend | null>(null);
+
+    useEffect(() => {
+        setLocalFriends(friends); // Mettez à jour l'état local quand les props 'friends' changent
+    }, [friends]);
 
     const newConversation = async (userId: number) => {
         try {
@@ -119,9 +128,29 @@ export const AllFriends: React.FC<Props> = ({
         findConversation(friend.id);
     };
 
-    const handleDeleteClick = (friend: Friend) => {
-        console.log("Friend clicked:", friend);
-        delFriends(friend.id);
+    const handleDeleteClick = (
+        event: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+        friend: Friend
+    ) => {
+        event.stopPropagation(); // Empêcher la propagation de l'événement
+        setFriendToDelete(friend); // Définir l'ami à supprimer
+        setShowConfirmPopup(true); // Afficher la pop-up de confirmation
+    };
+
+    const confirmDelete = async () => {
+        if (friendToDelete) {
+            await delFriends(friendToDelete.id);
+            setLocalFriends(localFriends.filter((f) => f.id !== friendToDelete.id));
+        }
+        // Fermer la pop-up après la suppression
+        setShowConfirmPopup(false);
+        setFriendToDelete(null); // Réinitialiser l'ami à supprimer
+    };
+
+    const cancelDelete = () => {
+        // Fermer la pop-up sans supprimer
+        setShowConfirmPopup(false);
+        setFriendToDelete(null); // Réinitialiser l'ami à supprimer
     };
 
     console.log("SELECTEDFRIEND", selectedFriend);
@@ -225,7 +254,7 @@ export const AllFriends: React.FC<Props> = ({
                     <div className="border-b border-b-gray-500 border-t-1 " />
                     <div className="mt-5">
                         <ul>
-                            {friends.map((friend) => (
+                            {localFriends.map((friend) => (
                                 <div
                                     onClick={() => handleFriendClick(friend)}
                                     className="flex item-center justify-between ml-5 mb-4 py-2 hover:bg-discord-light-grey  rounded-lg mb-[10px]"
@@ -256,8 +285,9 @@ export const AllFriends: React.FC<Props> = ({
                                             </div>
                                         </div>
                                     </div>
+
                                     <button
-                                        onClick={() => handleDeleteClick(friend)}
+                                        onClick={(e) => handleDeleteClick(e, friend)}
                                         className="bg-blurple hover:bg-blurple-hover text-white font-bold py-2 px-4 rounded mr-[10px] "
                                     >
                                         supprimer
@@ -266,6 +296,16 @@ export const AllFriends: React.FC<Props> = ({
                             ))}
                         </ul>
                     </div>
+                </div>
+            )}
+            {showConfirmPopup && (
+                <div>
+                    <ModalLayout isLoading={false}>
+                        <ConfirmPopUp
+                            onConfirm={confirmDelete}
+                            onCancel={cancelDelete}
+                        ></ConfirmPopUp>
+                    </ModalLayout>
                 </div>
             )}
         </>
