@@ -302,6 +302,9 @@ const Chat: React.FC<Props> = ({
                     <button onClick={openPopup}>{selectedFriend?.username}</button>
                     <span className="ml-[20px]">|</span>
                 </div>
+                <div>
+                    <button className="ml-2 mt-4">Play</button>
+                </div>
             </div>
             <div className="flex w-[200px] justify-center">
                 {isPopupOpen && (
