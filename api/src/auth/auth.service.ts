@@ -48,7 +48,10 @@ export class AuthService {
     const payload = {
       id: userId,
       isTwoFactorAuthenticated: false,
+      date: new Date().setDate(Date.now() + 7)
     };
+
+    console.log(payload.date); //todo check la date ici avec la date dans le controller
 
     return await this.jwtService.signAsync(payload);
   }
@@ -119,7 +122,10 @@ export class AuthService {
     const payload = {
       id: userId,
       isTwoFactorAuthenticated: true,
+      date: new Date().setDate(Date.now() + 7)
     }
+
+    console.log(payload.date); //todo check la date ici avec celle dans le controller + tester une connexion avec un token qui aurait expiré
 
     return await this.jwtService.signAsync(payload);
   }
