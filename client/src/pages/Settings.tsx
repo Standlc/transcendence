@@ -14,7 +14,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
     const [showConfirmAvatarPopup, setShowConfirmAvatarPopup] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
     const navigate = useNavigate();
-    const [nickname, setNickname] = useState(user?.username);
+    const [bio, setBio] = useState(user?.bio);
     const [firstname, setFirstname] = useState(user?.firstname);
     const [lastname, setLastname] = useState(user?.lastname);
 
@@ -26,22 +26,59 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
         setSelectedFile(file);
     };
 
-    const handleConfirmChange = () => {
-        // Logique pour soumettre le fichier sélectionné au serveur
-        setShowConfirmAvatarPopup(false);
+    const handleConfirmChange = async () => {
+        if (selectedFile) {
+            const formData = new FormData();
+            formData.append("file", selectedFile);
+
+            try {
+                const response = await axios.post("/api/users/avatar", formData, {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                });
+                queryClient.setQueryData<AppUser | undefined>(["user"], (oldData) => {
+                    return { ...oldData, avatarUrl: response.data.avatarUrl };
+                });
+
+                alert("Avatar updated successfully");
+            } catch (error) {
+                console.error("Failed to upload avatar", error);
+                alert("Failed to upload avatar");
+            }
+        }
+        setShowConfirmAvatarPopup(false); // Hide the popup regardless of the outcome
     };
 
     const handleCancelChange = () => {
         setShowConfirmAvatarPopup(false);
     };
 
-    // const logout = async () => {
-    //     const response = await fetch("http://localhost:3000/api/auth/logout");
-    //     console.log("LOGOUT", response);
-    //     navigate("/");
-    // };
-
     const queryClient = useQueryClient();
+
+    const updateUserProfile = async () => {
+        try {
+            const body = {
+                bio,
+                firstname,
+                lastname,
+            };
+            await axios.patch("/api/users/update", body, {});
+
+            alert("Profile updated successfully");
+            queryClient.setQueryData<AppUser | undefined>(["user"], (oldData) => {
+                if (oldData && typeof oldData === "object") {
+                    return { ...oldData, ...body };
+                } else {
+                    return undefined; // Assuming undefined is the correct value when no user data exists
+                }
+            });
+        } catch (error) {
+            console.error("Failed to update profile", error);
+            // Handle errors, for example, display a message to the user
+            alert("Failed to update profile");
+        }
+    };
 
     const logout = async () => {
         try {
@@ -63,9 +100,9 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
     return (
         <div className="flex w-full">
             {/* Section des champs d'entrée à gauche */}
-            <div className="ml-[300px] mt-20 w-[400px] mr-[100px]">
+            <div className="ml-[400px] mt-20 w-[400px] mr-[100px]">
                 <div className="text-xl font-bold text-left ml-10 mb-20">Profil</div>
-                <div className="mb-6 w-[250px]">
+                {/* <div className="mb-6 w-[250px]">
                     <label
                         htmlFor="nickname"
                         className="text-left  mb-2 text-sm text-white"
@@ -80,21 +117,21 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
                         className="bg-discord-light-black text-white text-sm rounded-l block w-full h-10 px-2.5"
                         placeholder=""
                     />
-                </div>
+                </div> */}
                 <div className="mb-6  w-[250px]">
                     <label
-                        htmlFor="FIRSTNAME"
+                        htmlFor="firstname"
                         className="text-left font-bold block mb-2 text-sm text-white"
                     >
                         FIRSTNAME
                     </label>
                     <input
-                        type="FIRSTNAME"
-                        id="FIRSTNAME"
-                        value={user?.firstname ?? ""}
+                        type="text"
+                        id="firstname"
+                        value={firstname ?? ""}
                         onChange={(e) => setFirstname(e.target.value)}
                         className="bg-discord-light-black text-white text-sm rounded-l block w-full h-10 px-2.5"
-                        placeholder=""
+                        placeholder="Firstname"
                     />
                 </div>
                 <div className="mb-6  w-[250px]">
@@ -105,15 +142,32 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
                         LASTNAME
                     </label>
                     <input
-                        type="LASTNAME"
+                        type="text"
                         id="LASTNAME"
-                        value={user?.lastname ?? ""}
+                        value={lastname ?? ""}
                         onChange={(e) => setLastname(e.target.value)}
                         className="bg-discord-light-black text-white text-sm rounded-l block w-full h-10 px-2.5"
-                        placeholder=""
+                        placeholder="Lastname"
                     />
                 </div>
-                <div className="text-left">
+                <div className="mb-6  w-[250px]">
+                    <label
+                        htmlFor="bio"
+                        className="text-left font-bold block mb-2 text-sm text-white"
+                    >
+                        BIO
+                    </label>
+                    <input
+                        type="text"
+                        id="bio"
+                        value={bio ?? ""}
+                        onChange={(e) => setBio(e.target.value)}
+                        className="bg-discord-light-black text-white text-sm rounded-l block w-full h-10 px-2.5"
+                        placeholder="I have no life"
+                    />
+                </div>
+
+                <div className="text-left w-[400px] mt-[50px]">
                     <button
                         onClick={handleClickChangeAvatar}
                         className="bg-blurple hover:bg-blurple-hover text-white text-sm rounded-lg h-10 py-2 px-2.5"
@@ -122,7 +176,23 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
                     </button>
                     <button className="ml-10 hover:underline">Delete Avatar</button>
                 </div>
-                <div className="mt-20 text-left">
+                <div
+                    className="w-[200px] border-b mt-[20px] border-b-discord-light-grey "
+                    style={{ borderBottomWidth: "1px" }}
+                ></div>
+                <div className="text-left w-[400px] mt-[20px]">
+                    <button
+                        onClick={updateUserProfile}
+                        className="bg-green text-white text-sm rounded-lg h-10 py-2 px-2.5"
+                    >
+                        Save Changes
+                    </button>
+                </div>
+                <div
+                    className="w-[200px] border-b mt-[20px] border-b-discord-light-grey "
+                    style={{ borderBottomWidth: "1px" }}
+                ></div>
+                <div className="mt-[20px] text-left">
                     <button
                         onClick={() => logout()}
                         className="bg-red-500 hover:bg-red-700  rounded-lg py-2 px-2.5"

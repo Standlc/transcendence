@@ -163,7 +163,7 @@ export const ChanColumn: React.FC<Props> = ({
                 <span className="bloc text-right">+</span>
             </div>
             <div className="ml-5 mt-2 text-left ">
-                <Collapsible title="">
+                <Collapsible title="Conversation">
                     {allConversation.map((conv, index) => (
                         <button
                             key={index}
@@ -197,14 +197,16 @@ export const ChanColumn: React.FC<Props> = ({
                     ))}
                 </Collapsible>
             </div>
+            <div className="ml-5 mt-2 text-left ">
+                <Collapsible title="Channels"></Collapsible>
+            </div>
             <div className="flex bg-almost-black text-m user-chancolumn items-center justify-between">
                 <div className="flex items-center">
-                    {/* <PutAvatar loginResponse={loginResponse} /> */}
                     <Avatar
                         imgUrl={loginResponse?.avatarUrl}
                         size="md"
                         userId={loginResponse?.id ?? 0}
-                        // status={}
+                        status={loginResponse?.status ?? "offline"}
                         borderRadius={0.5}
                     />
                     <div className="ml-[10px]">

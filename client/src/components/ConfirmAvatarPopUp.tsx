@@ -19,7 +19,7 @@ export const ConfirmAvatarPopUp = ({ onFileChange, onConfirm, onCancel }) => {
                     <img
                         src={preview}
                         alt="Avatar Preview"
-                        className="mt-4 max-w-[1300px] max-h-[1300px] object-cover "
+                        className="mt-4 max-w-[700px] max-h-[700px] object-cover "
                     />
                 )}
                 <div className="flex justify-around w-full mt-4">

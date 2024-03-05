@@ -7,7 +7,7 @@ interface Props {
 }
 
 export const Collapsible: React.FC<Props> = ({ title, children }: Props) => {
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(true);
 
     const toggleCollapse = () => {
         setIsOpen(!isOpen);

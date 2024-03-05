@@ -4,8 +4,6 @@ import {
     createBrowserRouter,
     createRoutesFromElements,
     Navigate,
-    createRoutesFromChildren,
-    useNavigate,
 } from "react-router-dom";
 import PrivateLayout from "./components/PrivateLayout";
 import PublicLayout from "./components/PublicLayout";
@@ -21,7 +19,6 @@ import { Friends } from "./pages/Friends";
 import { Login } from "./pages/Login";
 import { Settings } from "./pages/Settings";
 import { AppUser } from "@api/types/clientSchema";
-import { useEffect } from "react";
 
 function App() {
     const queryClient = useQueryClient();
