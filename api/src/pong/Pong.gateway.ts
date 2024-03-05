@@ -5,7 +5,6 @@ import {
 } from '@nestjs/websockets';
 import { BroadcastOperator, Server, Socket } from 'socket.io';
 import { GamesService } from 'src/games/games.service';
-import { DefaultEventsMap } from '@socket.io/component-emitter';
 import { Inject, UseGuards, forwardRef } from '@nestjs/common';
 import { WsAuthGuard, authenticateSocket } from 'src/auth/ws-auth.guard';
 import {
@@ -22,7 +21,6 @@ import {
 } from 'src/types/gameServer/pongGameTypes';
 import {
   EmitPayloadType,
-  Tuple,
   WsGameIdType,
   WsPlayerMove,
 } from 'src/types/gameServer/socketPayloadTypes';
@@ -88,21 +86,21 @@ export class PongGateway {
     authenticateSocket(client, this.wsGuard);
   }
 
-  handleConnection(client: Socket) {
+  async handleConnection(client: Socket) {
     const userId = this.extractUserId(client);
-    client.join(userId.toString());
-    // console.log('NEW CONNECTION:', client.id, 'with userId', client.data.id);
+    await client.join(userId.toString());
+    // console.log('NEW CONNECTION:', client.id, 'with userId', userId);
   }
 
   async handleDisconnect(client: Socket) {
     const userId = this.extractUserId(client);
-    client.leave(userId.toString());
-    // console.log('DISCONNECTION:', client.id, 'with userId', client.data.id);
+    await client.leave(userId.toString());
+    // console.log('DISCONNECTION:', client.id, 'with userId', userId);
   }
 
   @SubscribeMessage('leaveGame')
-  handleDisconnectionEvent(client: Socket, data: WsGameIdType) {
-    client.leave(data.gameId.toString());
+  async handleDisconnectionEvent(client: Socket, data: WsGameIdType) {
+    await client.leave(data.gameId.toString());
   }
 
   @SubscribeMessage('joinRoom')
@@ -151,13 +149,18 @@ export class PongGateway {
   async startGame(gameRecord: Selectable<Game>) {
     const gameState = initialize(gameRecord);
     this.games.set(gameState.gameId, gameState);
-    this.joinUsersToGameRoom(gameRecord, gameState.roomId);
+    await this.joinUsersToGameRoom(gameRecord, gameState.roomId);
     this.usersStatusGateway.setUserAsPlaying(gameRecord.playerOneId);
     this.usersStatusGateway.setUserAsPlaying(gameRecord.playerTwoId);
 
     if (gameRecord.isPublic) {
       this.emitNewLiveGame(gameState);
     }
+
+    this.server.to(gameRecord.playerOneId.toString()).emit('test', 'hello');
+    this.server.to(gameRecord.playerTwoId.toString()).emit('test', 'hello');
+    // TEST
+    this.server.emit('test_all', 'hello everyone');
 
     this.sendTo(gameState.roomId, 'gameStart', gameState.roomId);
     await this.sendGameStartCountdown(gameState);
@@ -188,19 +191,28 @@ export class PongGateway {
   }
 
   async joinUsersToGameRoom(gameRecord: Selectable<Game>, roomId: string) {
-    this.server.in(gameRecord.playerOneId.toString()).socketsJoin(roomId);
-    this.server.in(gameRecord.playerTwoId.toString()).socketsJoin(roomId);
+    const playerOneIdToString = gameRecord.playerOneId.toString();
+    const playerTwoIdToString = gameRecord.playerTwoId.toString();
 
-    // console.log(
-    //   'Player One sockets',
-    //   (await this.server.in(gameRecord.playerOneId.toString()).fetchSockets())
-    //     .length,
-    // );
-    // console.log(
-    //   'Player Two sockets',
-    //   (await this.server.in(gameRecord.playerTwoId.toString()).fetchSockets())
-    //     .length,
-    // );
+    this.server.in(playerOneIdToString).socketsJoin(roomId);
+    this.server.in(playerTwoIdToString).socketsJoin(roomId);
+
+    // this.server.in(playerOneIdToString).disconnectSockets();
+    // this.server.in(playerTwoIdToString).disconnectSockets();
+
+    // TEST
+    console.log(
+      'User',
+      gameRecord.playerOneId,
+      'Sockets',
+      (await this.server.in(playerOneIdToString).fetchSockets()).length,
+    );
+    console.log(
+      'User',
+      gameRecord.playerTwoId,
+      'Sockets',
+      (await this.server.in(playerTwoIdToString).fetchSockets()).length,
+    );
   }
 
   async runGame(
@@ -458,9 +470,6 @@ export class PongGateway {
       playerTwoAchievements,
       game.roomId,
     );
-
-    console.log('player one:', playerOneAchievements);
-    console.log('player two:', playerTwoAchievements);
   }
 
   async sendAchievementsUpdates(
@@ -583,7 +592,7 @@ export class PongGateway {
     this.server.in(roomId).socketsLeave(roomId);
   }
 
-  extractUserId(client: Socket) {
+  extractUserId(client: Socket): number {
     return client.data.id;
   }
 }

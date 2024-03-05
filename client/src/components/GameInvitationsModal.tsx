@@ -9,16 +9,16 @@ import { PlayButton } from "../UIKit/PlayButton";
 import axios from "axios";
 import { ErrorContext } from "../ContextsProviders/ErrorContext";
 import MultiModalLayout from "../UIKit/MultiModalLayout";
-import { useParams } from "react-router-dom";
 import { useFetchGame } from "../utils/useFetchGame";
+import { useGameIdParam } from "../utils/useGameIdParam";
 
 export const GameInvitationModal = () => {
-  const { gameId } = useParams();
   const currentGameRequest = useGameRequest();
   const { gameSocketOn, gameSocketOff } = useContext(SocketsContext);
   const gameInvitations = useGameInvitations();
   const queryClient = useQueryClient();
-  const gameRecord = useFetchGame(Number(gameId));
+  const { gameId, isGamePage } = useGameIdParam();
+  const gameRecord = useFetchGame(gameId);
   const { addError } = useContext(ErrorContext);
 
   const declineInvitation = useMutation({
@@ -85,7 +85,7 @@ export const GameInvitationModal = () => {
   if (
     currentGameRequest.data ||
     !gameInvitations.data?.length ||
-    (gameRecord.data && gameRecord.data.winnerId == null && gameId != null)
+    (gameRecord.data && gameRecord.data.winnerId == null && isGamePage)
   ) {
     return null;
   }

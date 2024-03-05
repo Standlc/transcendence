@@ -27,53 +27,6 @@ export const useGameSocket = (addError: (error: ErrorType) => void) => {
     },
   });
 
-  useEffect(() => {
-    const connection = io();
-    setGameSocket(connection);
-    return () => {
-      connection.disconnect();
-      setGameSocket(undefined);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!gameSocket) return;
-
-    const handleErrors = (err: Error) => {
-      gameSocket.disconnect();
-      setGameSocket(undefined);
-      addError({ message: err.message });
-    };
-
-    const handleServerError = (message: string) => {
-      console.log(message);
-      addError({ message: "something went wrong with the game server" });
-    };
-
-    const handleGameStart = (gameId: string) => {
-      navigate(`/play/${gameId}`);
-      console.log("start", `/play/${gameId}`);
-      queryClient.setQueryData(["currentGameRequest"], null);
-
-      const gameIdToNumber = Number(gameId);
-      if (!isNaN(gameIdToNumber)) {
-        fetchGameRecord.mutate(gameIdToNumber);
-      }
-    };
-
-    gameSocket.on("connect_error", handleErrors);
-    gameSocket.on("connect_failed", handleErrors);
-    gameSocket.on("error", handleServerError);
-    gameSocketOn("gameStart", handleGameStart);
-    return () => {
-      if (!gameSocket) return;
-      gameSocket.off("connect_error", handleErrors);
-      gameSocket.off("connect_failed", handleErrors);
-      gameSocket.off("error", handleServerError);
-      gameSocketOff("gameStart", handleGameStart);
-    };
-  }, [gameSocket]);
-
   const gameSocketOn = useCallback(
     <T extends keyof GameServerEventTypes>(
       ev: T,
@@ -97,6 +50,78 @@ export const useGameSocket = (addError: (error: ErrorType) => void) => {
     },
     [gameSocket]
   );
+
+  useEffect(() => {
+    const connection = io();
+    setGameSocket(connection);
+    return () => {
+      connection.disconnect();
+      setGameSocket(undefined);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!gameSocket) return;
+
+    const handleErrors = (err: Error) => {
+      // redirect to login page
+      gameSocket.disconnect();
+      setGameSocket(undefined);
+      addError({ message: err.message });
+    };
+
+    const handleServerError = (message: string) => {
+      console.log(message);
+      setGameSocket(undefined);
+      addError({ message: "something went wrong with the game server" });
+    };
+
+    const handleGameStart = (gameId: string) => {
+      console.log("start", `/play/${gameId}`);
+      navigate(`/play/${gameId}`);
+      queryClient.setQueryData(["currentGameRequest"], null);
+
+      const gameIdToNumber = Number(gameId);
+      if (!isNaN(gameIdToNumber)) {
+        fetchGameRecord.mutate(gameIdToNumber);
+      }
+    };
+
+    const handleDisconnect = () => {
+      // redirect to login page
+      setGameSocket(undefined);
+      console.log("disconnected by server");
+    };
+
+    gameSocket.on("disconnect", handleDisconnect);
+    gameSocket.on("connect_error", handleErrors);
+    gameSocket.on("connect_failed", handleErrors);
+    gameSocket.on("error", handleServerError);
+    gameSocketOn("gameStart", handleGameStart);
+
+    const handleTest = () => {
+      console.log("got event");
+    };
+
+    const handleTestAll = () => {
+      console.log("event for all");
+    };
+
+    gameSocket.on("test", handleTest);
+    gameSocket.on("test_all", handleTestAll);
+
+    return () => {
+      if (!gameSocket) return;
+      gameSocket.off("disconnect", handleDisconnect);
+      gameSocket.off("connect_error", handleErrors);
+      gameSocket.off("connect_failed", handleErrors);
+      gameSocket.off("error", handleServerError);
+      gameSocketOff("gameStart", handleGameStart);
+
+      gameSocket.off("test", handleTest);
+      gameSocket.off("test_all", handleTestAll);
+    };
+  }, [gameSocket, queryClient, navigate, gameSocketOn, gameSocketOff]);
 
   return {
     gameSocket,

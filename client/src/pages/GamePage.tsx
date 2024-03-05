@@ -1,5 +1,4 @@
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useContext, useEffect, useRef, useState } from "react";
 import GameDisconnectionModal from "../components/PlayerDisconnectionInfos";
 import {
   WsGameEndType,
@@ -24,10 +23,10 @@ import { useGameRequest } from "../utils/useGameRequest";
 import { useGameInvitations } from "../utils/useGameInvitations";
 import { GameFinishedModal } from "../components/GameFinishedModal";
 import { useFetchGame } from "../utils/useFetchGame";
+import { useGameIdParam } from "../utils/useGameIdParam";
 
 export default function GamePage() {
-  const { gameId } = useParams();
-  const gameIdToNumber = useMemo(() => Number(gameId), [gameId]);
+  const { gameId } = useGameIdParam();
   const queryClient = useQueryClient();
   const { gameSocket, gameSocketOn, gameSocketOff } =
     useContext(SocketsContext);
@@ -38,7 +37,7 @@ export default function GamePage() {
   const gameRef = useRef<GameStateType>(createGamePositions({}));
   const [achievements, setAchievements] = useState<UserAchievement[]>();
   const [playersPingRtt, setPlayersPingRtt] = useState([0, 0]);
-  const gameRecord = useFetchGame(gameIdToNumber);
+  const gameRecord = useFetchGame(gameId);
   useGameControls({ gameRecord: gameRecord.data, isPaused });
   const isPlayerDisconnected = usePingServer({ gameRecord: gameRecord.data });
   const gameRequest = useGameRequest();
@@ -57,7 +56,7 @@ export default function GamePage() {
     playerTwoScore: number
   ) => {
     queryClient.setQueryData(
-      ["gameRecord", gameIdToNumber],
+      ["gameRecord", gameId],
       (prev: UserGame | undefined) => {
         if (!prev) return undefined;
         const prevCopy = { ...prev };
@@ -100,7 +99,7 @@ export default function GamePage() {
 
     const handleGameEnd = (data: WsGameEndType) => {
       queryClient.setQueryData(
-        ["gameRecord", gameIdToNumber],
+        ["gameRecord", gameId],
         (prev: UserGame | undefined) => {
           if (!prev || data.id !== gameRecord.data?.id) return undefined;
 
@@ -165,15 +164,15 @@ export default function GamePage() {
       gameSocketOff("startCountdown", handleGameStartCountdown);
       gameSocketOff("achievements", handleNewAchievements);
     };
-  }, [gameSocketOn, gameSocketOff, gameIdToNumber, gameRecord.data?.id]);
+  }, [gameSocketOn, gameSocketOff, gameId, gameRecord.data?.id]);
 
   useEffect(() => {
-    const payload: WsGameIdType = { gameId: gameIdToNumber };
+    const payload: WsGameIdType = { gameId: gameId };
     gameSocket.emit("joinRoom", payload);
     return () => {
       gameSocket.emit("leaveGame", payload);
     };
-  }, [gameSocket, gameIdToNumber]);
+  }, [gameSocket, gameId]);
 
   if (gameRecord.error) {
     return (

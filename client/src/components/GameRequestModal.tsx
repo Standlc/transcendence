@@ -7,8 +7,8 @@ import { PlayerRating } from "../UIKit/PlayerRating";
 import { useGameRequest } from "../utils/useGameRequest";
 import { SocketsContext } from "../ContextsProviders/SocketsContext";
 import { useCancelGameRequest } from "../utils/useCancelGameRequest";
-import { useParams } from "react-router-dom";
 import { useFetchGame } from "../utils/useFetchGame";
+import { useGameIdParam } from "../utils/useGameIdParam";
 
 export const GameRequestModal = () => {
   const { user } = useContext(UserContext);
@@ -16,8 +16,8 @@ export const GameRequestModal = () => {
   const gameRequest = useGameRequest();
   const queryClient = useQueryClient();
   const cancel = useCancelGameRequest();
-  const { gameId } = useParams();
-  const gameRecord = useFetchGame(Number(gameId));
+  const { gameId } = useGameIdParam();
+  const gameRecord = useFetchGame(gameId);
 
   useEffect(() => {
     if (!gameRequest.data || !gameRequest.data?.targetUser) return;

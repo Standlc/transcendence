@@ -2,16 +2,17 @@ import { UserGame } from "@api/types/games";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { useContext, useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { SocketsContext } from "../ContextsProviders/SocketsContext";
 import { WsGameEndType } from "@api/types/gameServer/socketPayloadTypes";
 import { Avatar } from "../UIKit/avatar/Avatar";
 import { UserContext } from "../ContextsProviders/UserContext";
+import { useGameIdParam } from "../utils/useGameIdParam";
 
 export const RejoinGameNotification = () => {
   const queryClient = useQueryClient();
   const { gameSocketOn, gameSocketOff } = useContext(SocketsContext);
-  const { gameId } = useParams();
+  const { gameId } = useGameIdParam();
   const { user } = useContext(UserContext);
 
   const currentGame = useQuery({
@@ -41,7 +42,7 @@ export const RejoinGameNotification = () => {
     };
   }, [gameSocketOn, gameSocketOff, queryClient]);
 
-  if (!currentGame.data || gameId != null) {
+  if (!currentGame.data || gameId === currentGame.data.id) {
     return null;
   }
 

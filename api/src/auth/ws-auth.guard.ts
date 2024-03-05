@@ -28,6 +28,8 @@ export class WsAuthGuard implements CanActivate {
       client.data = payload;
       return true;
     } catch (error) {
+      console.log(error);
+      client.disconnect();
       return false;
     }
   }
@@ -41,6 +43,7 @@ export class WsAuthGuard implements CanActivate {
     const jwtPayload = jwt.verify(token, {
       secret: process.env.JWT_SECRET,
     });
+    // console.log('user', jwtPayload, token);
     return jwtPayload;
   }
 }
