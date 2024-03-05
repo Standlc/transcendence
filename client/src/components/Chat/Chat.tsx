@@ -5,6 +5,7 @@ import { Timestamp } from "../../../../api/src/types/schema";
 import defaultAvatar from "./../../components/defaultAvatar.png";
 import TextArea from "../../UIKit/TextArea";
 import { Avatar } from "../../UIKit/avatar/Avatar";
+import { NotificationBox } from "../NotificationBox";
 
 interface Props {
     SERVER_URL: string;
@@ -303,6 +304,14 @@ const Chat: React.FC<Props> = ({
                     <button onClick={openPopup}>{selectedFriend?.username}</button>
                     <span className="ml-[20px]">|</span>
                 </div>
+                <div>
+                    <button className="ml-4 mt-4 bg-green rounded-lg py-1 px-3">
+                        Play
+                    </button>
+                </div>
+                {/* <div>
+                    <NotificationBox />
+                </div> */}
             </div>
             <div className="flex w-[200px] justify-center">
                 {isPopupOpen && (

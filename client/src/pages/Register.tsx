@@ -51,18 +51,12 @@ export const Register = () => {
                 const data = await response.text();
                 console.log("Login successful:", data);
 
-                // Stocker le token d'authentification si nécessaire, par exemple dans localStorage
-                // localStorage.setItem('token', data.token);
-
-                navigate("/"); // Rediriger vers la route home ou dashboard
+                navigate("/");
             } else {
-                // Gérer les erreurs, par exemple en montrant un message à l'utilisateur
                 console.error("Login failed:", response.status);
-                // Afficher un message d'erreur
             }
         } catch (error) {
             console.error("Network error:", error);
-            // Afficher un message d'erreur
         }
     };
 

@@ -1,60 +1,55 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 // import qrcode from './../../public/qrcode.png';
 // import qrcode from "./qrcode.png";
 import qrcode from "./qrcode.png";
-import { useAuth } from "../components/RequireAuth/AuthProvider";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
+import { FormEvent, useState } from "react";
+import { AppUser } from "@api/types/clientSchema";
 
 export const Login = () => {
     const navigate = useNavigate();
     const [username, setUsername] = useState("");
+    const queryClient = useQueryClient();
     const [password, setPassword] = useState("");
-    const { login, loginResponse } = useAuth();
 
-    useEffect(() => {
-        if (loginResponse) {
-            navigate("/"); // User is already logged in, redirect them to the dashboard or home page
-        } else {
-            checkCookie();
-        }
-    }, [loginResponse]);
-
-    const checkCookie = async () => {
-        try {
-            const response = await fetch("http://localhost:3000/api/auth/token");
-            if (response.ok) {
-                const data = await response.json();
-                login(data);
-                navigate("/"); // Redirect to the root route or dashboard
-            } else {
-                console.error("Failed to fetch data:", response.status);
-                // No action needed here if not authenticated, as the user is already on the login page
-            }
-        } catch (error) {
-            console.error("Error fetching data:", error);
-        }
-    };
-
-    const handleSubmit = async (event) => {
-        event.preventDefault();
-        try {
-            const response = await fetch("http://localhost:3000/api/auth/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ username, password }),
+    const logUser = useMutation<AppUser, any, { username: string; password: string }>({
+        mutationFn: async ({ username, password }) => {
+            const response = await axios.post("/api/auth/login", {
+                username,
+                password,
             });
-            if (response.ok) {
-                const data = await response.json();
-                login(data);
-                navigate("/"); // Redirect to the root route or dashboard after login
-            } else {
-                console.error("Login failed:", response.status);
-            }
-        } catch (error) {
-            console.error("Network error:", error);
-        }
+            return response.data;
+        },
+        onSuccess: (data) => {
+            queryClient.setQueryData(["user"], data);
+            // navigate("/home");
+        },
+        onError: () => {
+            console.log("Error");
+        },
+    });
+
+    // const checkCookie = async () => {
+    //     try {
+    //         const response = await fetch("http://localhost:3000/api/auth/token");
+    //         if (response.ok) {
+    //             const data = await response.json();
+    //             login(data);
+    //             navigate("/home"); // Redirect to the root route or dashboard
+    //         } else {
+    //             console.error("Failed to fetch data:", response.status);
+    //             // No action needed here if not authenticated, as the user is already on the login page
+    //         }
+    //     } catch (error) {
+    //         console.error("Error fetching data:", error);
+    //     }
+    // };
+
+    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        logUser.mutate({ username, password });
+        // navigate("/home");
     };
 
     return (

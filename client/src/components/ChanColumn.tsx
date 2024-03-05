@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import { Settings } from "@mui/icons-material";
 import { PutAvatar } from "./PutAvatar";
 import { Avatar } from "../UIKit/avatar/Avatar";
+import { Collapsible } from "./Collapsible";
 
 interface Props {
     loginResponse: LoginResponse | null;
@@ -56,9 +57,8 @@ export const ChanColumn: React.FC<Props> = ({
     };
 
     const handleFriendsClick = () => {
-        // Use a timestamp as a refresh key
         setCurrentPage("friends", Date.now());
-        setActiveButton(-1); // -1 représente le bouton "Amis"
+        setActiveButton(-1);
     };
 
     const handleSettingClick = () => {
@@ -163,37 +163,39 @@ export const ChanColumn: React.FC<Props> = ({
                 <span className="bloc text-right">+</span>
             </div>
             <div className="ml-5 mt-2 text-left ">
-                {allConversation.map((conv, index) => (
-                    <button
-                        key={index}
-                        className={`mb-5 flex hover:bg-discord-light-grey py-2 rounded-lg w-[280px] ${
-                            activeButton == index
-                                ? "bg-discord-light-grey"
-                                : "bg-not-quite-black"
-                        }`}
-                        onClick={() => {
-                            const otherUserId = whichID(conv);
-                            const otherUsername = whichUsername(conv);
-                            const otherUserAvatarUrl = whichAvatar(conv);
+                <Collapsible title="">
+                    {allConversation.map((conv, index) => (
+                        <button
+                            key={index}
+                            className={`mb-5 flex hover:bg-discord-light-grey py-2 rounded-lg w-[280px] ${
+                                activeButton == index
+                                    ? "bg-discord-light-grey"
+                                    : "bg-not-quite-black"
+                            }`}
+                            onClick={() => {
+                                const otherUserId = whichID(conv);
+                                const otherUsername = whichUsername(conv);
+                                const otherUserAvatarUrl = whichAvatar(conv);
 
-                            setConversationID(conv.id);
-                            setSelectedFriend({
-                                id: otherUserId,
-                                username: otherUsername,
-                                avatarUrl: otherUserAvatarUrl,
-                            });
-                            setCurrentPage("chatbox", Date.now());
-                            setActiveButton(index);
-                        }}
-                    >
-                        <Avatar
-                            imgUrl={whichAvatar(conv)}
-                            size="md"
-                            userId={whichID(conv)}
-                        />
-                        <div className="ml-5">{whichUsername(conv)}</div>
-                    </button>
-                ))}
+                                setConversationID(conv.id);
+                                setSelectedFriend({
+                                    id: otherUserId,
+                                    username: otherUsername,
+                                    avatarUrl: otherUserAvatarUrl,
+                                });
+                                setCurrentPage("chatbox", Date.now());
+                                setActiveButton(index);
+                            }}
+                        >
+                            <Avatar
+                                imgUrl={whichAvatar(conv)}
+                                size="md"
+                                userId={whichID(conv)}
+                            />
+                            <div className="ml-5">{whichUsername(conv)}</div>
+                        </button>
+                    ))}
+                </Collapsible>
             </div>
             <div className="flex bg-almost-black text-m user-chancolumn items-center justify-between">
                 <div className="flex items-center">

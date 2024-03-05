@@ -2,7 +2,6 @@ import { useState } from "react";
 import { ChanColumn } from "../components/ChanColumn";
 
 import { NavBar } from "../components/Navbar/Navbar";
-import { useAuth } from "../components/RequireAuth/AuthProvider";
 import { Friends } from "./Friends";
 import Chat from "../components/Chat/Chat";
 import { AppUser } from "@api/types/clientSchema";
