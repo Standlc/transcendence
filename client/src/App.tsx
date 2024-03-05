@@ -16,6 +16,8 @@ import { LiveGamesPage } from "./pages/LiveGamesPage";
 import { AchievementsPage } from "./pages/AchievementsPage";
 import { AppUser } from "@api/types/clientSchema";
 import { GameInvitationTestPage } from "./pages/GameInvitationTestPage";
+import { ExplorePage } from "./pages/ExplorePage";
+import { ChannelTest } from "./pages/ChannelTest";
 
 function App() {
   const queryClient = useQueryClient();
@@ -77,6 +79,9 @@ function App() {
                 />
                 <Route path="/leaderboard" element={<LeaderboardPage />} />
                 <Route path="/live" element={<LiveGamesPage />} />
+                <Route path="/explore" element={<ExplorePage />}>
+                  <Route path=":channelId" element={<ChannelTest />} />
+                </Route>
               </Route>
             ) : (
               <Route

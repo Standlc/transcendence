@@ -123,3 +123,22 @@ export interface ChannelUpdate {
   password: string | null;
   photoUrl: string | null;
 }
+
+export type PublicChannel = {
+  membersCount: number | null;
+  isMember: boolean;
+  id: number;
+  name: string | null;
+  photoUrl: string | null;
+};
+
+export type ChannelInfos = {
+  users: {
+    mutedEnd: Date | null;
+    joinedAt: Date;
+    id: number;
+  }[];
+  isPublic: boolean;
+  name: string | null;
+  photoUrl: string | null;
+};
