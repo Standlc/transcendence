@@ -21,6 +21,7 @@ import {
 } from 'src/types/gameServer/pongGameTypes';
 import {
   EmitPayloadType,
+  Tuple,
   WsGameIdType,
   WsPlayerMove,
 } from 'src/types/gameServer/socketPayloadTypes';
@@ -481,6 +482,9 @@ export class PongGateway {
       const userSockets = await this.server
         .in(userId.toString())
         .fetchSockets();
+
+      // TEST
+      console.log('sockets cound for userId', userId, userSockets.length);
 
       userSockets.forEach((socket) => {
         if (socket.rooms.has(gameRoomId)) {
