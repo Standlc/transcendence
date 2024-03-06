@@ -51,7 +51,6 @@ export class Utils {
           isPublic: channel.isPublic,
           name: channel.name,
           password: hashedPassword,
-          photoUrl: channel.photoUrl,
         })
         .where('id', '=', channelId)
         .executeTakeFirst();
@@ -68,7 +67,6 @@ export class Utils {
   // !!! tested
   async updateChannelAsAdmin(
     name: string | null,
-    photoUrl: string | null,
     channelId: number,
   ): Promise<string> {
     try {
@@ -76,7 +74,6 @@ export class Utils {
         .updateTable('channel')
         .set({
           name: name,
-          photoUrl: photoUrl,
         })
         .where('id', '=', channelId)
         .executeTakeFirst();
@@ -239,6 +236,7 @@ export class Utils {
         .where('channelOwner', '=', userId)
         .where('name', '=', channel.name)
         .where('isPublic', '=', channel.isPublic)
+        // !!! compare password ?
         .executeTakeFirstOrThrow();
 
       console.log('Channel created:', newChannelId);

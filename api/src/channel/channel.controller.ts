@@ -294,9 +294,6 @@ export class UserController {
         password: {
           type: 'string | null',
         },
-        photoUrl: {
-          type: 'string | null',
-        },
       },
     },
   })
@@ -307,7 +304,6 @@ export class UserController {
     description:
       'No data to update | \
       Invalid channel name length (1-49) | \
-      Invalid photoUrl length (1-49) | \
       A public channel cannot have a password | \
       Channel name already exists | \
       Invalid isPublic value | \

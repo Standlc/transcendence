@@ -131,12 +131,6 @@ export class ChannelService {
     }
 
     try {
-      this.utilsChannelService.verifyLength(channel.photoUrl);
-    } catch (error) {
-      throw new UnprocessableEntityException('Invalid photo url length (1-49)');
-    }
-
-    try {
       const isPublicBoolean = channel.isPublic.toString();
       this.utilsChannelService.canSetPassword(
         isPublicBoolean,
@@ -354,7 +348,6 @@ export class ChannelService {
       try {
         return await this.utilsChannelService.updateChannelAsAdmin(
           channel.name,
-          channel.photoUrl,
           channelId,
         );
       } catch (error) {

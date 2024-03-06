@@ -68,6 +68,7 @@ export class ChannelGateway
   //
   //
   //
+  // !!! verify if password can be null
   @SubscribeMessage('joinChannel')
   async handleJoinChannel(
     @ConnectedSocket() socket: Socket,

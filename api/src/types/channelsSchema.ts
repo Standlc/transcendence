@@ -124,5 +124,4 @@ export interface ChannelUpdate {
   isPublic: boolean;
   name: string | null;
   password: string | null;
-  photoUrl: string | null;
 }
