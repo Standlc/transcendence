@@ -23,5 +23,6 @@ import { BlockedUserModule } from 'src/blocked-user/blocked-user.module';
     Utils,
     SocketService,
   ],
+  exports: [ChannelService]
 })
 export class ChannelModule {}

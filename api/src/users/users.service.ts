@@ -310,7 +310,7 @@ export class UsersService {
       .executeTakeFirst();
       try {
         if (result != undefined && result.avatarUrl != null && result.avatarUrl.includes(`/api/users`, 0)) {
-          await unlink(result.avatarUrl.replace(`/api/users/`, ''));
+          await unlink(result.avatarUrl.replace(`/api/users/`, 'public/'));
         }
       } catch (error) {
         console.log(error);
@@ -322,7 +322,7 @@ export class UsersService {
     try {
       const result = await db
       .updateTable('user')
-      .set('avatarUrl', avatarUrl)
+      .set('avatarUrl', avatarUrl.replace('public/', ''))
       .where('user.id', '=', userId)
       .executeTakeFirst();
       const user = await db

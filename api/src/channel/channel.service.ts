@@ -11,14 +11,75 @@ import {
   ChannelDataWithUsersWithoutPassword,
   ChannelDataWithoutPassword,
   ChannelUpdate,
+  ChannelWithoutPsw,
   MessageWithSenderInfo,
 } from 'src/types/channelsSchema';
 import * as bcrypt from 'bcrypt';
 import { Utils } from './utilsChannel.service';
+import { unlink } from 'fs/promises';
 
 @Injectable()
 export class ChannelService {
   constructor(private readonly utilsChannelService: Utils) {}
+
+  async setPhoto(userId: number, channelId: number, path: string): Promise<ChannelWithoutPsw> {
+    //? Check if user is channel admin
+    let result: {
+      channelId: number;
+      userId: number;
+  } | undefined;
+    try {
+      result = await db
+      .selectFrom('channelAdmin')
+      .selectAll()
+      .where(({ eb, and}) => and([
+        eb('channelId', '=', channelId),
+        eb('userId', '=', userId)
+      ]))
+      .executeTakeFirst();
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
+
+    if (!result)
+      throw new UnprocessableEntityException("user is not channel admin");
+
+    try {
+      const result = await db
+      .selectFrom('channel')
+      .select('photoUrl')
+      .where('id', '=', channelId)
+      .executeTakeFirst();
+      try {
+        if (result != undefined && result.photoUrl != null && result.photoUrl.includes(`/api/channels`, 0)) {
+          await unlink(result.photoUrl.replace(`/api/channels/photo`, 'public/channels/'));
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    } catch (error) {
+      throw new InternalServerErrorException();
+    }
+
+    try {
+      const result = await db
+      .updateTable('channel')
+      .set('photoUrl', path.replace('public/channels/', 'photo/'))
+      .where('channel.id', '=', channelId)
+      .executeTakeFirst();
+      const channel = await db
+      .selectFrom('channel')
+      .selectAll()
+      .where('id', '=', channelId)
+      .executeTakeFirstOrThrow();
+      const {password, ...channelWithoutPsw} = channel;
+      return channelWithoutPsw;
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
+  }
 
   //
   //

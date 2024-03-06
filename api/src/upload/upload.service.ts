@@ -1,4 +1,21 @@
 import { Injectable } from '@nestjs/common';
+import { ChannelService } from 'src/channel/channel.service';
+import { ChannelWithoutPsw } from 'src/types/channelsSchema';
+import { AppUser } from 'src/types/clientSchema';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
-export class UploadService {}
+export class UploadService {
+  constructor (
+    private readonly usersService: UsersService,
+    private readonly channelsService: ChannelService
+    ) {}
+
+  async setUserAvatar(userId: number, path: string): Promise<AppUser> {
+    return await this.usersService.setAvatar(userId, path);
+  }
+
+  async setChannelPhoto(userId: number, channelId: number, path: string): Promise<ChannelWithoutPsw> {
+    return await this.channelsService.setPhoto(userId, channelId, path);
+  }
+}

@@ -188,71 +188,7 @@ export class UsersController {
 
   //#endregion
 
-  //#region avatar
-
-  @ApiOperation({summary: "Upload an avatar"})
-  @ApiCookieAuth()
-  @ApiCreatedResponse({
-    description: "Avatar succesfully uploaded",
-    schema: {
-      type: 'object',
-      example: {
-        avatarUrl: null,
-        bio: null,
-        createdAt: "2024-02-16T14:28:58.410Z",
-        email: null,
-        firstname: "john",
-        id: 1,
-        lastname: "doe",
-        rating: 18,
-        username: "joe",
-        status: 1
-      }
-    },
-  })
-  @ApiBody({
-    description: "This is a multipart/form-data body, the name should be 'file' and the attachement an image binary",
-    type: 'multipart/form-data',
-    schema: {
-      type: 'object',
-      properties: {
-        file: {
-          type: 'string',
-          format: 'binary'
-        }
-      }
-    }
-  })
-  @UseGuards(JwtAuthGuard)
-  @Post('avatar')
-  @UseInterceptors(FileInterceptor('file',
-    {
-      storage: diskStorage({
-        destination: './public/avatar',
-        filename: (req, file, cb) => {
-          const randomName = Date.now().toString();
-          return cb(null, `${randomName}${extname(file.originalname)}`);
-        }
-      })
-    }
-  ))
-  async uploadAvatar(
-    @Request() req,
-    @UploadedFile(
-      new ParseFilePipeBuilder()
-        .addFileTypeValidator({
-          fileType: /(jpg|jpeg|png|gif)$/,
-        })
-        .addMaxSizeValidator({
-          maxSize: 100000,
-        })
-        .build({
-          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY
-        })
-    ) file: Express.Multer.File
-  ): Promise<AppUser> {
-    return this.usersService.setAvatar(req.user.id, `/api/users/${file.path}`);
-  }
+  //#region Get Avatar
 
   @ApiOperation({summary: "Get the avatar using fileId"})
   @ApiCookieAuth()
