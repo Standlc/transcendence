@@ -44,16 +44,21 @@ export class AuthService {
    * @param id
    * @returns signed jwt
    */
-  async login(userId: number): Promise<string> {
+  async login(userId: number): Promise<{
+    jwt: string,
+    expires: Date
+  }> {
+    let date = new Date();
+    date.setDate(date.getDate() + 7);
     const payload = {
       id: userId,
-      isTwoFactorAuthenticated: false,
-      date: new Date().setDate(Date.now() + 7)
+      isTwoFactorAuthenticated: false
     };
 
-    console.log(payload.date); //todo check la date ici avec la date dans le controller
-
-    return await this.jwtService.signAsync(payload);
+    return {
+      jwt: await this.jwtService.signAsync(payload),
+      expires: date
+    }
   }
 
   /**
@@ -118,15 +123,20 @@ export class AuthService {
    * @param userId
    * @returns
    */
-  async loginWith2fa(userId: number): Promise<string> {
+  async loginWith2fa(userId: number): Promise<{
+    jwt: string,
+    expires: Date
+  }> {
+    let date = new Date();
+    date.setDate(date.getDate() + 7);
     const payload = {
       id: userId,
-      isTwoFactorAuthenticated: true,
-      date: new Date().setDate(Date.now() + 7)
+      isTwoFactorAuthenticated: true
     }
 
-    console.log(payload.date); //todo check la date ici avec celle dans le controller + tester une connexion avec un token qui aurait expiré
-
-    return await this.jwtService.signAsync(payload);
+    return {
+      jwt: await this.jwtService.signAsync(payload),
+      expires: date
+    }
   }
 }

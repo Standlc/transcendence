@@ -54,11 +54,12 @@ export class AuthController {
   async redirect(@Request() req, @Res() res: Response): Promise<string | undefined> {
     if (!req.user.id)
       throw new UnauthorizedException("Missing id from payload");
-    const token: string = await this.authService.login(req.user.id);
-    let date = new Date();
-    date.setDate(date.getDate() + 7);
-    res.cookie('token', token, {
-      expires: date,
+    const session: {
+      jwt: string,
+      expires: Date
+    } = await this.authService.login(req.user.id);
+    res.cookie('token', session.jwt, {
+      expires: session.expires,
       sameSite: 'strict',
       httpOnly: true
     });
@@ -114,11 +115,12 @@ export class AuthController {
   async loginWithPassword(@Request() req, @Res({ passthrough: true }) res: ResponseType): Promise<Partial<AppUser>> {
     if (!req.user.id)
       throw new UnauthorizedException("Missing Id from the payload");
-    const token: string = await this.authService.login(req.user.id);
-    let date = new Date();
-    date.setDate(date.getDate() + 7);
-    res.cookie('token', token, {
-      expires: date,
+    const session: {
+      jwt: string,
+      expires: Date
+    } = await this.authService.login(req.user.id);
+    res.cookie('token', session.jwt, {
+      expires: session.expires,
       sameSite: 'strict',
       httpOnly: true
     });
@@ -202,11 +204,12 @@ export class AuthController {
       throw new UnauthorizedException('Wrong authentication code');
     }
 
-    const token: string = await this.authService.loginWith2fa(req.user.id);
-    let date = new Date();
-    date.setDate(date.getDate() + 7);
-    res.cookie('token', token, {
-      expires: date,
+    const session: {
+      jwt: string,
+      expires: Date
+    } = await this.authService.login(req.user.id);
+    res.cookie('token', session.jwt, {
+      expires: session.expires,
       sameSite: 'strict',
       httpOnly: true
     });

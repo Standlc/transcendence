@@ -40,11 +40,8 @@ export class jwtStrategy extends PassportStrategy(Strategy) {
    */
   async validate(payload: {
     id: number,
-    isTwoFactorAuthenticated: boolean,
-    date: number
+    isTwoFactorAuthenticated: boolean
   }): Promise<{ id: number } | undefined> {
-    if (payload.date < Date.now())
-      throw new UnauthorizedException('Token expired');
     try {
       if (!payload.id) {
         console.warn("Someone has a valid token that doesn't contain a user id field");
