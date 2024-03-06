@@ -9,7 +9,10 @@ export interface ChannelCreationData {
 
 export type UserId = { userId: number };
 
-export type DirectMessageContent = Omit<DirectMessage, 'createdAt' | 'id'>;
+export type DirectMessageContent = Omit<
+  DirectMessage,
+  'createdAt' | 'id' | 'senderId'
+>;
 
 export type ChannelMessageContent = Omit<ChannelMessage, 'createdAt' | 'id'>;
 
@@ -67,10 +70,10 @@ export interface ConnectToChannel {
   password: string;
 }
 
-export interface ConnectToDm {
-  conversationId: number;
-  userId: number;
-}
+// export interface ConnectToDm {
+//   conversationId: number;
+//   userId: number;
+// }
 
 export interface ActionOnUser {
   userId: number;

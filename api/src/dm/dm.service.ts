@@ -99,11 +99,7 @@ export class DmService {
     }
 
     // !!! test of the global socket that will notify the user about the new conversation
-    this.liveChatSocket.handleNewConversation({
-      id: 1, // !!! modify
-      user1: userId,
-      user2: user2,
-    });
+    this.liveChatSocket.handleNewConversation(userId, user2);
     return `Conversation of user ${userId} and user ${user2} created`;
   }
 
@@ -326,14 +322,17 @@ export class DmService {
   //
   //
   //
-  async createDirectMessage(directMessage: DirectMessageContent) {
+  async createDirectMessage(
+    directMessage: DirectMessageContent,
+    senderId: number,
+  ) {
     try {
       await db
         .insertInto('directMessage')
         .values({
           content: directMessage.content,
           conversationId: directMessage.conversationId,
-          senderId: directMessage.senderId,
+          senderId: senderId,
         })
         .execute();
       console.log(`Message sent to ${directMessage.conversationId}`);
