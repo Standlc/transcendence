@@ -44,13 +44,21 @@ export class AuthService {
    * @param id
    * @returns signed jwt
    */
-  async login(userId: number): Promise<string> {
+  async login(userId: number): Promise<{
+    jwt: string,
+    expires: Date
+  }> {
+    let date = new Date();
+    date.setDate(date.getDate() + 7);
     const payload = {
       id: userId,
-      isTwoFactorAuthenticated: false,
+      isTwoFactorAuthenticated: false
     };
 
-    return await this.jwtService.signAsync(payload);
+    return {
+      jwt: await this.jwtService.signAsync(payload),
+      expires: date
+    }
   }
 
   /**
@@ -115,12 +123,20 @@ export class AuthService {
    * @param userId
    * @returns
    */
-  async loginWith2fa(userId: number): Promise<string> {
+  async loginWith2fa(userId: number): Promise<{
+    jwt: string,
+    expires: Date
+  }> {
+    let date = new Date();
+    date.setDate(date.getDate() + 7);
     const payload = {
       id: userId,
-      isTwoFactorAuthenticated: true,
+      isTwoFactorAuthenticated: true
     }
 
-    return await this.jwtService.signAsync(payload);
+    return {
+      jwt: await this.jwtService.signAsync(payload),
+      expires: date
+    }
   }
 }

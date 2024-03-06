@@ -13,6 +13,8 @@ import { FriendsModule } from './friends/friends.module';
 import { ChannelModule } from './channel/channel.module';
 import { DmModule } from './dm/dm.module';
 import { AchievementsModule } from './achievements/Achievements.module';
+import { BlockedUserModule } from './blocked-user/blocked-user.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { AchievementsModule } from './achievements/Achievements.module';
     ChannelModule,
     DmModule,
     AchievementsModule,
+    BlockedUserModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService, FriendsService],

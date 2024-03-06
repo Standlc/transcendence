@@ -28,7 +28,7 @@ export class Jwt2faStrategy extends PassportStrategy(Strategy, 'jwt-2fa') {
 
   async validate(payload: {
     id: number,
-    isTwoFactorAuthenticated: boolean,
+    isTwoFactorAuthenticated: boolean
   }): Promise<{ id: number } | undefined> {
     try {
       if (!payload.id) {
