@@ -30,31 +30,15 @@ export const Login = () => {
         },
     });
 
-    // const checkCookie = async () => {
-    //     try {
-    //         const response = await fetch("http://localhost:3000/api/auth/token");
-    //         if (response.ok) {
-    //             const data = await response.json();
-    //             login(data);
-    //             navigate("/home"); // Redirect to the root route or dashboard
-    //         } else {
-    //             console.error("Failed to fetch data:", response.status);
-    //             // No action needed here if not authenticated, as the user is already on the login page
-    //         }
-    //     } catch (error) {
-    //         console.error("Error fetching data:", error);
-    //     }
-    // };
 
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         logUser.mutate({ username, password });
-        // navigate("/home");
     };
 
     return (
         <div
-            className="bg-discord-light-black min-h-screen 
+            className="bg-discord-light-black min-h-screen
 		w-full flex items-center justify-center"
         >
             <div className="flex bg-discord-dark-grey p-8 rounded-l">
@@ -79,7 +63,7 @@ export const Login = () => {
                             required
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            className="bg-discord-light-black text-white 
+                            className="bg-discord-light-black text-white
                                 text-sm rounded-l login-container h-10 px-2.5"
                             placeholder=""
                         />
@@ -98,7 +82,7 @@ export const Login = () => {
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="bg-discord-light-black text-white text-sm 
+                            className="bg-discord-light-black text-white text-sm
                                 rounded-l block login-container h-10 px-2.5"
                             placeholder=""
                         />

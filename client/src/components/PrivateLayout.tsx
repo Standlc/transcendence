@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import { UserContext } from "../ContextsProviders/UserContext";
 import { SocketsContext } from "../ContextsProviders/SocketsContext";
 import { ErrorContext } from "../ContextsProviders/ErrorContext";
@@ -11,12 +11,17 @@ import { useGameSocket } from "../utils/useGameSocket";
 import { GameRequestModal } from "./GameRequestModal";
 import { GameInvitationModal } from "./GameInvitationsModal";
 import { AppUser } from "@api/types/clientSchema";
+import { NavBar } from "./Navbar/Navbar";
 
 interface PrivateLayoutProps {
-    user: AppUser;
+    user: AppUser  | undefined;
 }
 
 export default function PrivateLayout({ user }: PrivateLayoutProps) {
+    if (!user) {
+        return <Navigate to="/login"/>
+    }
+
     const { error, addError, removeCurrentError } = useErrorQueue();
     const { gameSocket, gameSocketOn, gameSocketOff } = useGameSocket(addError);
     const { usersStatusSocket, addHandler, removeHandler } =
@@ -48,7 +53,8 @@ export default function PrivateLayout({ user }: PrivateLayoutProps) {
                     <GameSettingsContext.Provider
                         value={{ gameSettings, upadteGameSetting }}
                     >
-                        <div className="min-h-[100vh] w-full h-full">
+                        <div className="flex min-h-[100vh] w-full h-full">
+                            <NavBar />
                             {error && <ErrorModal />}
                             <GameRequestModal />
                             <GameInvitationModal />
