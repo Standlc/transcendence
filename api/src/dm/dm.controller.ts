@@ -59,8 +59,8 @@ export class DmController {
   })
   @ApiUnauthorizedResponse({ description: 'User 1 blocked user 2' })
   @Post()
-  createConveration(@Body() userId: UserId, @Request() req): Promise<string> {
-    return this.dmService.createConversation(userId.userId, req.user.id);
+  async createConveration(@Body() userId: UserId, @Request() req): Promise<string> {
+    return await this.dmService.createConversation(userId.userId, req.user.id);
   }
 
   //
@@ -114,10 +114,10 @@ export class DmController {
   @ApiNotFoundResponse({ description: 'No conversations found for this user' })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @Get()
-  getAllConversationsOfTheUser(
+  async getAllConversationsOfTheUser(
     @Request() req,
   ): Promise<AllConversationsPromise[]> {
-    return this.dmService.getAllConversationsOfTheUser(req.user.id);
+    return await this.dmService.getAllConversationsOfTheUser(req.user.id);
   }
 
   //
@@ -129,8 +129,11 @@ export class DmController {
   @ApiNotFoundResponse({ description: 'Conversation not found' })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @Get('findDmId/:userId')
-  findDmId(@Param('userId') userId: number, @Request() req): Promise<number> {
-    return this.dmService.findDmId(userId, req.user.id);
+  async findDmId(
+    @Param('userId') userId: number,
+    @Request() req,
+  ): Promise<number> {
+    return await this.dmService.findDmId(userId, req.user.id);
   }
 
   //
@@ -160,11 +163,11 @@ export class DmController {
   @ApiNotFoundResponse({ description: 'Conversation not found' })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @Get(':id')
-  getConversation(
+  async getConversation(
     @Param('id') id: string,
     @Request() req,
   ): Promise<ConversationPromise> {
-    return this.dmService.getConversation(Number(id), req.user.id);
+    return await this.dmService.getConversation(Number(id), req.user.id);
   }
 
   //
@@ -211,11 +214,14 @@ export class DmController {
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @Get(':id/messages')
-  getConversationMessages(
+  async getConversationMessages(
     @Param('id') id: string,
     @Request() req,
   ): Promise<DmWithSenderInfo[]> {
-    return this.dmService.getConversationMessages(Number(id), req.user.id);
+    return await this.dmService.getConversationMessages(
+      Number(id),
+      req.user.id,
+    );
   }
 
   //
@@ -227,7 +233,10 @@ export class DmController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @ApiNotFoundResponse({ description: 'Conversation not found' })
   @Delete(':id')
-  deleteConversation(@Param('id') id: string, @Request() req): Promise<string> {
-    return this.dmService.deleteConversation(Number(id), req.user.id);
+  async deleteConversation(
+    @Param('id') id: string,
+    @Request() req,
+  ): Promise<string> {
+    return await this.dmService.deleteConversation(Number(id), req.user.id);
   }
 }

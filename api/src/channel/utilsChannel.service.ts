@@ -135,12 +135,7 @@ export class Utils {
   //
   // !!! tested
   dataCanBeUpdated(channel: ChannelUpdate): void {
-    if (
-      !channel.isPublic &&
-      !channel.name &&
-      !channel.password &&
-      !channel.photoUrl
-    ) {
+    if (!channel.isPublic && !channel.name && !channel.password) {
       throw new UnprocessableEntityException('No data to update');
     }
 
@@ -157,12 +152,6 @@ export class Utils {
       throw new UnprocessableEntityException(
         'Invalid channel name length (1-49)',
       );
-    }
-
-    try {
-      this.verifyLength(channel.photoUrl);
-    } catch (error) {
-      throw new UnprocessableEntityException('Invalid photoUrl length (1-49)');
     }
   }
 
@@ -319,14 +308,14 @@ export class Utils {
   //
   //
   //
-  async userIsMuted(channelMessage: ChannelMessageContent): Promise<void> {
+  async userIsMuted(senderId: number, channelId: number): Promise<void> {
     let mutedUser: { userId: number; mutedEnd: Date }[];
     try {
       mutedUser = await db
         .selectFrom('mutedUser')
         .select(['userId', 'channelId', 'mutedEnd'])
-        .where('channelId', '=', channelMessage.channelId)
-        .where('userId', '=', channelMessage.senderId)
+        .where('channelId', '=', channelId)
+        .where('userId', '=', senderId)
         .where('mutedEnd', '>', new Date())
         .execute();
 

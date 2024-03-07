@@ -14,7 +14,10 @@ export type DirectMessageContent = Omit<
   'createdAt' | 'id' | 'senderId'
 >;
 
-export type ChannelMessageContent = Omit<ChannelMessage, 'createdAt' | 'id'>;
+export type ChannelMessageContent = Omit<
+  ChannelMessage,
+  'createdAt' | 'id' | 'senderId'
+>;
 
 export interface ChannelDataWithoutPassword {
   channelOwner: number;
@@ -66,31 +69,18 @@ export interface DmWithSenderInfo {
 
 export interface ConnectToChannel {
   channelId: number;
-  userId: number;
   password: string;
 }
 
-// export interface ConnectToDm {
-//   conversationId: number;
-//   userId: number;
-// }
-
 export interface ActionOnUser {
-  userId: number;
   targetUserId: number;
   channelId: number;
 }
 
 export interface MuteUser {
-  userId: number;
   targetUserId: number;
   channelId: number;
   muteEnd: Date | null;
-}
-
-export interface BlockUser {
-  userId: number;
-  targetUserId: number;
 }
 
 export interface ConversationPromise {
@@ -113,11 +103,6 @@ export interface AllConversationsPromise {
     avatarUrl: string;
     username: string;
   };
-}
-
-export interface QuitChannel {
-  channelId: number;
-  userId: number;
 }
 
 export interface ChannelUpdate {

@@ -99,12 +99,12 @@ export class UserController {
   })
   @ApiUnauthorizedResponse({ description: 'User is banned' })
   @Get(':channelId/messages')
-  getMessages(
+  async getMessages(
     @Param('channelId') channelId: number,
     @Request() req,
   ): Promise<MessageWithSenderInfo[]> {
     console.log('GET: Recieved channelId:', channelId);
-    return this.channelService.getChannelMessages(req.user.id, channelId);
+    return await this.channelService.getChannelMessages(req.user.id, channelId);
   }
 
   //
@@ -159,7 +159,7 @@ export class UserController {
     @Request() req,
   ): Promise<ChannelDataWithoutPassword[]> {
     console.log('GET: Recieved all channels of the user: ', req.user.id);
-    return this.channelService.getAllChannelsOfTheUser(req.user.id);
+    return await this.channelService.getAllChannelsOfTheUser(req.user.id);
   }
 
   //
@@ -225,12 +225,12 @@ export class UserController {
       Password can only contain letters, numbers, and special characters !@#$%^&*',
   })
   @Post()
-  createChannel(
+  async createChannel(
     @Body() channel: ChannelCreationData,
     @Request() req,
   ): Promise<ChannelDataWithoutPassword> {
     console.log('POST: Recieved name:', channel.name);
-    return this.channelService.createChannel(channel, req.user.id);
+    return await this.channelService.createChannel(channel, req.user.id);
   }
 
   //
@@ -269,7 +269,7 @@ export class UserController {
     @Param('channelId') channelId: number,
   ): Promise<ChannelDataWithoutPassword> {
     console.log('GET: Recieved channelId:', channelId);
-    return this.channelService.getChannel(channelId);
+    return await this.channelService.getChannel(channelId);
   }
 
   //
@@ -320,13 +320,13 @@ export class UserController {
       | Only the owner can change the channel password',
   })
   @Put(':channelId')
-  updateChannel(
+  async updateChannel(
     @Param('channelId') channelId: number,
     @Body() channel: ChannelUpdate,
     @Request() req,
   ): Promise<string> {
     console.log('PUT: Recieved id:', channelId);
-    return this.channelService.updateChannel(channelId, channel, req.user.id);
+    return await this.channelService.updateChannel(channelId, channel, req.user.id);
   }
 
   //
@@ -345,8 +345,18 @@ export class UserController {
     description: 'Only the owner can delete this channel',
   })
   @Delete(':channelId')
-  deleteChannel(@Param('channelId') channelId: number, @Request() req) {
+  async deleteChannel(@Param('channelId') channelId: number, @Request() req) {
     console.log('DELETE: Received channelId:', channelId);
-    return this.channelService.deleteChannel(channelId, req.user.id);
+    return await this.channelService.deleteChannel(channelId, req.user.id);
+  }
+
+  //
+  //
+  //
+  @ApiOperation({ summary: 'Get all available channels' })
+  @Get('availableChannels')
+  async getAllAvailableChannels() {
+    console.log('GET: Recieved all available channels');
+    // return await this.channelService.getAllAvailableChannels();
   }
 }

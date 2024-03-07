@@ -449,4 +449,13 @@ export class ChannelService {
       throw new InternalServerErrorException();
     }
   }
+
+  //
+  //
+  //
+  // !!! to test
+  // channels the user did not join yet that are either public
+  // //                  or privte and user is in the invite list
+  // async getAvailableChannels(userId: number): Promise<void> {
+  // }
 }

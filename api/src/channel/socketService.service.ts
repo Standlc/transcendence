@@ -5,13 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { db } from 'src/database';
-import {
-  ActionOnUser,
-  BlockUser,
-  ChannelMessageContent,
-  MuteUser,
-  QuitChannel,
-} from 'src/types/channelsSchema';
+import { ActionOnUser, MuteUser } from 'src/types/channelsSchema';
 import * as bcrypt from 'bcrypt';
 import { Utils } from './utilsChannel.service';
 import { ChannelService } from './channel.service';
@@ -24,18 +18,23 @@ export class SocketService {
     private readonly channelService: ChannelService,
     private readonly friendsService: FriendsService,
   ) {}
+
   //
   //
   //
-  async createMessage(message: ChannelMessageContent): Promise<void> {
+  async createMessage(
+    channelId: number,
+    content: string | null,
+    senderId: number,
+  ): Promise<void> {
     try {
       console.log('createMessage');
       await db
         .insertInto('channelMessage')
         .values({
-          channelId: message.channelId,
-          content: message.content,
-          senderId: message.senderId,
+          channelId: channelId,
+          content: content,
+          senderId: senderId,
         })
         .executeTakeFirstOrThrow();
 
@@ -45,41 +44,39 @@ export class SocketService {
       throw new InternalServerErrorException();
     }
   }
+
   //
   //
   //
-  async banUser(payload: ActionOnUser): Promise<void> {
+  async banUser(
+    userId: number,
+    channelId: number,
+    targetUserId: number,
+  ): Promise<void> {
     if (
+      (await this.utilsChannelService.isChannelMember(userId, channelId)) ===
+        false ||
       (await this.utilsChannelService.isChannelMember(
-        payload.userId,
-        payload.channelId,
-      )) === false ||
-      (await this.utilsChannelService.isChannelMember(
-        payload.targetUserId,
-        payload.channelId,
+        targetUserId,
+        channelId,
       )) === false
     ) {
       return;
     }
 
-    if (payload.targetUserId === payload.userId) {
+    if (targetUserId == userId) {
       throw new UnauthorizedException('User cannot ban itself');
     }
 
     try {
-      await this.utilsChannelService.userIsAdmin(
-        payload.userId,
-        payload.channelId,
-      );
+      await this.utilsChannelService.userIsAdmin(userId, channelId);
     } catch {
       throw new UnauthorizedException('User is not an admin');
     }
 
     if (
-      (await this.utilsChannelService.userIsOwner(
-        payload.targetUserId,
-        payload.channelId,
-      )) === true
+      (await this.utilsChannelService.userIsOwner(targetUserId, channelId)) ===
+      true
     )
       throw new UnauthorizedException('User cannot ban the channel owner');
 
@@ -87,9 +84,9 @@ export class SocketService {
       await db
         .insertInto('bannedUser')
         .values({
-          bannedById: payload.userId,
-          bannedId: payload.targetUserId,
-          channelId: payload.channelId,
+          bannedById: userId,
+          bannedId: targetUserId,
+          channelId: channelId,
         })
         .execute();
     } catch (error) {
@@ -101,46 +98,43 @@ export class SocketService {
   //
   //
   // !!! tested
-  async unbanUser(payload: ActionOnUser): Promise<void> {
+  async unbanUser(
+    userId: number,
+    channelId: number,
+    targetUserId: number,
+  ): Promise<void> {
     if (
+      (await this.utilsChannelService.isChannelMember(userId, channelId)) ===
+        false ||
       (await this.utilsChannelService.isChannelMember(
-        payload.userId,
-        payload.channelId,
-      )) === false ||
-      (await this.utilsChannelService.isChannelMember(
-        payload.targetUserId,
-        payload.channelId,
+        targetUserId,
+        channelId,
       )) === false
     ) {
       return;
     }
 
-    if (payload.targetUserId === payload.userId) {
+    if (targetUserId === userId) {
       throw new UnauthorizedException('User cannot unban itself');
     }
 
     try {
-      await this.utilsChannelService.userIsAdmin(
-        payload.userId,
-        payload.channelId,
-      );
+      await this.utilsChannelService.userIsAdmin(userId, channelId);
     } catch {
       throw new UnauthorizedException('User is not an admin');
     }
 
     if (
-      (await this.utilsChannelService.userIsOwner(
-        payload.targetUserId,
-        payload.channelId,
-      )) === true
+      (await this.utilsChannelService.userIsOwner(targetUserId, channelId)) ===
+      true
     )
       throw new UnauthorizedException('User cannot unban the channel owner');
 
     try {
       await db
         .deleteFrom('bannedUser')
-        .where('bannedId', '=', payload.targetUserId)
-        .where('channelId', '=', payload.channelId)
+        .where('bannedId', '=', targetUserId)
+        .where('channelId', '=', channelId)
         .execute();
     } catch (error) {
       throw new InternalServerErrorException();
@@ -151,10 +145,10 @@ export class SocketService {
   //
   //
   // !!! tested
-  async muteUser(payload: MuteUser): Promise<void> {
+  async muteUser(userId: number, payload: MuteUser): Promise<void> {
     if (
       (await this.utilsChannelService.isChannelMember(
-        payload.userId,
+        userId,
         payload.channelId,
       )) === false ||
       (await this.utilsChannelService.isChannelMember(
@@ -165,15 +159,12 @@ export class SocketService {
       return;
     }
 
-    if (payload.targetUserId === payload.userId) {
+    if (payload.targetUserId === userId) {
       throw new UnauthorizedException('User cannot mute itself');
     }
 
     try {
-      await this.utilsChannelService.userIsAdmin(
-        payload.userId,
-        payload.channelId,
-      );
+      await this.utilsChannelService.userIsAdmin(userId, payload.channelId);
     } catch {
       throw new UnauthorizedException('User is not an admin');
     }
@@ -236,10 +227,10 @@ export class SocketService {
   //
   //
   //
-  async unmuteUser(payload: ActionOnUser): Promise<void> {
+  async unmuteUser(userId: number, payload: ActionOnUser): Promise<void> {
     if (
       (await this.utilsChannelService.isChannelMember(
-        payload.userId,
+        userId,
         payload.channelId,
       )) === false ||
       (await this.utilsChannelService.isChannelMember(
@@ -250,15 +241,12 @@ export class SocketService {
       return;
     }
 
-    if (payload.targetUserId === payload.userId) {
+    if (payload.targetUserId === userId) {
       throw new UnauthorizedException('User cannot unmute itself');
     }
 
     try {
-      await this.utilsChannelService.userIsAdmin(
-        payload.userId,
-        payload.channelId,
-      );
+      await this.utilsChannelService.userIsAdmin(userId, payload.channelId);
     } catch {
       throw new UnauthorizedException('User is not an admin');
     }
@@ -286,15 +274,15 @@ export class SocketService {
   //
   //
   // !!! tested
-  async blockUser(payload: BlockUser): Promise<void> {
-    if (payload.targetUserId === payload.userId) {
+  async blockUser(userId: number, targetUserId: number): Promise<void> {
+    if (targetUserId === userId) {
       console.log('User cannot block itself');
       return;
     }
 
     try {
-      await this.utilsChannelService.userExists(payload.userId);
-      await this.utilsChannelService.userExists(payload.targetUserId);
+      await this.utilsChannelService.userExists(userId);
+      await this.utilsChannelService.userExists(targetUserId);
     } catch (error) {
       console.log('User do not exist');
       return;
@@ -303,27 +291,23 @@ export class SocketService {
     try {
       const isAlreadyBlocked = await db
         .selectFrom('blockedUser')
-        .where('blockedById', '=', payload.userId)
-        .where('blockedId', '=', payload.targetUserId)
+        .where('blockedById', '=', userId)
+        .where('blockedId', '=', targetUserId)
         .executeTakeFirst();
 
       if (isAlreadyBlocked) {
-        console.log(
-          `User ${payload.userId} already blocked user ${payload.targetUserId}`,
-        );
+        console.log(`User ${userId} already blocked user ${targetUserId}`);
         return;
       }
 
       await db
         .insertInto('blockedUser')
         .values({
-          blockedById: payload.userId,
-          blockedId: payload.targetUserId,
+          blockedById: userId,
+          blockedId: targetUserId,
         })
         .execute();
-      console.log(
-        `User ${payload.userId} blocked user ${payload.targetUserId}`,
-      );
+      console.log(`User ${userId} blocked user ${targetUserId}`);
     } catch (error) {
       throw new InternalServerErrorException();
     }
@@ -332,15 +316,15 @@ export class SocketService {
   //
   //
   //
-  async unblockUser(payload: BlockUser): Promise<void> {
-    if (payload.targetUserId === payload.userId) {
+  async unblockUser(userId: number, targetUserId: number): Promise<void> {
+    if (targetUserId === userId) {
       console.log('User cannot unblock itself');
       return;
     }
 
     try {
-      await this.utilsChannelService.userExists(payload.userId);
-      await this.utilsChannelService.userExists(payload.targetUserId);
+      await this.utilsChannelService.userExists(userId);
+      await this.utilsChannelService.userExists(targetUserId);
     } catch (error) {
       console.log('User do not exist');
       return;
@@ -349,12 +333,10 @@ export class SocketService {
     try {
       await db
         .deleteFrom('blockedUser')
-        .where('blockedById', '=', payload.userId)
-        .where('blockedId', '=', payload.targetUserId)
+        .where('blockedById', '=', userId)
+        .where('blockedId', '=', targetUserId)
         .execute();
-      console.log(
-        `User ${payload.userId} unblocked user ${payload.targetUserId}`,
-      );
+      console.log(`User ${userId} unblocked user ${targetUserId}`);
     } catch (error) {
       throw new InternalServerErrorException();
     }
@@ -364,35 +346,32 @@ export class SocketService {
   //
   //
   // !!! tested
-  async addAdministrator(payload: ActionOnUser): Promise<void> {
+  async addAdministrator(
+    userId: number,
+    channelId: number,
+    targetUserId: number,
+  ): Promise<void> {
     if (
+      (await this.utilsChannelService.isChannelMember(userId, channelId)) ===
+        false ||
       (await this.utilsChannelService.isChannelMember(
-        payload.userId,
-        payload.channelId,
-      )) === false ||
-      (await this.utilsChannelService.isChannelMember(
-        payload.targetUserId,
-        payload.channelId,
+        targetUserId,
+        channelId,
       )) === false
     ) {
       return;
     }
 
     if (
-      (await this.utilsChannelService.userIsAdmin(
-        payload.userId,
-        payload.channelId,
-      )) === false
+      (await this.utilsChannelService.userIsAdmin(userId, channelId)) === false
     ) {
       console.log('User is not an admin');
       return;
     }
 
     if (
-      (await this.utilsChannelService.userIsAdmin(
-        payload.targetUserId,
-        payload.channelId,
-      )) === true
+      (await this.utilsChannelService.userIsAdmin(targetUserId, channelId)) ===
+      true
     ) {
       console.log('User is already an admin');
       return;
@@ -402,13 +381,11 @@ export class SocketService {
       await db
         .insertInto('channelAdmin')
         .values({
-          channelId: payload.channelId,
-          userId: payload.targetUserId,
+          channelId: channelId,
+          userId: targetUserId,
         })
         .execute();
-      console.log(
-        `Admin ${payload.userId} promoted user ${payload.targetUserId} to admin`,
-      );
+      console.log(`Admin ${userId} promoted user ${targetUserId} to admin`);
     } catch (error) {
       throw new InternalServerErrorException();
     }
@@ -418,59 +395,54 @@ export class SocketService {
   //
   //
   // !!! tested
-  async removeAdministrator(payload: ActionOnUser): Promise<void> {
+  async removeAdministrator(
+    userId: number,
+    channelId: number,
+    targetUserId: number,
+  ): Promise<void> {
     if (
+      (await this.utilsChannelService.isChannelMember(userId, channelId)) ===
+        false ||
       (await this.utilsChannelService.isChannelMember(
-        payload.userId,
-        payload.channelId,
-      )) === false ||
-      (await this.utilsChannelService.isChannelMember(
-        payload.targetUserId,
-        payload.channelId,
+        targetUserId,
+        channelId,
       )) === false
     ) {
       return;
     }
 
     if (
-      (await this.utilsChannelService.userIsAdmin(
-        payload.userId,
-        payload.channelId,
-      )) === false
+      (await this.utilsChannelService.userIsAdmin(userId, channelId)) === false
     ) {
       console.log('User is not an admin');
       return;
     }
 
     if (
-      (await this.utilsChannelService.userIsAdmin(
-        payload.targetUserId,
-        payload.channelId,
-      )) === false
+      (await this.utilsChannelService.userIsAdmin(targetUserId, channelId)) ===
+      false
     ) {
       console.log('Target user is not an admin');
       return;
     }
 
     if (
-      (await this.utilsChannelService.userIsOwner(
-        payload.targetUserId,
-        payload.channelId,
-      )) === true
+      (await this.utilsChannelService.userIsOwner(targetUserId, channelId)) ===
+      true
     ) {
       console.log(
-        `User ${payload.userId} cannot remove channel owner admin priviledges`,
+        `User ${userId} cannot remove channel owner admin priviledges`,
       );
     }
 
     try {
       await db
         .deleteFrom('channelAdmin')
-        .where('userId', '=', payload.targetUserId)
-        .where('channelId', '=', payload.channelId)
+        .where('userId', '=', targetUserId)
+        .where('channelId', '=', channelId)
         .execute();
       console.log(
-        `Admin ${payload.userId} removed user's ${payload.targetUserId} admin priviledges`,
+        `Admin ${userId} removed user's ${targetUserId} admin priviledges`,
       );
     } catch (error) {
       throw new InternalServerErrorException();
@@ -481,15 +453,12 @@ export class SocketService {
   //
   //
   // !!! tested
-  async quitChannel(payload: QuitChannel): Promise<void> {
+  async quitChannel(userId: number, channelId: number): Promise<void> {
     if (
-      (await this.utilsChannelService.userIsOwner(
-        payload.userId,
-        payload.channelId,
-      )) === true
+      (await this.utilsChannelService.userIsOwner(userId, channelId)) === true
     ) {
       try {
-        this.quitChannelAsOwner(payload);
+        this.quitChannelAsOwner(userId, channelId);
       } catch (error) {
         console.log(error);
       }
@@ -497,20 +466,17 @@ export class SocketService {
     }
 
     if (
-      (await this.utilsChannelService.userIsAdmin(
-        payload.userId,
-        payload.channelId,
-      )) === true
+      (await this.utilsChannelService.userIsAdmin(userId, channelId)) === true
     ) {
       try {
-        await this.deleteFromChannelAdmin(payload.userId, payload.channelId);
+        await this.deleteFromChannelAdmin(userId, channelId);
       } catch (error) {
         console.log(error);
       }
     }
 
     try {
-      await this.deleteFromChannelMember(payload.userId, payload.channelId);
+      await this.deleteFromChannelMember(userId, channelId);
     } catch (error) {
       console.log(error);
     }
@@ -678,24 +644,21 @@ export class SocketService {
   //
   //
   // !!! tested
-  async quitChannelAsOwner(payload: QuitChannel): Promise<void> {
-    if ((await this.isOnlyOneMember(payload.channelId)) === true) {
+  async quitChannelAsOwner(userId: number, channelId: number): Promise<void> {
+    if ((await this.isOnlyOneMember(channelId)) === true) {
       console.log('Is only one member');
-      await this.channelService.deleteChannel(
-        payload.channelId,
-        payload.userId,
-      );
+      await this.channelService.deleteChannel(channelId, userId);
       console.log('Quit channel as owner = done');
       return;
     }
     console.log('User not alone in channel');
 
     //if has other admins, set the first admin as the new owner
-    if ((await this.hasAdmins(payload.channelId)) === true) {
+    if ((await this.hasAdmins(channelId)) === true) {
       try {
-        await this.setFirstAdminAsOwner(payload.userId, payload.channelId);
-        await this.deleteFromChannelAdmin(payload.userId, payload.channelId);
-        await this.deleteFromChannelMember(payload.userId, payload.channelId);
+        await this.setFirstAdminAsOwner(userId, channelId);
+        await this.deleteFromChannelAdmin(userId, channelId);
+        await this.deleteFromChannelMember(userId, channelId);
       } catch (error) {
         console.log(error);
       }
@@ -706,13 +669,10 @@ export class SocketService {
 
     //if there is no admins, set the first member as the new owner
     try {
-      const newOwnerId = await this.setFirstMemberAsOwner(
-        payload.userId,
-        payload.channelId,
-      );
-      await this.deleteFromChannelAdmin(payload.userId, payload.channelId);
-      await this.deleteFromChannelMember(payload.userId, payload.channelId);
-      await this.addNewAdmin(newOwnerId, payload.channelId);
+      const newOwnerId = await this.setFirstMemberAsOwner(userId, channelId);
+      await this.deleteFromChannelAdmin(userId, channelId);
+      await this.deleteFromChannelMember(userId, channelId);
+      await this.addNewAdmin(newOwnerId, channelId);
     } catch (error) {
       console.log(error);
     }
@@ -777,25 +737,24 @@ export class SocketService {
   //
   //
   //
-  async kickUser(payload: ActionOnUser): Promise<void> {
-    if (payload.targetUserId === payload.userId) {
+  async kickUser(
+    userId: number,
+    channelId: number,
+    targetUserId: number,
+  ): Promise<void> {
+    if (targetUserId === userId) {
       throw new UnauthorizedException('User cannot kick itself');
     }
 
     try {
-      await this.utilsChannelService.userIsAdmin(
-        payload.userId,
-        payload.channelId,
-      );
+      await this.utilsChannelService.userIsAdmin(userId, channelId);
     } catch {
       throw new UnauthorizedException('User is not an admin');
     }
 
     if (
-      (await this.utilsChannelService.userIsOwner(
-        payload.targetUserId,
-        payload.channelId,
-      )) === true
+      (await this.utilsChannelService.userIsOwner(targetUserId, channelId)) ===
+      true
     )
       throw new UnauthorizedException('User cannot kick the channel owner');
   }
@@ -804,18 +763,18 @@ export class SocketService {
   //
   //
   // !!! tested
-  async invitedListVerification(payload: ActionOnUser): Promise<void> {
+  async invitedListVerification(
+    userId: number,
+    channelId: number,
+  ): Promise<void> {
     try {
-      await this.utilsChannelService.channelExists(payload.channelId);
+      await this.utilsChannelService.channelExists(channelId);
     } catch (error) {
       throw error;
     }
 
     if (
-      (await this.utilsChannelService.userIsOwner(
-        payload.userId,
-        payload.channelId,
-      )) == false
+      (await this.utilsChannelService.userIsOwner(userId, channelId)) == false
     ) {
       throw new UnauthorizedException('User is not the owner');
     }
@@ -825,19 +784,18 @@ export class SocketService {
   //
   //
   // !!! tested
-  async addToInviteList(payload: ActionOnUser): Promise<void> {
+  async addToInviteList(
+    userId: number,
+    channelId: number,
+    targetUserId: number,
+  ): Promise<void> {
     try {
-      await this.invitedListVerification(payload);
+      await this.invitedListVerification(userId, channelId);
     } catch (error) {
       throw error;
     }
 
-    if (
-      (await this.friendsService.isFriend(
-        payload.userId,
-        payload.targetUserId,
-      )) == false
-    ) {
+    if ((await this.friendsService.isFriend(userId, targetUserId)) == false) {
       throw new UnauthorizedException(
         'Users are not friends, impossible to invite to a private or protected channel',
       );
@@ -847,9 +805,9 @@ export class SocketService {
       await db
         .insertInto('channelInviteList')
         .values({
-          invitedUserId: payload.targetUserId,
-          invitedByUserId: payload.userId,
-          channelId: payload.channelId,
+          invitedUserId: targetUserId,
+          invitedByUserId: userId,
+          channelId: channelId,
         })
         .execute();
     } catch (error) {
@@ -861,9 +819,13 @@ export class SocketService {
   //
   //
   // !!! tested
-  async removeFromInviteList(payload: ActionOnUser): Promise<void> {
+  async removeFromInviteList(
+    userId: number,
+    channelId: number,
+    targetUserId: number,
+  ): Promise<void> {
     try {
-      await this.invitedListVerification(payload);
+      await this.invitedListVerification(userId, channelId);
     } catch (error) {
       throw error;
     }
@@ -871,9 +833,9 @@ export class SocketService {
     try {
       await db
         .deleteFrom('channelInviteList')
-        .where('invitedUserId', '=', payload.targetUserId)
-        .where('invitedByUserId', '=', payload.userId)
-        .where('channelId', '=', payload.channelId)
+        .where('invitedUserId', '=', targetUserId)
+        .where('invitedByUserId', '=', userId)
+        .where('channelId', '=', channelId)
         .execute();
     } catch (error) {
       throw new InternalServerErrorException();
