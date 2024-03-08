@@ -1,12 +1,12 @@
 import { Link, useNavigate } from "react-router-dom";
-import defaultAvatar from "./defaultAvatar.png";
+import defaultAvatar from "./../defaultAvatar.png";
 import React, { useEffect, useState } from "react";
 import { Settings } from "@mui/icons-material";
-import { Avatar } from "../UIKit/avatar/Avatar";
 import { Collapsible } from "./Collapsible";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useGetUser } from "../../utils/useGetUser";
+import { Avatar } from "../../UIKit/avatar/Avatar";
 
 interface Conversation {
     createdAt: string;

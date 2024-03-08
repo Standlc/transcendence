@@ -1,11 +1,11 @@
-import { Outlet } from "react-router-dom"
-import { ChanColumn } from "./ChanColumn"
+import { Outlet } from "react-router-dom";
+import { ChanColumn } from "./ChanColumn/ChanColumn";
 
 export const ChannelsLayout = () => {
-	return (
-		<div className="flex">
-			<ChanColumn />
-			<Outlet />
-		</div>
-	)
-}
+    return (
+        <div className="flex">
+            <ChanColumn />
+            <Outlet />
+        </div>
+    );
+};
