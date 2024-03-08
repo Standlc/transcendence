@@ -19,7 +19,6 @@ export default {
         'greyple': '#99AAB5',
         'dark-but-not-black': '#2C2F33',
         'not-quite-black': '#2B2D31',
-        // 'green': '#248147',        
         'discord-yellow': '#FEE75C',
         'discord-fuchsia': '#EB459E',
         'discord-red': '#ED4245',

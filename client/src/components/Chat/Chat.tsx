@@ -3,20 +3,8 @@ import io from "socket.io-client";
 import { Timestamp } from "../../../../api/src/types/schema";
 import defaultAvatar from "./../../components/defaultAvatar.png";
 import { Avatar } from "../../UIKit/avatar/Avatar";
-import { NotificationBox } from "../NotificationBox";
-import { AppUser } from "@api/types/clientSchema";
-import { useNavigate } from "react-router-dom";
-
-interface Props {
-    loginResponse: AppUser | null;
-    SERVER_URL: string;
-    conversationID: number | null;
-    selectedFriend: {
-        id: number;
-        username: string;
-        avatarUrl: string | null;
-    } | null;
-}
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import { useParams } from "react-router-dom";
 
 {
     // TODO: Pour l'input chat
@@ -48,33 +36,20 @@ const UserPopup: React.FC<Popuser> = ({ user, onClose }: Popuser) => {
                 </div>
                 <div className="flex items-center">
                     {" "}
-                    {/* Utilisation d'un conteneur flex pour aligner les éléments */}
                     <div className="bg-green py-2 rounded-lg px-3 block mr-2">
-                        {" "}
-                        {/* Ajout de mr-2 pour l'espacement */}
                         <button>Send message</button>
                     </div>
                     <div className="relative">
                         <button onClick={toggleMenu}>
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-7 w-7 text-gray-400 hover:text-gray-600"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <circle cx="12" cy="5" r="3" />
-                                <circle cx="12" cy="12" r="3" />
-                                <circle cx="12" cy="19" r="3" />
-                            </svg>
+                            <MoreVertIcon></MoreVertIcon>
                         </button>
                         {isMenuOpen && (
-                            <div className="absolute right-0 top-8 bg-discord-black rounded-lg shadow-md border border-gray-200">
-                                <button className="block px-4 py-2 w-full text-left hover:bg-discord-light-grey">
-                                    Supprimer
+                            <div className="absolute right-0 top-8 bg-discord-black rounded-lg shadow-md border">
+                                <button className="block px-4 text-red-500 py-2 w-full text-left hover:bg-discord-light-grey font-bold">
+                                    Delete
                                 </button>
-                                <button className="block px-4 py-2 w-full text-left hover:bg-discord-light-grey">
-                                    Envoyer un message
+                                <button className="block px-4 py-2 w-full text-left hover:bg-discord-light-grey whitespace-nowrap">
+                                    Send Message
                                 </button>
                             </div>
                         )}
@@ -106,12 +81,23 @@ interface Message {
     username: string;
 }
 
-const Chat: React.FC<Props> = ({
-    loginResponse,
-    conversationID,
-    selectedFriend,
-    SERVER_URL,
-}: Props) => {
+interface UserProfile {
+    avatarUrl: string | null;
+    bio: string | null;
+    createdAt: Timestamp;
+    email: string | null;
+    firstname: string | null;
+    id: number;
+    lastname: string | null;
+    rating: number;
+    username: string | null;
+}
+
+const Chat = () => {
+    const { dmId } = useParams();
+
+    return <>Chat for {dmId}</>;
+
     const [message, setMessage] = useState("");
     const [messages, setMessages] = useState<Message[]>([]);
     const socketRef = useRef<any>(null);
@@ -119,6 +105,7 @@ const Chat: React.FC<Props> = ({
     const [friendProfile, setProfile] = useState<AppUser | null>(null);
     const navigate = useNavigate();
 
+    // TODO:Query
     const getUserProfile = async (id: number) => {
         try {
             const response = await fetch(

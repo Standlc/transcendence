@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { FriendsAdd } from "./FriendsAdd";
-import { LoginResponse } from "../components/RequireAuth/AuthProvider";
 import { FriendsInvitation } from "./FriendsInvitation";
 import { AllFriends } from "./AllFriends";
 import { AppUser } from "@api/types/clientSchema";
@@ -13,11 +12,15 @@ interface Friend {
 }
 
 interface Props {
-    loginResponse: AppUser | null;
+    loginResponse: AppUser | undefined;
     SERVER_URL: string;
 }
 
 export const Friends: React.FC<Props> = ({ loginResponse, SERVER_URL }: Props) => {
+
+    if (!loginResponse)
+        return (null);
+
     const [adding, setAdding] = useState(false);
     const [friends, setFriends] = useState<Friend[]>([]);
     const [friendsPending, setFriendsPending] = useState(false);

@@ -1,19 +1,12 @@
-import { useNavigate } from "react-router-dom";
-import defaultAvatar from "./../defaultAvatar.png";
+import { Link, useNavigate } from "react-router-dom";
+import defaultAvatar from "./defaultAvatar.png";
 import React, { useEffect, useState } from "react";
 import { Settings } from "@mui/icons-material";
-import { Avatar } from "../../UIKit/avatar/Avatar";
+import { Avatar } from "../UIKit/avatar/Avatar";
 import { Collapsible } from "./Collapsible";
-import { AppUser } from "@api/types/clientSchema";
-
-interface Props {
-    loginResponse: AppUser | null;
-    setCurrentPage: (page: string, timestamp: number) => void; // Ajouter un deuxième paramètre
-    setConversationID: (conversationID: number) => void;
-    setSelectedFriend: (
-        friend: { id: number; username: string; avatarUrl: string | null } | null
-    ) => void;
-}
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
+import { useGetUser } from "../../utils/useGetUser";
 
 interface Conversation {
     createdAt: string;
@@ -29,34 +22,32 @@ interface Conversation {
         avatarUrl: string | null;
     };
 }
-export const ChanColumn: React.FC<Props> = ({
-    loginResponse,
-    setCurrentPage,
-    setConversationID,
-    setSelectedFriend,
-}: Props) => {
+export const ChanColumn = () => {
     const navigate = useNavigate();
-    const [allConversation, setallConversation] = useState<Conversation[]>([]);
+    // const [allConversation, setallConversation] = useState<Conversation[]>([]);
     const [activeButton, setActiveButton] = useState<number | null>(null);
-
-    const handleChatClick = () => {
-        setCurrentPage("chatbox", Date.now());
-    };
+    const user = useGetUser();
+    const allDms = useQuery({
+        queryKey: ["dms"],
+        queryFn: async () => {
+            const res = await axios.get<Conversation[]>("/api/dm");
+            return res.data;
+        },
+    });
 
     const handleButtonClick = (index: number) => {
         if (index === -1) {
             handleFriendsClick();
             setActiveButton(index);
         } else {
-            const conversation = allConversation[index];
-            setConversationID(conversation.id);
-            handleChatClick();
+            // const conversation = allConversation[index];
+            // setConversationID(conversation.id);
             setActiveButton(index);
         }
     };
 
     const handleFriendsClick = () => {
-        setCurrentPage("friends", Date.now());
+        // setCurrentPage("friends", Date.now());
         setActiveButton(-1);
     };
 
@@ -64,33 +55,8 @@ export const ChanColumn: React.FC<Props> = ({
         navigate("/settings");
     };
 
-    const getAllConversation = async () => {
-        try {
-            const response = await fetch("http://localhost:3000/api/dm", {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            setallConversation(data);
-            console.log(data);
-        } catch (error) {
-            console.error("Fetching friends failed:", error);
-        }
-    };
-
-    useEffect(() => {
-        getAllConversation();
-    }, []);
-
     const whichUsername = (conv: Conversation) => {
-        if (conv.user1.userId === loginResponse?.id) {
+        if (conv.user1.userId === user?.id) {
             return conv.user2.username;
         } else {
             return conv.user1.username;
@@ -98,7 +64,7 @@ export const ChanColumn: React.FC<Props> = ({
     };
 
     const whichAvatar = (conv: Conversation) => {
-        if (conv.user1.userId === loginResponse?.id) {
+        if (conv.user1.userId === user?.id) {
             if (conv.user2.avatarUrl !== null) {
                 return conv.user2.avatarUrl;
             }
@@ -111,7 +77,7 @@ export const ChanColumn: React.FC<Props> = ({
     };
 
     const whichID = (conv: Conversation) => {
-        if (conv.user1.userId === loginResponse?.id) {
+        if (conv.user1.userId === user?.id) {
             return conv.user2.userId;
         } else {
             return conv.user1.userId;
@@ -157,34 +123,21 @@ export const ChanColumn: React.FC<Props> = ({
                 </div>
             </div>
             <div className="cell-chan font-bold text-greyple hover:text-white hover:rounded-md text-sm text-left flex items-center justify-between">
-                <div className="flex block">MESSAGE PRIVÉS</div>
+                <div className="flex "> PRIVATE MESSAGES</div>
 
                 <span className="bloc text-right">+</span>
             </div>
             <div className="ml-5 mt-2 text-left ">
                 <Collapsible title="Conversation">
-                    {allConversation.map((conv, index) => (
-                        <button
+                    {allDms.data?.map((conv, index) => (
+                        <Link
                             key={index}
                             className={`mb-5 flex hover:bg-discord-light-grey py-2 rounded-lg w-[280px] ${
                                 activeButton == index
                                     ? "bg-discord-light-grey"
                                     : "bg-not-quite-black"
                             }`}
-                            onClick={() => {
-                                const otherUserId = whichID(conv);
-                                const otherUsername = whichUsername(conv);
-                                const otherUserAvatarUrl = whichAvatar(conv);
-
-                                setConversationID(conv.id);
-                                setSelectedFriend({
-                                    id: otherUserId,
-                                    username: otherUsername,
-                                    avatarUrl: otherUserAvatarUrl,
-                                });
-                                setCurrentPage("chatbox", Date.now());
-                                setActiveButton(index);
-                            }}
+                            to={`dm/${conv.id}`}
                         >
                             <Avatar
                                 imgUrl={whichAvatar(conv)}
@@ -192,26 +145,26 @@ export const ChanColumn: React.FC<Props> = ({
                                 userId={whichID(conv)}
                             />
                             <div className="ml-5">{whichUsername(conv)}</div>
-                        </button>
+                        </Link>
                     ))}
                 </Collapsible>
             </div>
             <div className="ml-5 mt-2 text-left ">
-                <Collapsible title="Channels"></Collapsible>
+                {/* <Collapsible title="Channels">
+
+                </Collapsible> */}
             </div>
             <div className="flex bg-almost-black text-m user-chancolumn items-center justify-between">
                 <div className="flex items-center">
                     <Avatar
-                        imgUrl={loginResponse?.avatarUrl}
+                        imgUrl={user?.avatarUrl}
                         size="md"
-                        userId={loginResponse?.id ?? 0}
-                        status={loginResponse?.status ?? "offline"}
+                        userId={user?.id ?? 0}
+                        status={1}
                         borderRadius={0.5}
                     />
                     <div className="ml-[10px]">
-                        <div className="font-bold text-left ">
-                            {loginResponse?.username}
-                        </div>
+                        <div className="font-bold text-left ">{user?.username}</div>
                         <div className="text-green text-left">En ligne</div>
                     </div>
                 </div>

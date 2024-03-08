@@ -7,10 +7,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 
 interface Props {
-    user: AppUser;
+    user: AppUser | undefined;
 }
 
 export const Settings: React.FC<Props> = ({ user }: Props) => {
+
+    if (!user)
+        return (null);
+
     const [showConfirmAvatarPopup, setShowConfirmAvatarPopup] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
     const navigate = useNavigate();
@@ -113,7 +117,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
     };
 
     const handleCloseClick = () => {
-        navigate("/home");
+        navigate("/");
     };
 
     return (
