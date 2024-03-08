@@ -1,4 +1,4 @@
-import { UseGuards, Request } from '@nestjs/common';
+import { UseGuards } from '@nestjs/common';
 import { DmService } from './dm.service';
 import {
   ConnectedSocket,
@@ -138,7 +138,7 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
   //
   //
   @SubscribeMessage('createDirectMessage')
-  create(
+  async createDirectMessage(
     @ConnectedSocket() socket: Socket,
     @MessageBody() payload: DirectMessageContent,
   ) {

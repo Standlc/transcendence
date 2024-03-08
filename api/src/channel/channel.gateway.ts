@@ -21,6 +21,7 @@ import { UseGuards } from '@nestjs/common';
 import { WsAuthGuard } from 'src/auth/ws-auth.guard';
 import { Utils } from './utilsChannel.service';
 import { db } from 'src/database';
+import { ChannelService } from './channel.service';
 
 @WebSocketGateway(5050, {
   namespace: 'socket.io/channel',
@@ -34,6 +35,7 @@ export class ChannelGateway
     private readonly connectedUsersService: ConnectedUsersService,
     private readonly utilsChannelService: Utils,
     private readonly socketService: SocketService,
+    private readonly channelService: ChannelService,
   ) {}
 
   @WebSocketServer() server: Server;
@@ -724,6 +726,37 @@ export class ChannelGateway
     } catch (error) {
       console.error(error);
       throw new WsException('Could not remove user from invite list');
+    }
+  }
+
+  //
+  //
+  //
+  // !!! need to send all messages threw a new event
+  // !!! to test
+  @SubscribeMessage('getChannelMessages')
+  async handleGetChannelMessages(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() payload: { channelId: number },
+  ) {
+    try {
+      this.connectedUsersService.verifyConnection(socket);
+    } catch (error) {
+      console.error(error);
+      throw new WsException('User did not join channel room');
+    }
+
+    try {
+      const userId = socket.data.id;
+      const messages = await this.channelService.getChannelMessages(
+        userId,
+        payload.channelId,
+      );
+
+      socket.emit('getChannelMessages', messages);
+    } catch (error) {
+      console.error(error);
+      throw new WsException('Could not get messages');
     }
   }
 

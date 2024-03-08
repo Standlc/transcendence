@@ -1,6 +1,5 @@
 import {
   AllConversationsPromise,
-  ConversationPromise,
   DmWithSenderInfo,
   UserId,
 } from './../types/channelsSchema';
@@ -59,7 +58,10 @@ export class DmController {
   })
   @ApiUnauthorizedResponse({ description: 'User 1 blocked user 2' })
   @Post()
-  async createConveration(@Body() userId: UserId, @Request() req): Promise<string> {
+  async createConveration(
+    @Body() userId: UserId,
+    @Request() req,
+  ): Promise<string> {
     return await this.dmService.createConversation(userId.userId, req.user.id);
   }
 
@@ -91,6 +93,12 @@ export class DmController {
               username: {
                 type: 'string',
               },
+              rating: {
+                type: 'number',
+              },
+              status: {
+                type: 'number',
+              },
             },
           },
           user2: {
@@ -104,6 +112,12 @@ export class DmController {
               },
               username: {
                 type: 'string',
+              },
+              rating: {
+                type: 'number',
+              },
+              status: {
+                type: 'number',
               },
             },
           },
@@ -151,11 +165,45 @@ export class DmController {
         createdAt: {
           type: 'string',
         },
-        user1_id: {
-          type: 'number',
+        user1: {
+          type: 'object',
+          properties: {
+            userId: {
+              type: 'number',
+            },
+            avatarUrl: {
+              type: 'string',
+            },
+            username: {
+              type: 'string',
+            },
+            rating: {
+              type: 'number',
+            },
+            status: {
+              type: 'number',
+            },
+          },
         },
-        user2_id: {
-          type: 'number',
+        user2: {
+          type: 'object',
+          properties: {
+            userId: {
+              type: 'number',
+            },
+            avatarUrl: {
+              type: 'string',
+            },
+            username: {
+              type: 'string',
+            },
+            rating: {
+              type: 'number',
+            },
+            status: {
+              type: 'number',
+            },
+          },
         },
       },
     },
@@ -166,7 +214,7 @@ export class DmController {
   async getConversation(
     @Param('id') id: string,
     @Request() req,
-  ): Promise<ConversationPromise> {
+  ): Promise<AllConversationsPromise> {
     return await this.dmService.getConversation(Number(id), req.user.id);
   }
 

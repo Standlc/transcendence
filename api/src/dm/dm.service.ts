@@ -1,6 +1,5 @@
 import { LiveChatSocket } from './../liveChatSocket/liveChatSocket.gateway';
 import {
-  ConflictException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -10,7 +9,6 @@ import {
 import { db } from 'src/database';
 import {
   AllConversationsPromise,
-  ConversationPromise,
   DirectMessageContent,
   DmWithSenderInfo,
 } from 'src/types/channelsSchema';
@@ -81,8 +79,10 @@ export class DmService {
       throw new NotFoundException('Users are not friends');
     }
 
-    if (await this.getConversationByUserIds(userId, user2)) {
-      throw new ConflictException('Conversation already exists');
+    try {
+      await this.getConversationByUserIds(userId, user2);
+    } catch (error) {
+      throw error;
     }
 
     try {
@@ -124,11 +124,14 @@ export class DmService {
           'user.id as user1Id',
           'user.avatarUrl as user1AvatarUrl',
           'user.username as user1Username',
+          'user.rating as user1Rating',
           'user2.id as user2Id',
           'user2.avatarUrl as user2AvatarUrl',
           'user2.username as user2Username',
+          'user2.rating as user2Rating',
         ])
         .execute();
+
       return allConv.map((conv) => ({
         id: conv.id,
         createdAt: conv.createdAt,
@@ -136,11 +139,15 @@ export class DmService {
           userId: conv.user1Id,
           avatarUrl: conv.user1AvatarUrl,
           username: conv.user1Username,
+          rating: conv.user1Rating,
+          status: 1, // !!! test
         },
         user2: {
           userId: conv.user2Id,
           avatarUrl: conv.user2AvatarUrl,
           username: conv.user2Username,
+          rating: conv.user2Rating,
+          status: 1, // !!! test
         },
       })) as AllConversationsPromise[];
     } catch (error) {
@@ -155,7 +162,7 @@ export class DmService {
   async getConversationByUserIds(
     user1_id: number,
     user2_id: number,
-  ): Promise<ConversationPromise> {
+  ): Promise<boolean> {
     try {
       const conversationExists = await db
         .selectFrom('conversation')
@@ -167,8 +174,14 @@ export class DmService {
           eb.or([eb('user1_id', '=', user2_id), eb('user2_id', '=', user2_id)]),
         )
         .executeTakeFirst();
-      return conversationExists as ConversationPromise;
+
+      if (conversationExists) {
+        throw new NotFoundException('Conversation already exists');
+      }
+
+      return true;
     } catch (error) {
+      if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException();
     }
   }
@@ -176,22 +189,53 @@ export class DmService {
   //
   //
   //
+  // !!! changing type of return value
   async getConversation(
     conversationId: number,
     userId: number,
-  ): Promise<ConversationPromise> {
+  ): Promise<AllConversationsPromise> {
     try {
       const conversation = await db
         .selectFrom('conversation')
-        .selectAll()
-        .where('id', '=', conversationId)
+        .leftJoin('user', 'conversation.user1_id', 'user.id')
+        .leftJoin('user as user2', 'conversation.user2_id', 'user2.id')
+        .where('conversation.id', '=', conversationId)
         .where((eb) =>
           eb.or([eb('user1_id', '=', userId), eb('user2_id', '=', userId)]),
         )
+        .select([
+          'conversation.id',
+          'conversation.createdAt',
+          'user.id as user1Id',
+          'user.avatarUrl as user1AvatarUrl',
+          'user.username as user1Username',
+          'user.rating as user1Rating',
+          'user2.id as user2Id',
+          'user2.avatarUrl as user2AvatarUrl',
+          'user2.username as user2Username',
+          'user2.rating as user2Rating',
+        ])
         .executeTakeFirst();
       if (!conversation) throw new NotFoundException('Conversation not found');
 
-      return conversation as ConversationPromise;
+      return {
+        id: conversation.id as number,
+        createdAt: conversation.createdAt as Date,
+        user1: {
+          userId: conversation.user1Id as number,
+          avatarUrl: conversation.user1AvatarUrl as string,
+          username: conversation.user1Username as string,
+          rating: conversation.user1Rating as number,
+          status: 1, // !!! test
+        },
+        user2: {
+          userId: conversation.user2Id as number,
+          avatarUrl: conversation.user2AvatarUrl as string,
+          username: conversation.user2Username as string,
+          rating: conversation.user2Rating as number,
+          status: 1, // !!! test
+        },
+      };
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException();

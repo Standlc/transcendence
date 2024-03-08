@@ -19,19 +19,23 @@ export type ChannelMessageContent = Omit<
   'createdAt' | 'id' | 'senderId'
 >;
 
-export interface ChannelDataWithoutPassword {
-  channelOwner: number;
-  createdAt: Date;
-  id: number;
-  isPublic: boolean;
-}
-
 export interface ChannelDataWithUsersWithoutPassword {
   channelOwner: number;
   createdAt: Date;
   id: number;
   isPublic: boolean;
+  name: string;
+  photoUrl: string | null;
   users: UserInfo[];
+}
+
+export interface ChannelDataWithoutPassword {
+  channelOwner: number;
+  createdAt: Date;
+  id: number;
+  isPublic: boolean;
+  name: string;
+  photoUrl: string | null;
 }
 
 export interface UserInfo {
@@ -83,13 +87,6 @@ export interface MuteUser {
   muteEnd: Date | null;
 }
 
-export interface ConversationPromise {
-  id: number;
-  createdAt: Date;
-  user1_id: number;
-  user2_id: number;
-}
-
 export interface AllConversationsPromise {
   id: number;
   createdAt: Date;
@@ -97,11 +94,15 @@ export interface AllConversationsPromise {
     userId: number;
     avatarUrl: string;
     username: string;
+    rating: number; // !!!
+    status: number; // !!!
   };
   user2: {
     userId: number;
     avatarUrl: string;
     username: string;
+    rating: number; // !!!
+    status: number; // !!!
   };
 }
 

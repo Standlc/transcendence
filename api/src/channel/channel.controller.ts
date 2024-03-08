@@ -53,12 +53,6 @@ export class UserController {
       items: {
         type: 'object',
         properties: {
-          avatarUrl: {
-            type: 'string | null',
-          },
-          username: {
-            type: 'string',
-          },
           channelId: {
             type: 'number',
           },
@@ -85,6 +79,15 @@ export class UserController {
           },
           isMuted: {
             type: 'boolean',
+          },
+          mutedEnd: {
+            type: 'Date | null',
+          },
+          avatarUrl: {
+            type: 'string | null',
+          },
+          username: {
+            type: 'string',
           },
           senderIsBlocked: {
             type: 'boolean',
@@ -131,6 +134,12 @@ export class UserController {
           },
           isPublic: {
             type: 'boolean',
+          },
+          name: {
+            type: 'string',
+          },
+          photoUrl: {
+            type: 'string | null',
           },
           users: {
             type: 'array',
@@ -259,12 +268,18 @@ export class UserController {
         isPublic: {
           type: 'boolean',
         },
+        name: {
+          type: 'string',
+        },
+        photoUrl: {
+          type: 'string | null',
+        },
       },
     },
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @ApiNotFoundResponse({ description: 'Channel not found' })
-  @Get(':channelId')
+  @Get(':channelId/channel')
   async getChannel(
     @Param('channelId') channelId: number,
   ): Promise<ChannelDataWithoutPassword> {
@@ -326,7 +341,11 @@ export class UserController {
     @Request() req,
   ): Promise<string> {
     console.log('PUT: Recieved id:', channelId);
-    return await this.channelService.updateChannel(channelId, channel, req.user.id);
+    return await this.channelService.updateChannel(
+      channelId,
+      channel,
+      req.user.id,
+    );
   }
 
   //
@@ -345,7 +364,10 @@ export class UserController {
     description: 'Only the owner can delete this channel',
   })
   @Delete(':channelId')
-  async deleteChannel(@Param('channelId') channelId: number, @Request() req) {
+  async deleteChannel(
+    @Param('channelId') channelId: number,
+    @Request() req,
+  ): Promise<string> {
     console.log('DELETE: Received channelId:', channelId);
     return await this.channelService.deleteChannel(channelId, req.user.id);
   }
@@ -353,10 +375,43 @@ export class UserController {
   //
   //
   //
-  @ApiOperation({ summary: 'Get all available channels' })
+  @ApiOperation({
+    summary:
+      "Get all available channels the user didn't join. Public or private from the inviteList",
+  })
+  @ApiOkResponse({
+    description: 'Channels found',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          channelOwner: {
+            type: 'number',
+          },
+          createdAt: {
+            type: 'Date',
+          },
+          id: {
+            type: 'number',
+          },
+          isPublic: {
+            type: 'boolean',
+          },
+          name: {
+            type: 'string',
+          },
+          photoUrl: {
+            type: 'string | null',
+          },
+        },
+      },
+    },
+  })
+  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @Get('availableChannels')
-  async getAllAvailableChannels() {
-    console.log('GET: Recieved all available channels');
-    // return await this.channelService.getAllAvailableChannels();
+  async getAllChannels(@Request() req): Promise<ChannelDataWithoutPassword[]> {
+    console.log('GET: Recieved all channels');
+    return await this.channelService.getAllAvailableChannels(req.user.id);
   }
 }
