@@ -13,12 +13,14 @@ import {
   DmWithSenderInfo,
 } from 'src/types/channelsSchema';
 import { FriendsService } from 'src/friends/friends.service';
+import { UsersStatusGateway } from 'src/usersStatusGateway/UsersStatus.gateway';
 
 @Injectable()
 export class DmService {
   constructor(
     private friendsService: FriendsService,
     private readonly liveChatSocket: LiveChatSocket,
+    private readonly usersStatusGateway: UsersStatusGateway, // !!! test
   ) {}
 
   //
@@ -140,14 +142,14 @@ export class DmService {
           avatarUrl: conv.user1AvatarUrl,
           username: conv.user1Username,
           rating: conv.user1Rating,
-          status: 1, // !!! test
+          status: this.usersStatusGateway.getUserStatus(conv.user1Id as number),
         },
         user2: {
           userId: conv.user2Id,
           avatarUrl: conv.user2AvatarUrl,
           username: conv.user2Username,
           rating: conv.user2Rating,
-          status: 1, // !!! test
+          status: this.usersStatusGateway.getUserStatus(conv.user2Id as number),
         },
       })) as AllConversationsPromise[];
     } catch (error) {
@@ -226,14 +228,18 @@ export class DmService {
           avatarUrl: conversation.user1AvatarUrl as string,
           username: conversation.user1Username as string,
           rating: conversation.user1Rating as number,
-          status: 1, // !!! test
+          status: this.usersStatusGateway.getUserStatus(
+            conversation.user1Id as number,
+          ),
         },
         user2: {
           userId: conversation.user2Id as number,
           avatarUrl: conversation.user2AvatarUrl as string,
           username: conversation.user2Username as string,
           rating: conversation.user2Rating as number,
-          status: 1, // !!! test
+          status: this.usersStatusGateway.getUserStatus(
+            conversation.user2Id as number,
+          ),
         },
       };
     } catch (error) {
