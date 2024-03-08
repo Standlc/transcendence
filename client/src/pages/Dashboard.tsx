@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChanColumn } from "../components/ChanColumn";
+import { ChanColumn } from "../components/ChanColumn/ChanColumn";
 
 import { NavBar } from "../components/Navbar/Navbar";
 import { Friends } from "./Friends";
@@ -41,6 +41,7 @@ export const Dashboard: React.FC<Props> = ({ SERVER_URL, loginResponse }: Props)
             case "chatbox":
                 return (
                     <Chat
+                        loginResponse={loginResponse}
                         SERVER_URL={SERVER_URL}
                         conversationID={conversationID}
                         selectedFriend={selectedFriend}

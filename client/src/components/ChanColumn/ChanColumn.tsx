@@ -1,14 +1,13 @@
 import { useNavigate } from "react-router-dom";
-import { LoginResponse } from "./RequireAuth/AuthProvider";
-import defaultAvatar from "./defaultAvatar.png";
+import defaultAvatar from "./../defaultAvatar.png";
 import React, { useEffect, useState } from "react";
 import { Settings } from "@mui/icons-material";
-import { PutAvatar } from "./PutAvatar";
-import { Avatar } from "../UIKit/avatar/Avatar";
+import { Avatar } from "../../UIKit/avatar/Avatar";
 import { Collapsible } from "./Collapsible";
+import { AppUser } from "@api/types/clientSchema";
 
 interface Props {
-    loginResponse: LoginResponse | null;
+    loginResponse: AppUser | null;
     setCurrentPage: (page: string, timestamp: number) => void; // Ajouter un deuxième paramètre
     setConversationID: (conversationID: number) => void;
     setSelectedFriend: (

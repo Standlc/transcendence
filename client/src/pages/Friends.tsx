@@ -71,6 +71,7 @@ export const Friends: React.FC<Props> = ({ loginResponse, SERVER_URL }: Props) =
                 />
             ) : allFriends ? (
                 <AllFriends
+                    loginResponse={loginResponse}
                     allFriends={allFriends}
                     setAdding={setAdding}
                     setFriendsPending={setFriendsPending}

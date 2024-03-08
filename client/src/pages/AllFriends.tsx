@@ -4,8 +4,12 @@ import Chat from "../components/Chat/Chat";
 import ModalLayout from "../UIKit/ModalLayout";
 import { ConfirmPopUp } from "../components/ConfirmPopUp";
 import { Avatar } from "../UIKit/avatar/Avatar";
+import { AppUser } from "@api/types/clientSchema";
+import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 interface Props {
+    loginResponse: AppUser | null;
     allFriends: boolean;
     setAdding: (adding: boolean) => void;
     setFriendsPending: (friendsPending: boolean) => void;
@@ -25,6 +29,7 @@ interface Conversation {
 }
 
 export const AllFriends: React.FC<Props> = ({
+    loginResponse,
     allFriends,
     setAdding,
     setFriendsPending,
@@ -39,6 +44,8 @@ export const AllFriends: React.FC<Props> = ({
     const [localFriends, setLocalFriends] = useState<Friend[]>(friends);
     const [showConfirmPopup, setShowConfirmPopup] = useState(false);
     const [friendToDelete, setFriendToDelete] = useState<Friend | null>(null);
+    const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
     useEffect(() => {
         setLocalFriends(friends); // Mettez à jour l'état local quand les props 'friends' changent
@@ -123,9 +130,17 @@ export const AllFriends: React.FC<Props> = ({
         }
     };
 
-    const handleFriendClick = (friend: Friend) => {
+    const handleFriendClick = async (friend: Friend) => {
         console.log("Friend clicked:", friend);
-        findConversation(friend.id);
+        // Assuming findConversation might fetch and set the conversation ID somehow
+        const conversationId = await findConversation(friend.id);
+
+        // Use the queryClient to set UI state
+        queryClient.setQueryData(["selectedFriend"], friend);
+        queryClient.setQueryData(["selectedConversation"], conversationId);
+        navigate("/home");
+        // Optionally, navigate to the chat page if you're using something like React Router
+        // history.push('/dashboard/chat');
     };
 
     const handleDeleteClick = (
@@ -158,6 +173,7 @@ export const AllFriends: React.FC<Props> = ({
         <>
             {showChat ? (
                 <Chat
+                    loginResponse={loginResponse}
                     SERVER_URL={SERVER_URL}
                     conversationID={selectedConversation}
                     selectedFriend={selectedFriend}

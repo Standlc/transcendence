@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useRef } from "react";
 import io from "socket.io-client";
-import { useAuth } from "../RequireAuth/AuthProvider";
 import { Timestamp } from "../../../../api/src/types/schema";
 import defaultAvatar from "./../../components/defaultAvatar.png";
-import TextArea from "../../UIKit/TextArea";
 import { Avatar } from "../../UIKit/avatar/Avatar";
 import { NotificationBox } from "../NotificationBox";
+import { AppUser } from "@api/types/clientSchema";
+import { useNavigate } from "react-router-dom";
 
 interface Props {
+    loginResponse: AppUser | null;
     SERVER_URL: string;
     conversationID: number | null;
     selectedFriend: {
-        id: number | undefined;
+        id: number;
         username: string;
         avatarUrl: string | null;
     } | null;
@@ -24,7 +25,7 @@ interface Props {
 }
 
 interface Popuser {
-    user: UserProfile | null;
+    user: AppUser | null;
     onClose: () => void;
 }
 
@@ -105,29 +106,18 @@ interface Message {
     username: string;
 }
 
-interface UserProfile {
-    avatarUrl: string | null;
-    bio: string | null;
-    createdAt: Timestamp;
-    email: string | null;
-    firstname: string | null;
-    id: number;
-    lastname: string | null;
-    rating: number;
-    username: string | null;
-}
-
 const Chat: React.FC<Props> = ({
+    loginResponse,
     conversationID,
     selectedFriend,
     SERVER_URL,
 }: Props) => {
     const [message, setMessage] = useState("");
     const [messages, setMessages] = useState<Message[]>([]);
-    const { loginResponse } = useAuth();
     const socketRef = useRef<any>(null);
     const [isPopupOpen, setIsPopupOpen] = useState(false);
-    const [friendProfile, setProfile] = useState<UserProfile | null>(null);
+    const [friendProfile, setProfile] = useState<AppUser | null>(null);
+    const navigate = useNavigate();
 
     const getUserProfile = async (id: number) => {
         try {
@@ -141,16 +131,13 @@ const Chat: React.FC<Props> = ({
                 }
             );
 
-            // Check if the response is JSON before parsing
             const contentType = response.headers.get("content-type");
             if (contentType && contentType.indexOf("application/json") !== -1) {
                 const data = await response.json();
                 setProfile(data);
                 console.log("Profile data", data);
             } else {
-                // Handle non-JSON responses or errors differently
                 console.error("Received non-JSON response from server");
-                // Optionally, read the response as text to log or handle it
                 const textResponse = await response.text();
                 console.log("Server response:", textResponse);
                 throw new Error("Server returned a non-JSON response");
@@ -164,7 +151,6 @@ const Chat: React.FC<Props> = ({
         if (selectedFriend) {
             getUserProfile(selectedFriend.id);
         }
-        return;
 
         if (conversationID) {
             socketRef.current = io("/dm");
@@ -259,6 +245,10 @@ const Chat: React.FC<Props> = ({
         setIsPopupOpen(false);
     };
 
+    const handleClickPlay = () => {
+        navigate("/play");
+    };
+
     if (!conversationID) {
         return <div>Please select a conversation to start chatting.</div>;
     }
@@ -293,25 +283,34 @@ const Chat: React.FC<Props> = ({
                 className="bg-discord-greyple topbar-section border-b border-b-almost-black"
                 style={{ borderBottomWidth: "3px" }}
             >
-                <div className="flex item-center mt-[10px] ml-[20px]">
-                    <Avatar
-                        imgUrl={selectedFriend?.avatarUrl}
-                        size="md"
-                        userId={selectedFriend?.id ?? 0}
-                    />
+                <div className="w-full flex justify-between items-center">
+                    <div className="w-full flex">
+                        <div className="flex item-center mt-[10px] ml-[20px]">
+                            <Avatar
+                                imgUrl={selectedFriend?.avatarUrl}
+                                size="md"
+                                userId={selectedFriend?.id ?? 0}
+                            />
+                        </div>
+                        <div className="ml-2 mt-4 font-bold text-xl">
+                            <button onClick={openPopup}>
+                                {selectedFriend?.username}
+                            </button>
+                            <span className="ml-[20px]">|</span>
+                        </div>
+                        <div>
+                            <button
+                                onClick={handleClickPlay}
+                                className="ml-4 mt-4 bg-green-500 hover:bg-green-700 rounded-lg py-1 px-3"
+                            >
+                                Play
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <NotificationBox />
+                    </div>
                 </div>
-                <div className="ml-2 mt-4 font-bold text-xl">
-                    <button onClick={openPopup}>{selectedFriend?.username}</button>
-                    <span className="ml-[20px]">|</span>
-                </div>
-                <div>
-                    <button className="ml-4 mt-4 bg-green rounded-lg py-1 px-3">
-                        Play
-                    </button>
-                </div>
-                {/* <div>
-                    <NotificationBox />
-                </div> */}
             </div>
             <div className="flex w-[200px] justify-center">
                 {isPopupOpen && (

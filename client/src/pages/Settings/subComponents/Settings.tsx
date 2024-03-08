@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import defaultAvatar from "../components/defaultAvatar.png";
-import { useEffect, useState } from "react";
-import { ConfirmAvatarPopUp } from "../components/ConfirmAvatarPopUp";
+import defaultAvatar from "./../../../components/defaultAvatar.png";
+import { useState } from "react";
+import { ConfirmAvatarPopUp } from "./ConfirmAvatarPopUp";
 import { AppUser } from "@api/types/clientSchema";
 import { useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
@@ -17,6 +17,24 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
     const [bio, setBio] = useState(user?.bio);
     const [firstname, setFirstname] = useState(user?.firstname);
     const [lastname, setLastname] = useState(user?.lastname);
+    const Achievements = () => <div>Achievements Content</div>;
+    const MatchHistory = () => <div>Match History Content</div>;
+    const Friends = () => <div>Friends Content</div>;
+
+    const [activeTab, setActiveTab] = useState("Achievements");
+
+    const renderTabContent = () => {
+        switch (activeTab) {
+            case "Achievements":
+                return <Achievements />;
+            case "Match History":
+                return <MatchHistory />;
+            case "Friends":
+                return <Friends />;
+            default:
+                return <div>Content not found</div>;
+        }
+    };
 
     const handleClickChangeAvatar = () => {
         setShowConfirmAvatarPopup(true);
@@ -42,6 +60,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
                 });
 
                 alert("Avatar updated successfully");
+                console.log("Avatar updated successfully", response.data.avatarUrl);
             } catch (error) {
                 console.error("Failed to upload avatar", error);
                 alert("Failed to upload avatar");
@@ -70,7 +89,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
                 if (oldData && typeof oldData === "object") {
                     return { ...oldData, ...body };
                 } else {
-                    return undefined; // Assuming undefined is the correct value when no user data exists
+                    return undefined;
                 }
             });
         } catch (error) {
@@ -183,7 +202,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
                 <div className="text-left w-[400px] mt-[20px]">
                     <button
                         onClick={updateUserProfile}
-                        className="bg-green text-white text-sm rounded-lg h-10 py-2 px-2.5"
+                        className="bg-green-500 hover:bg-green-700 text-white text-sm rounded-lg h-10 py-2 px-2.5"
                     >
                         Save Changes
                     </button>
@@ -205,7 +224,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
             {/* Section des informations de l'utilisateur à droite */}
             <div className="flex-1">
                 <div className="items-center justify-center h-full">
-                    <div className="mt-20">
+                    <div className="mt-20 ml-[180px]">
                         <button onClick={handleCloseClick}>
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -241,11 +260,47 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
                                     />
                                 )}
                             </div>
-                            <div className="text-xl font-bold ml-4">
-                                {user?.username}
+                            <div className="text-xl ml-4">
+                                <div className=" font-bold">{user?.username}</div>
+                                <div>{user?.firstname} </div>
+                                <div>{user?.lastname}</div>
                             </div>
                         </div>
-                        <div className="rounded-xl settings-account-body bg-discord-dark-grey mt-4 w-full"></div>
+                        <div className="rounded-xl settings-account-body bg-discord-dark-grey mt-4 w-full">
+                            <div className="flex justify-center">
+                                <div className="tabs">
+                                    <button
+                                        className={`align-items items-center ${
+                                            activeTab === "Achievements" ? "active" : ""
+                                        }`}
+                                        onClick={() => setActiveTab("Achievements")}
+                                    >
+                                        Achievements
+                                    </button>
+                                    <button
+                                        className={`align-items ${
+                                            activeTab === "Match History"
+                                                ? "active"
+                                                : ""
+                                        }`}
+                                        onClick={() => setActiveTab("Match History")}
+                                    >
+                                        Match History
+                                    </button>
+                                    <button
+                                        className={`align-items ${
+                                            activeTab === "Friends" ? "active" : ""
+                                        }`}
+                                        onClick={() => setActiveTab("Friends")}
+                                    >
+                                        Friends
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="rounded-xl  bg-discord-dark-grey mt-4 w-full">
+                                {renderTabContent()}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

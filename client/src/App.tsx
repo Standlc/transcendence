@@ -17,7 +17,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { Register } from "./pages/Register";
 import { Friends } from "./pages/Friends";
 import { Login } from "./pages/Login";
-import { Settings } from "./pages/Settings";
+import { Settings } from "./pages/Settings/subComponents/Settings";
 import { AppUser } from "@api/types/clientSchema";
 
 function App() {
