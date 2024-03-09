@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import defaultAvatar from "../components/defaultAvatar.png";
 import { Avatar } from "../UIKit/avatar/Avatar";
 import { AppUser } from "@api/types/clientSchema";
+import _ from "lodash";
+
 interface Props {
     adding: boolean;
     setFriendsPending: (friendsPending: boolean) => void;
@@ -59,6 +61,23 @@ export const FriendsAdd: React.FC<Props> = ({
             console.error("Error fetching data:", error);
         }
     };
+
+    // Utiliser useEffect pour surveiller les changements de 'username'
+    useEffect(() => {
+        // Créer une fonction débouncée qui appelle findUser
+        const debouncedSearch = _.debounce(() => {
+            findUser();
+        }, 300); // Attendre 300ms après le dernier changement avant d'exécuter findUser
+
+        if (username) {
+            debouncedSearch();
+        }
+
+        // Retourner une fonction de nettoyage qui annule le délai si le composant est démonté ou si username change
+        return () => {
+            debouncedSearch.cancel();
+        };
+    }, [username]);
 
     console.log("users", usersFound);
     return (
@@ -130,14 +149,14 @@ export const FriendsAdd: React.FC<Props> = ({
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                     />
-                    <div className="absolute inset-y-0 right-0 flex items-center px-2 ">
+                    {/* <div className="absolute inset-y-0 right-0 flex items-center px-2 ">
                         <button
                             onClick={findUser}
                             className="text-white bg-blurple  p-[50px] hover:bg-blurple-hover font-bold rounded-lg text-s w-full py-2.5 text-center"
                         >
                             Chercher
                         </button>
-                    </div>
+                    </div> */}
                 </div>
             </div>
             <div className="mt-5">

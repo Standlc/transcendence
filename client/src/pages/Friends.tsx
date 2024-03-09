@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FriendsAdd } from "./FriendsAdd";
 import { FriendsInvitation } from "./FriendsInvitation";
 import { AllFriends } from "./AllFriends";
-import { AppUser } from "@api/types/clientSchema";
+import { useGetUser } from "../utils/useGetUser";
 
 // Assuming the Friend interface is defined as follows:
 interface Friend {
@@ -11,26 +11,20 @@ interface Friend {
     id: number;
 }
 
-interface Props {
-    loginResponse: AppUser | undefined;
-    SERVER_URL: string;
-}
-
-export const Friends: React.FC<Props> = ({ loginResponse, SERVER_URL }: Props) => {
-
-    if (!loginResponse)
-        return (null);
-
+export const Friends: React.FC = () => {
     const [adding, setAdding] = useState(false);
     const [friends, setFriends] = useState<Friend[]>([]);
     const [friendsPending, setFriendsPending] = useState(false);
     const [allFriends, setAllFriends] = useState(true);
+    const user = useGetUser();
+
+    if (!user) return null;
 
     useEffect(() => {
         const fetchFriends = async () => {
             try {
                 const response = await fetch(
-                    `http://localhost:3000/api/friends?id=${loginResponse?.id}`,
+                    `http://localhost:3000/api/friends?id=${user?.id}`,
                     {
                         method: "GET",
                         headers: {
@@ -51,10 +45,10 @@ export const Friends: React.FC<Props> = ({ loginResponse, SERVER_URL }: Props) =
             }
         };
 
-        if (loginResponse?.id) {
+        if (user?.id) {
             fetchFriends();
         }
-    }, [loginResponse?.id]); // Add loginResponse?.id to the dependency array if it can change
+    }, [user?.id]); // Add user?.id to the dependency array if it can change
 
     return (
         <div className="w-full">
@@ -74,16 +68,15 @@ export const Friends: React.FC<Props> = ({ loginResponse, SERVER_URL }: Props) =
                 />
             ) : allFriends ? (
                 <AllFriends
-                    loginResponse={loginResponse}
+                    loginResponse={user}
                     allFriends={allFriends}
                     setAdding={setAdding}
                     setFriendsPending={setFriendsPending}
                     setAllFriends={setAllFriends}
                     friends={friends}
-                    SERVER_URL={SERVER_URL}
                 />
             ) : (
-                <div>
+                <div className="">
                     <div
                         className="bg-discord-greyple topbar-section border-b border-b-almost-black"
                         style={{ borderBottomWidth: "3px" }}

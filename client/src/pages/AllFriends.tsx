@@ -15,7 +15,6 @@ interface Props {
     setFriendsPending: (friendsPending: boolean) => void;
     setAllFriends: (allFriends: boolean) => void;
     friends: Friend[];
-    SERVER_URL: string;
 }
 
 interface Friend {
@@ -35,7 +34,6 @@ export const AllFriends: React.FC<Props> = ({
     setFriendsPending,
     setAllFriends,
     friends,
-    SERVER_URL,
 }: Props) => {
     const [showChat, setShowChat] = useState(false);
     const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -46,6 +44,8 @@ export const AllFriends: React.FC<Props> = ({
     const [friendToDelete, setFriendToDelete] = useState<Friend | null>(null);
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+
+    if (!loginResponse) return null;
 
     useEffect(() => {
         setLocalFriends(friends); // Mettez à jour l'état local quand les props 'friends' changent
@@ -174,7 +174,6 @@ export const AllFriends: React.FC<Props> = ({
             {showChat ? (
                 <Chat
                     loginResponse={loginResponse}
-                    SERVER_URL={SERVER_URL}
                     conversationID={selectedConversation}
                     selectedFriend={selectedFriend}
                 />

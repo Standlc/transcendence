@@ -40,14 +40,12 @@ export const ChanColumn = () => {
             handleFriendsClick();
             setActiveButton(index);
         } else {
-            // const conversation = allConversation[index];
-            // setConversationID(conversation.id);
             setActiveButton(index);
         }
     };
 
     const handleFriendsClick = () => {
-        // setCurrentPage("friends", Date.now());
+        navigate("friends");
         setActiveButton(-1);
     };
 
@@ -117,8 +115,8 @@ export const ChanColumn = () => {
                             d="M13 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"
                         ></path>
                     </svg>
-                    <div className="ml-6 mt-1">
-                        <button>Amis</button>
+                    <div onClick={handleFriendsClick} className="ml-6 mt-1 ">
+                        <button>Friends</button>
                     </div>
                 </div>
             </div>

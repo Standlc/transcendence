@@ -183,7 +183,7 @@ const Chat = () => {
     //     }
 
     return (
-        <div className="w-full">
+        <div className="w-full bg-discord-light-grey">
             <div
                 className="bg-discord-greyple topbar-section border-b border-b-almost-black"
                 style={{ borderBottomWidth: "3px" }}
@@ -229,7 +229,7 @@ const Chat = () => {
                     <div className="mt-[20px]  " key={index}>
                         <div className="flex ">
                             {shouldDisplayAvatarAndTimestamp(index) && (
-                                <div className="flex">
+                                <div className="flex ">
                                     {msg.avatarUrl ? (
                                         <img
                                             src={msg.avatarUrl}
