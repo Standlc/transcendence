@@ -11,9 +11,7 @@ interface Props {
 }
 
 export const Settings: React.FC<Props> = ({ user }: Props) => {
-
-    if (!user)
-        return (null);
+    if (!user) return null;
 
     const [showConfirmAvatarPopup, setShowConfirmAvatarPopup] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
@@ -54,7 +52,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
             formData.append("file", selectedFile);
 
             try {
-                const response = await axios.post("/api/users/avatar", formData, {
+                const response = await axios.post("/api/upload/user-avatar", formData, {
                     headers: {
                         "Content-Type": "multipart/form-data",
                     },
