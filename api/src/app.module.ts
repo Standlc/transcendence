@@ -13,6 +13,7 @@ import { FriendsModule } from './friends/friends.module';
 import { ChannelModule } from './channel/channel.module';
 import { DmModule } from './dm/dm.module';
 import { AchievementsModule } from './achievements/Achievements.module';
+import { LiveChatModule } from './liveChatSocket/liveChatSocket.module';
 import { BlockedUserModule } from './blocked-user/blocked-user.module';
 import { UploadModule } from './upload/upload.module';
 
@@ -29,6 +30,7 @@ import { UploadModule } from './upload/upload.module';
     ChannelModule,
     DmModule,
     AchievementsModule,
+    LiveChatModule,
     BlockedUserModule,
     UploadModule,
   ],
