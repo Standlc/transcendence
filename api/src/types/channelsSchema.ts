@@ -1,4 +1,5 @@
-import { ChannelMessage, DirectMessage } from './schema';
+import { Selectable } from 'kysely';
+import { Channel, ChannelMessage, DirectMessage } from './schema';
 
 export interface ChannelCreationData {
   isPublic: boolean;
@@ -6,6 +7,8 @@ export interface ChannelCreationData {
   password: string | null;
   photoUrl: string | null;
 }
+
+export type ChannelWithoutPsw = Omit<Selectable<Channel>, | 'password'>
 
 export type UserId = { userId: number };
 

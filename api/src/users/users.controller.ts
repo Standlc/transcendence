@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Param, Post, Query, Request, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Param, Post, Query, Request, Res, UploadedFile, UseGuards, UseInterceptors, ParseFilePipeBuilder, HttpStatus, UnprocessableEntityException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { ApiBody, ApiCookieAuth, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags, ApiUnauthorizedResponse, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
 import { CreateUsersDto } from './dto/create-users.dto';
@@ -8,12 +8,17 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { UpdateUsersDto } from './dto/update-users.dto';
+import { isStrongPassword } from 'class-validator';
+import { BlockedUserService } from 'src/blocked-user/blocked-user.service';
 
 @ApiInternalServerErrorResponse({ description: "Whenever the backend fail in some point, probably an error with the db." })
 @ApiTags('users')
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly blockUserService: BlockedUserService
+  ) {}
 
   //#region register
 
@@ -52,6 +57,8 @@ export class UsersController {
   })
   @Post('register')
   async createUser(@Body() body: CreateUsersDto): Promise<AppUser> {
+    if (!isStrongPassword(body.password))
+      throw new UnprocessableEntityException("Password is not strong enough");
     return await this.usersService.createUser(body);
   }
 
@@ -115,10 +122,13 @@ export class UsersController {
     isArray: false
   })
   @ApiNotFoundResponse({description: "No user was found with that ID"})
+  @ApiUnprocessableEntityResponse({description: "When you try to retrieve a profile of someone who block you"})
   @ApiUnauthorizedResponse({description: "You need to be logged in the access this route"})
   @UseGuards(JwtAuthGuard)
   @Get(':id/profile')
-  async getUserProfile(@Param('id') userId: number): Promise<AppUser> {
+  async getUserProfile(@Request() req, @Param('id') userId: number): Promise<AppUser> {
+    if (await this.blockUserService.hasUserBlock(userId, req.user.id))
+      throw new UnprocessableEntityException("This user blocked you");
     return await this.usersService.getUserById(userId);
   }
 
@@ -178,57 +188,7 @@ export class UsersController {
 
   //#endregion
 
-  //#region avatar
-
-  @ApiOperation({summary: "Upload an avatar"})
-  @ApiCookieAuth()
-  @ApiCreatedResponse({
-    description: "Avatar succesfully uploaded",
-    schema: {
-      type: 'object',
-      example: {
-        avatarUrl: null,
-        bio: null,
-        createdAt: "2024-02-16T14:28:58.410Z",
-        email: null,
-        firstname: "john",
-        id: 1,
-        lastname: "doe",
-        rating: 18,
-        username: "joe",
-        status: 1
-      }
-    },
-  })
-  @ApiBody({
-    description: "This is a multipart/form-data body, the name should be 'file' and the attachement an image binary",
-    type: 'multipart/form-data',
-    schema: {
-      type: 'object',
-      properties: {
-        file: {
-          type: 'string',
-          format: 'binary'
-        }
-      }
-    }
-  })
-  @UseGuards(JwtAuthGuard)
-  @Post('avatar')
-  @UseInterceptors(FileInterceptor('file',
-    {
-      storage: diskStorage({
-        destination: './public/avatar',
-        filename: (req, file, cb) => {
-          const randomName = Date.now().toString();
-          return cb(null, `${randomName}${extname(file.originalname)}`);
-        }
-      })
-    }
-  ))
-  async uploadAvatar(@Request() req, @UploadedFile() file: Express.Multer.File): Promise<AppUser> {
-    return this.usersService.setAvatar(req.user.id, `/api/users/${file.path}`);
-  }
+  //#region Get Avatar
 
   @ApiOperation({summary: "Get the avatar using fileId"})
   @ApiCookieAuth()
@@ -237,7 +197,7 @@ export class UsersController {
   @ApiNotFoundResponse({description: "No such file exist"})
   @UseGuards(JwtAuthGuard)
   @Get('avatar/:fileId')
-  async sendAvatar(@Param('fileId') fileId, @Res() res) {
+  async getAvatar(@Param('fileId') fileId, @Res() res) {
     res.sendFile(fileId, { root: './public/avatar' });
   }
 
