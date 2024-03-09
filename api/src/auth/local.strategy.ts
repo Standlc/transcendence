@@ -15,14 +15,15 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
    * @param username
    * @param password
    * @returns subset of user data
+   * @throws UnauthorizedException
    */
-  async validate(username: string, password: string): Promise<AppUser> {
+  async validate(username: string, password: string): Promise<Partial<AppUser>> {
     let user: AppUser;
     try {
       user = await this.authService.validateUser(username, password);
     } catch (error) {
       console.log(error);
-      throw error;
+      throw new UnauthorizedException();
     }
     return user;
   }

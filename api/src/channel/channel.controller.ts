@@ -1,6 +1,7 @@
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiCookieAuth,
   ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -20,6 +21,7 @@ import {
   Put,
   UseGuards,
   Request,
+  Res,
 } from '@nestjs/common';
 import { ChannelService } from './channel.service';
 import {
@@ -414,4 +416,19 @@ export class UserController {
     console.log('GET: Recieved all channels');
     return await this.channelService.getAllAvailableChannels(req.user.id);
   }
+
+    //#region Get Photo
+
+    @ApiOperation({summary: "Get the photoUrl using fileId"})
+    @ApiCookieAuth()
+    @ApiParam({name: 'fileId', description: 'Should start with /api/channels'})
+    @ApiOkResponse({description: "Image file"})
+    @ApiNotFoundResponse({description: "No such file exist"})
+    @UseGuards(JwtAuthGuard)
+    @Get('photo/:fileId')
+    async getPhoto(@Param('fileId') fileId, @Res() res) {
+      res.sendFile(fileId, { root: './public/channels' });
+    }
+
+    //#endregion
 }

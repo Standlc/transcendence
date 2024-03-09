@@ -80,8 +80,8 @@ export interface DirectMessage {
 
 export interface Friend {
   createdAt: Generated<Timestamp>;
-  user1_id: number | null;
-  user2_id: number | null;
+  user1_id: number;
+  user2_id: number;
 }
 
 export interface FriendRequest {
@@ -133,9 +133,11 @@ export interface User {
   email: string | null;
   firstname: string | null;
   id: Generated<number>;
+  isTwoFactorAuthenticationEnabled: Generated<boolean>;
   lastname: string | null;
   password: string;
   rating: Generated<number>;
+  TwoFactorAuthenticationSecret: string | null;
   username: string;
 }
 
