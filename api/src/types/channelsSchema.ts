@@ -94,15 +94,15 @@ export interface AllConversationsPromise {
     userId: number;
     avatarUrl: string;
     username: string;
-    rating: number; // !!!
-    status: number; // !!!
+    rating: number;
+    status: number;
   };
   user2: {
     userId: number;
     avatarUrl: string;
     username: string;
-    rating: number; // !!!
-    status: number; // !!!
+    rating: number;
+    status: number;
   };
 }
 

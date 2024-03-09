@@ -97,7 +97,7 @@ export class SocketService {
   //
   //
   //
-  // !!! tested
+  
   async unbanUser(
     userId: number,
     channelId: number,
@@ -144,7 +144,7 @@ export class SocketService {
   //
   //
   //
-  // !!! tested
+  
   async muteUser(userId: number, payload: MuteUser): Promise<void> {
     if (
       (await this.utilsChannelService.isChannelMember(
@@ -273,7 +273,7 @@ export class SocketService {
   //
   //
   //
-  // !!! tested
+  
   async blockUser(userId: number, targetUserId: number): Promise<void> {
     if (targetUserId === userId) {
       console.log('User cannot block itself');
@@ -345,7 +345,7 @@ export class SocketService {
   //
   //
   //
-  // !!! tested
+  
   async addAdministrator(
     userId: number,
     channelId: number,
@@ -394,7 +394,7 @@ export class SocketService {
   //
   //
   //
-  // !!! tested
+  
   async removeAdministrator(
     userId: number,
     channelId: number,
@@ -452,7 +452,7 @@ export class SocketService {
   //
   //
   //
-  // !!! tested
+  
   async quitChannel(userId: number, channelId: number): Promise<void> {
     if (
       (await this.utilsChannelService.userIsOwner(userId, channelId)) === true
@@ -485,7 +485,7 @@ export class SocketService {
   //
   //
   //
-  // !!! tested
+  
   async isOnlyOneMember(channelId: number): Promise<boolean> {
     try {
       const members = await db
@@ -503,7 +503,7 @@ export class SocketService {
   //
   //
   //
-  // !!! tested
+  
   async hasAdmins(channelId: number): Promise<boolean> {
     try {
       const admins = await db
@@ -521,7 +521,7 @@ export class SocketService {
   //
   //
   //
-  // !!! tested
+  
   async setFirstAdminAsOwner(
     ownerId: number,
     channelId: number,
@@ -551,7 +551,7 @@ export class SocketService {
   //
   //
   //
-  // !!! tested
+  
   async setFirstMemberAsOwner(
     ownerId: number,
     channelId: number,
@@ -585,7 +585,7 @@ export class SocketService {
   //
   //
   //
-  // !!! tested
+  
   async deleteFromChannelAdmin(
     userId: number,
     channelId: number,
@@ -605,7 +605,7 @@ export class SocketService {
   //
   //
   //
-  // !!! tested
+  
   async deleteFromChannelMember(
     userId: number,
     channelId: number,
@@ -625,7 +625,7 @@ export class SocketService {
   //
   //
   //
-  // !!! tested
+  
   async addNewAdmin(newOwnerId: number, channelId: number): Promise<void> {
     try {
       await db
@@ -643,7 +643,7 @@ export class SocketService {
   //
   //
   //
-  // !!! tested
+  
   async quitChannelAsOwner(userId: number, channelId: number): Promise<void> {
     if ((await this.isOnlyOneMember(channelId)) === true) {
       console.log('Is only one member');
@@ -696,7 +696,7 @@ export class SocketService {
         channelPwd.password as string,
       );
 
-      if (match == false) throw new UnauthorizedException('Invalid password');
+      if (!match) throw new UnauthorizedException('Invalid password');
     } catch (error) {
       if (error instanceof UnauthorizedException) throw error;
       throw new InternalServerErrorException();
@@ -762,7 +762,7 @@ export class SocketService {
   //
   //
   //
-  // !!! tested
+  
   async invitedListVerification(
     userId: number,
     channelId: number,
@@ -783,7 +783,7 @@ export class SocketService {
   //
   //
   //
-  // !!! tested
+  
   async addToInviteList(
     userId: number,
     channelId: number,
@@ -818,7 +818,7 @@ export class SocketService {
   //
   //
   //
-  // !!! tested
+  
   async removeFromInviteList(
     userId: number,
     channelId: number,
@@ -845,7 +845,7 @@ export class SocketService {
   //
   //
   //
-  // !!! tested
+  
   async isInInviteList(userId: number, channelId: number) {
     try {
       const userInList = await db

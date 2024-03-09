@@ -20,7 +20,7 @@ export class DmService {
   constructor(
     private friendsService: FriendsService,
     private readonly liveChatSocket: LiveChatSocket,
-    private readonly usersStatusGateway: UsersStatusGateway, // !!! test
+    private readonly usersStatusGateway: UsersStatusGateway,
   ) {}
 
   //
@@ -191,7 +191,6 @@ export class DmService {
   //
   //
   //
-  // !!! changing type of return value
   async getConversation(
     conversationId: number,
     userId: number,

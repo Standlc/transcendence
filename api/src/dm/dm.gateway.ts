@@ -172,7 +172,6 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
   //
   //
   //
-  // !!! to test
   @SubscribeMessage('getDirectMessages')
   async getDirectMessages(
     @ConnectedSocket() socket: Socket,

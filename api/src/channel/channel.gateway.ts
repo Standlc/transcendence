@@ -68,7 +68,6 @@ export class ChannelGateway
   //
   //
   //
-  // !!! verify if password can be null
   @SubscribeMessage('joinChannel')
   async handleJoinChannel(
     @ConnectedSocket() socket: Socket,
@@ -258,7 +257,6 @@ export class ChannelGateway
   //
   //
   //
-  // !!! tested
   @SubscribeMessage('quitChannel')
   async handleQuitChannel(
     @ConnectedSocket() socket: Socket,
@@ -319,7 +317,6 @@ export class ChannelGateway
   //
   //
   //
-  // !!! tested with 2 users
   @SubscribeMessage('banUser')
   async handleBanUser(
     @ConnectedSocket() socket: Socket,
@@ -371,7 +368,6 @@ export class ChannelGateway
   //
   //
   //
-  // !!! tested
   @SubscribeMessage('unbanUser')
   async handleUnbanUser(
     @ConnectedSocket() socket: Socket,
@@ -407,7 +403,6 @@ export class ChannelGateway
   //
   //
   //
-  // !!! tested with 2 users
   @SubscribeMessage('kickUser')
   async handleKickUser(
     @ConnectedSocket() socket: Socket,
@@ -462,7 +457,6 @@ export class ChannelGateway
   //
   //
   //
-  // !!! tested
   @SubscribeMessage('muteUser')
   async handleMuteUser(
     @ConnectedSocket() socket: Socket,
@@ -502,7 +496,6 @@ export class ChannelGateway
   //
   //
   //
-  // !!! tested
   @SubscribeMessage('unmuteUser')
   async handleUnmute(
     @ConnectedSocket() socket: Socket,
@@ -534,7 +527,6 @@ export class ChannelGateway
   //
   //
   //
-  // !!! tested
   //blocked user can still send messages but the user who blocked cannot see them
   //blocked works for all the channels
   @SubscribeMessage('blockUser')
@@ -562,7 +554,6 @@ export class ChannelGateway
   //
   //
   //
-  // !!! tested
   @SubscribeMessage('unblockUser')
   async hadleUnblockUser(
     @ConnectedSocket() socket: Socket,
@@ -588,7 +579,6 @@ export class ChannelGateway
   //
   //
   //
-  // !!! tested
   @SubscribeMessage('addChannelAdmin')
   async handleAddChannelAdmin(
     @ConnectedSocket() socket: Socket,
@@ -624,7 +614,6 @@ export class ChannelGateway
   //
   //
   //
-  // !!! to test
   @SubscribeMessage('removeChannelAdmin')
   async handleRemoveChannelAdmin(
     @ConnectedSocket() socket: Socket,
@@ -660,7 +649,6 @@ export class ChannelGateway
   //
   //
   //
-  // !!! tested
   @SubscribeMessage('addToInviteList')
   async handleAddToInviteList(
     @ConnectedSocket() socket: Socket,
@@ -696,7 +684,6 @@ export class ChannelGateway
   //
   //
   //
-  // !!! tested
   @SubscribeMessage('removeFromInviteList')
   async handleRemoveFromInviteList(
     @ConnectedSocket() socket: Socket,
@@ -732,8 +719,6 @@ export class ChannelGateway
   //
   //
   //
-  // !!! need to send all messages threw a new event
-  // !!! to test
   @SubscribeMessage('getChannelMessages')
   async handleGetChannelMessages(
     @ConnectedSocket() socket: Socket,

@@ -131,9 +131,8 @@ export class ChannelService {
     }
 
     try {
-      const isPublicBoolean = channel.isPublic.toString();
       this.utilsChannelService.canSetPassword(
-        isPublicBoolean,
+        channel.isPublic,
         channel.password,
       );
     } catch (error) {
@@ -234,7 +233,7 @@ export class ChannelService {
   //
   //
   //
-  // !!! tested
+  
   async deleteChannel(channelId: number, userId: number): Promise<string> {
     try {
       await this.utilsChannelService.channelExists(channelId);
@@ -306,23 +305,8 @@ export class ChannelService {
     }
 
     try {
-      // !!! test type variable
-      console.log(typeof channel.isPublic);
-      // !!! need to ask Seth
-      //
-      const isPublicString = channel.isPublic.toString();
-      let isPublicBoolean: boolean;
-      if (isPublicString === 'true') {
-        isPublicBoolean = true;
-      } else if (isPublicString === 'false') {
-        isPublicBoolean = false;
-      } else {
-        throw new UnprocessableEntityException('Invalid isPublic value');
-      }
-      //
-
       await this.utilsChannelService.userAuthorizedToUpdate(
-        isPublicBoolean,
+        channel.isPublic,
         channel.password,
         channelId,
         userIsOwner,
@@ -455,7 +439,6 @@ export class ChannelService {
   //
   //
   //
-  // !!! to test
   // channels the user did not join yet that are either public
   //                 or private and user is in the invite list
   async getAllAvailableChannels(
