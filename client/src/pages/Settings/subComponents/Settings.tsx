@@ -123,22 +123,6 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
             {/* Section des champs d'entrée à gauche */}
             <div className="ml-[400px] mt-20 w-[400px] mr-[100px]">
                 <div className="text-xl font-bold text-left ml-10 mb-20">Profil</div>
-                {/* <div className="mb-6 w-[250px]">
-                    <label
-                        htmlFor="nickname"
-                        className="text-left  mb-2 text-sm text-white"
-                    >
-                        NICKNAME
-                    </label>
-                    <input
-                        type="nickname"
-                        id="nickname"
-                        value={user?.username}
-                        onChange={(e) => setNickname(e.target.value)}
-                        className="bg-discord-light-black text-white text-sm rounded-l block w-full h-10 px-2.5"
-                        placeholder=""
-                    />
-                </div> */}
                 <div className="mb-6  w-[250px]">
                     <label
                         htmlFor="firstname"

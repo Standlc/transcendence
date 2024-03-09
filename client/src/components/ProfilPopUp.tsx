@@ -1,4 +1,3 @@
-import { AppUser } from "@api/types/clientSchema";
 import { useState } from "react";
 import { Avatar } from "../UIKit/avatar/Avatar";
 import MoreVertIcon from "@mui/icons-material/MoreVert";

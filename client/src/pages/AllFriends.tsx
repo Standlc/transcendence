@@ -301,12 +301,16 @@ export const AllFriends: React.FC<Props> = ({
                                         </div>
                                     </div>
 
-                                    <button
-                                        onClick={(e) => handleDeleteClick(e, friend)}
-                                        className="bg-blurple hover:bg-blurple-hover text-white font-bold py-2 px-4 rounded mr-[10px] "
-                                    >
-                                        supprimer
-                                    </button>
+                                    <div className="mt-3">
+                                        <button
+                                            onClick={(e) =>
+                                                handleDeleteClick(e, friend)
+                                            }
+                                            className="bg-blurple hover:bg-blurple-hover text-white py-2 font-bold  px-4 rounded mr-[10px] "
+                                        >
+                                            supprimer
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </ul>

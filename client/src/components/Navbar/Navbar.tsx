@@ -1,10 +1,14 @@
 import { SportsEsportsRounded } from "@mui/icons-material";
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import ChatBubbleRoundedIcon from "@mui/icons-material/ChatBubbleRounded";
+import ModalLayout from "../../UIKit/ModalLayout";
+import { ChanPopUp } from "../ChanPopUp";
 
 export const NavBar = () => {
     const navigate = useNavigate();
     const [activeButton, setActiveButton] = useState<string | null>(null);
+    const [showChanPopUp, setShowChanPopUp] = useState(false);
 
     const handleClick = (buttonText: string) => {
         setActiveButton((prevButton) =>
@@ -19,12 +23,22 @@ export const NavBar = () => {
             case "Discover":
                 // navigate("/Discovery");
                 break;
-            case "+":
+            case "play":
                 navigate("/play");
+                break;
+            case "Chat":
+                navigate("/home");
+                break;
+            case "+":
+                setShowChanPopUp(true);
                 break;
             default:
                 break;
         }
+    };
+
+    const closePopup = () => {
+        setShowChanPopUp(false);
     };
 
     return (
@@ -64,9 +78,26 @@ export const NavBar = () => {
             </button>
             <button
                 className={`mt-4 items-center p-2 rounded-full ${
+                    activeButton === "Chat"
+                        ? "rounded-lg bg-blurple hover:bg-blurple"
+                        : "bg-not-quite-black hover:rounded-lg hover:bg-blurple"
+                }`}
+                style={{ height: "50px", width: "50px" }}
+                onClick={() => handleClick("Chat")}
+            >
+                {activeButton === "Chat" ? (
+                    <span
+                        className="absolute left-0 h-[40px] bg-white rounded-lg"
+                        style={{ width: "4px", marginTop: "-7px" }}
+                    ></span>
+                ) : null}
+                <ChatBubbleRoundedIcon />
+            </button>
+            <button
+                className={`mt-4 items-center p-2 rounded-full ${
                     activeButton === "Discover"
-                        ? "rounded-lg bg-green hover:bg-blurple"
-                        : "bg-not-quite-black hover:rounded-lg hover:bg-green"
+                        ? "rounded-lg bg-green-500 hover:bg-green-700"
+                        : "bg-not-quite-black hover:rounded-lg hover:bg-green-700"
                 }`}
                 style={{ height: "50px", width: "50px" }}
                 onClick={() => handleClick("Discover")}
@@ -85,11 +116,11 @@ export const NavBar = () => {
                     style={{
                         display: "block",
                         margin: "auto",
-                        fill: activeButton === "Discover" ? "white" : "green",
+                        fill: activeButton === "Discover" ? "white" : "green-500",
                     }}
                 >
                     <path
-                        fill={activeButton === "Discover" ? "white" : "green"}
+                        fill={activeButton === "Discover" ? "white" : "green-500"}
                         fillRule="evenodd"
                         d="M23 12a11 11 0 1 1-22 0 11 11 0 0 1 22 0ZM7.74 9.3A2 2 0 0 1 9.3 7.75l7.22-1.45a1 1 0 0 1 1.18 1.18l-1.45 7.22a2 2 0 0 1-1.57 1.57l-7.22 1.45a1 1 0 0 1-1.18-1.18L7.74 9.3Z"
                         clipRule="evenodd"
@@ -111,8 +142,32 @@ export const NavBar = () => {
                         style={{ width: "4px", marginTop: "-7px" }}
                     ></span>
                 ) : null}
+                <div className="font-bold text-lg">+</div>
+            </button>
+            <button
+                className={`mt-4 items-center p-2 rounded-full ${
+                    activeButton === "play"
+                        ? "rounded-lg bg-blurple hover:bg-blurple"
+                        : "bg-not-quite-black hover:rounded-lg hover:bg-blurple"
+                }`}
+                style={{ height: "50px", width: "50px" }}
+                onClick={() => handleClick("play")}
+            >
+                {activeButton === "play" ? (
+                    <span
+                        className="absolute left-0 h-[40px] bg-white rounded-lg"
+                        style={{ width: "4px", marginTop: "-7px" }}
+                    ></span>
+                ) : null}
                 <SportsEsportsRounded />
             </button>
+            <div className="">
+                {showChanPopUp && (
+                    <ModalLayout>
+                        <ChanPopUp onClose={closePopup} />
+                    </ModalLayout>
+                )}
+            </div>
         </div>
     );
 };

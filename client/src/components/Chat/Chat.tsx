@@ -48,19 +48,13 @@ interface Message {
     username: string;
 }
 
-interface conversationResponse {
-    id: number;
-    createdAt: Timestamp;
-    user1_id: number;
-    user2_id: number;
-}
-
 const Chat = () => {
     const { dmId } = useParams();
     const user = useGetUser();
     const navigate = useNavigate();
     const [message, setMessage] = useState("");
     const socketRef = useRef<any>(null);
+    const [realTimeMessages, setRealTimeMessages] = useState<Message[]>([]);
 
     console.log("User", user);
 
@@ -105,7 +99,7 @@ const Chat = () => {
         const socket = io("/dm");
         socketRef.current = socket;
 
-        // Setup event listeners
+        // Connexion et gestion des erreurs
         socket.on("connect", () => console.log("Connected to server"));
         socket.on("connect_error", (error) =>
             console.error("Connection error:", error)
@@ -115,18 +109,27 @@ const Chat = () => {
         );
 
         if (dmId) {
-            socket.emit("joinConversation", {
-                conversationId: dmId,
+            socket.emit("joinConversation", { conversationId: dmId });
+
+            socket.on("getDirectMessages", (newMessages) => {
+                console.log("Received new messages:", newMessages);
+                setRealTimeMessages((prevMessages) => [
+                    ...prevMessages,
+                    ...newMessages,
+                ]);
             });
-            socket.on("joinConversation", (data) =>
-                console.log(`Joined conversation successfully`, data)
-            );
         }
 
         return () => {
-            socket.disconnect();
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+            }
         };
-    }, [dmId, user?.id]);
+    }, [dmId]);
+
+    useEffect(() => {
+        console.log("realTimeMessages updated:", realTimeMessages);
+    }, [realTimeMessages]);
 
     const sendMessage = (e) => {
         e.preventDefault();
@@ -138,6 +141,7 @@ const Chat = () => {
                 senderId: user?.id,
             };
 
+            console.log("Sending message:", messageData);
             socketRef.current.emit("createDirectMessage", messageData);
 
             setMessage("");
@@ -185,6 +189,7 @@ const Chat = () => {
         return <div>Please select a conversation to start chatting.</div>;
     }
 
+    console.log("realTimeMessages", realTimeMessages);
     return (
         <div className="w-full bg-discord-light-grey">
             <div
@@ -226,50 +231,55 @@ const Chat = () => {
                 )}
             </div>
             <div className="text-white text-left h-[800px] w-[1400px] ml-[20px] overflow-auto">
-                {allMessages.data.map((msg, index) => (
-                    <div className="mt-[20px]  " key={index}>
-                        <div className="flex ">
-                            {shouldDisplayAvatarAndTimestamp(index) && (
-                                <div className="flex ">
-                                    {msg.avatarUrl ? (
-                                        <img
-                                            src={msg.avatarUrl}
-                                            className="h-[50px] w-[50px] rounded-full"
-                                        />
-                                    ) : (
-                                        <img
-                                            src={defaultAvatar}
-                                            className="h-[50px] w-[50px] rounded-full"
-                                        />
-                                    )}
-                                    {shouldDisplayUsername(index) && (
-                                        <div className="font-bold ml-[30px]">
-                                            {msg.senderId === user?.id
-                                                ? user?.username
-                                                : otherUser?.username}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                {[...(allMessages.data ?? []), ...realTimeMessages].map(
+                    (msg, index) => (
+                        <div className="mt-[20px]  " key={index}>
+                            <div className="flex ">
+                                {shouldDisplayAvatarAndTimestamp(index) && (
+                                    <div className="flex ">
+                                        {msg.avatarUrl ? (
+                                            <img
+                                                src={msg.avatarUrl}
+                                                className="h-[50px] w-[50px] rounded-full"
+                                            />
+                                        ) : (
+                                            <img
+                                                src={defaultAvatar}
+                                                className="h-[50px] w-[50px] rounded-full"
+                                            />
+                                        )}
+                                        {shouldDisplayUsername(index) && (
+                                            <div className="font-bold ml-[30px]">
+                                                {msg.senderId === user?.id
+                                                    ? user?.username
+                                                    : otherUser?.username}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
-                            {shouldDisplayAvatarAndTimestamp(index) && (
-                                <div className="ml-[10px] mt-[4px] text-[13px]">
-                                    {new Date(msg.createdAt).toLocaleString(undefined, {
-                                        year: "numeric",
-                                        month: "2-digit",
-                                        day: "2-digit",
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                        second: "2-digit",
-                                    })}
-                                </div>
-                            )}
+                                {shouldDisplayAvatarAndTimestamp(index) && (
+                                    <div className="ml-[10px] mt-[4px] text-[13px]">
+                                        {new Date(msg.createdAt).toLocaleString(
+                                            undefined,
+                                            {
+                                                year: "numeric",
+                                                month: "2-digit",
+                                                day: "2-digit",
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                                second: "2-digit",
+                                            }
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="mt-[-15px] block text-md ml-[80px]">
+                                {msg.content}
+                            </div>
                         </div>
-                        <div className="mt-[-15px] block text-md ml-[80px]">
-                            {msg.content}
-                        </div>
-                    </div>
-                ))}
+                    )
+                )}
             </div>
             <form onSubmit={sendMessage} className="chat-input-form">
                 <input

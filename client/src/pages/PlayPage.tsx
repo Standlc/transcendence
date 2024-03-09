@@ -27,7 +27,7 @@ export default function PlayPage() {
     }, []);
 
     return (
-        <div className="flex justify-center min-h-[100vh] p-5 gap-10">
+        <div className="relative flex  w-full justify-center min-h-[100vh] max-h-[100vh] p-5 gap-10 overflow-y-auto">
             <div className="flex flex-col min-h-[100vh] gap-10 max-w-[1100px] w-full">
                 <div className="flex gap-5 flex-wrap justify-center">
                     <div className="flex-[4] relative flex justify-center">
