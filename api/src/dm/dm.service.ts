@@ -1,22 +1,27 @@
+import { LiveChatSocket } from './../liveChatSocket/liveChatSocket.gateway';
 import {
-  ConflictException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  UnauthorizedException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { db } from 'src/database';
 import {
   AllConversationsPromise,
-  ConversationPromise,
   DirectMessageContent,
   DmWithSenderInfo,
 } from 'src/types/channelsSchema';
 import { FriendsService } from 'src/friends/friends.service';
+import { UsersStatusGateway } from 'src/usersStatusGateway/UsersStatus.gateway';
 
 @Injectable()
 export class DmService {
-  constructor(private friendsService: FriendsService) {}
+  constructor(
+    private friendsService: FriendsService,
+    private readonly liveChatSocket: LiveChatSocket,
+    private readonly usersStatusGateway: UsersStatusGateway,
+  ) {}
 
   //
   //
@@ -60,12 +65,26 @@ export class DmService {
       throw new NotFoundException('User not found');
     }
 
+    try {
+      await this.userIsBlocked(userId, user2);
+    } catch (error) {
+      throw error;
+    }
+
+    try {
+      await this.userIsBlocked(user2, userId);
+    } catch (error) {
+      throw error;
+    }
+
     if ((await this.friendsService.isFriend(userId, user2)) == false) {
       throw new NotFoundException('Users are not friends');
     }
 
-    if (await this.getConversationByUserIds(userId, user2)) {
-      throw new ConflictException('Conversation already exists');
+    try {
+      await this.getConversationByUserIds(userId, user2);
+    } catch (error) {
+      throw error;
     }
 
     try {
@@ -80,6 +99,9 @@ export class DmService {
     } catch (error) {
       throw new InternalServerErrorException();
     }
+
+    // !!! test of the global socket that will notify the user about the new conversation
+    this.liveChatSocket.handleNewConversation(userId, user2);
     return `Conversation of user ${userId} and user ${user2} created`;
   }
 
@@ -104,11 +126,14 @@ export class DmService {
           'user.id as user1Id',
           'user.avatarUrl as user1AvatarUrl',
           'user.username as user1Username',
+          'user.rating as user1Rating',
           'user2.id as user2Id',
           'user2.avatarUrl as user2AvatarUrl',
           'user2.username as user2Username',
+          'user2.rating as user2Rating',
         ])
         .execute();
+
       return allConv.map((conv) => ({
         id: conv.id,
         createdAt: conv.createdAt,
@@ -116,11 +141,15 @@ export class DmService {
           userId: conv.user1Id,
           avatarUrl: conv.user1AvatarUrl,
           username: conv.user1Username,
+          rating: conv.user1Rating,
+          status: this.usersStatusGateway.getUserStatus(conv.user1Id as number),
         },
         user2: {
           userId: conv.user2Id,
           avatarUrl: conv.user2AvatarUrl,
           username: conv.user2Username,
+          rating: conv.user2Rating,
+          status: this.usersStatusGateway.getUserStatus(conv.user2Id as number),
         },
       })) as AllConversationsPromise[];
     } catch (error) {
@@ -135,7 +164,7 @@ export class DmService {
   async getConversationByUserIds(
     user1_id: number,
     user2_id: number,
-  ): Promise<ConversationPromise> {
+  ): Promise<boolean> {
     try {
       const conversationExists = await db
         .selectFrom('conversation')
@@ -147,8 +176,14 @@ export class DmService {
           eb.or([eb('user1_id', '=', user2_id), eb('user2_id', '=', user2_id)]),
         )
         .executeTakeFirst();
-      return conversationExists as ConversationPromise;
+
+      if (conversationExists) {
+        throw new NotFoundException('Conversation already exists');
+      }
+
+      return true;
     } catch (error) {
+      if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException();
     }
   }
@@ -159,19 +194,53 @@ export class DmService {
   async getConversation(
     conversationId: number,
     userId: number,
-  ): Promise<ConversationPromise> {
+  ): Promise<AllConversationsPromise> {
     try {
       const conversation = await db
         .selectFrom('conversation')
-        .selectAll()
-        .where('id', '=', conversationId)
+        .leftJoin('user', 'conversation.user1_id', 'user.id')
+        .leftJoin('user as user2', 'conversation.user2_id', 'user2.id')
+        .where('conversation.id', '=', conversationId)
         .where((eb) =>
           eb.or([eb('user1_id', '=', userId), eb('user2_id', '=', userId)]),
         )
+        .select([
+          'conversation.id',
+          'conversation.createdAt',
+          'user.id as user1Id',
+          'user.avatarUrl as user1AvatarUrl',
+          'user.username as user1Username',
+          'user.rating as user1Rating',
+          'user2.id as user2Id',
+          'user2.avatarUrl as user2AvatarUrl',
+          'user2.username as user2Username',
+          'user2.rating as user2Rating',
+        ])
         .executeTakeFirst();
       if (!conversation) throw new NotFoundException('Conversation not found');
 
-      return conversation as ConversationPromise;
+      return {
+        id: conversation.id as number,
+        createdAt: conversation.createdAt as Date,
+        user1: {
+          userId: conversation.user1Id as number,
+          avatarUrl: conversation.user1AvatarUrl as string,
+          username: conversation.user1Username as string,
+          rating: conversation.user1Rating as number,
+          status: this.usersStatusGateway.getUserStatus(
+            conversation.user1Id as number,
+          ),
+        },
+        user2: {
+          userId: conversation.user2Id as number,
+          avatarUrl: conversation.user2AvatarUrl as string,
+          username: conversation.user2Username as string,
+          rating: conversation.user2Rating as number,
+          status: this.usersStatusGateway.getUserStatus(
+            conversation.user2Id as number,
+          ),
+        },
+      };
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException();
@@ -302,20 +371,46 @@ export class DmService {
   //
   //
   //
-  async createDirectMessage(directMessage: DirectMessageContent) {
+  async createDirectMessage(
+    directMessage: DirectMessageContent,
+    senderId: number,
+  ) {
     try {
       await db
         .insertInto('directMessage')
         .values({
           content: directMessage.content,
           conversationId: directMessage.conversationId,
-          senderId: directMessage.senderId,
+          senderId: senderId,
         })
         .execute();
       console.log(`Message sent to ${directMessage.conversationId}`);
       console.log('Direct Message:', directMessage);
     } catch (error) {
       throw new InternalServerErrorException('Unable to send message');
+    }
+  }
+
+  //
+  //
+  //
+  async userIsBlocked(user1: number, user2: number): Promise<void> {
+    try {
+      const users = await db
+        .selectFrom('blockedUser')
+        .select(['blockedId', 'blockedById'])
+        .where('blockedId', '=', user1)
+        .where('blockedById', '=', user2)
+        .executeTakeFirst();
+
+      if (users) {
+        throw new UnauthorizedException(
+          `User ${users.blockedById} blocked user ${users.blockedId}`,
+        );
+      }
+    } catch (error) {
+      if (error instanceof UnauthorizedException) throw error;
+      throw new InternalServerErrorException();
     }
   }
 }
