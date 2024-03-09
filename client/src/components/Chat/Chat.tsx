@@ -18,6 +18,25 @@ import { NotificationBox } from "../NotificationBox";
     // search friend input requette pour pas avoir besoin d'appuyer , affiche directement
 }
 
+interface AllUser {
+    id: 0;
+    createdAt: "string";
+    user1: {
+        userId: 0;
+        avatarUrl: "string";
+        username: "string";
+        rating: 0;
+        status: 0;
+    };
+    user2: {
+        userId: 0;
+        avatarUrl: "string";
+        username: "string";
+        rating: 0;
+        status: 0;
+    };
+}
+
 interface Message {
     avatarUrl: string | null;
     content: string;
@@ -44,55 +63,45 @@ const Chat = () => {
     const socketRef = useRef<any>(null);
 
     console.log("User", user);
-    const idConversation = useQuery({
-        queryKey: ["conversationId"],
+
+    const allUsers = useQuery({
+        queryKey: ["conversationAllUser"],
         queryFn: async () => {
-            const res = await axios.get<conversationResponse>(`/api/dm/${dmId}`);
+            const res = await axios.get<AllUser>(`/api/dm/${dmId}`);
             return res.data;
         },
     });
 
-    console.log("IdConversation", idConversation.data);
+    // console.log("all users", allUsers.data);
 
-    const otherId =
-        user?.id === idConversation.data?.user1_id
-            ? idConversation.data?.user2_id
-            : idConversation.data?.user1_id;
+    const otherUser = allUsers.data
+        ? allUsers.data.user1.userId === user?.id
+            ? allUsers.data.user2
+            : allUsers.data.user1
+        : null;
 
-    console.log("otherId", otherId);
-
-    const profileIdUser = useQuery({
-        queryKey: ["userIdProfile"],
-        queryFn: async () => {
-            if (!otherId) {
-                console.log("otherId is undefined, cannot fetch profile");
-                return null; // You can return a default value or handle this case as needed
-            }
-            const res = await axios.get<AppUser>(`/api/users/${otherId}/profile`);
-            return res.data;
-        },
-    });
+    if (!allUsers.data) {
+        return <div>Loading...</div>; // Ou une autre gestion de l'état de chargement
+    }
 
     const allMessages = useQuery<Message[]>({
         queryKey: ["allMessages"],
         queryFn: async (): Promise<Message[]> => {
-            if (!idConversation.data?.id) {
-                return []; // Return an empty array if there's no conversation ID
+            if (!dmId) {
+                return [];
             }
-            const response = await axios.get<Message[]>(
-                `/api/dm/${idConversation.data.id}/messages`
-            );
+            const response = await axios.get<Message[]>(`/api/dm/${dmId}/messages`);
             return response.data;
         },
-        enabled: !!idConversation.data?.id, // Enable query only if id is available
+        enabled: !!dmId, // Active la requête uniquement si dmId est disponible
     });
 
+    console.log("allMessages", allMessages.data);
     if (allMessages.isLoading || !allMessages.data) {
         return <div>Loading...</div>;
     }
 
     useEffect(() => {
-        // Initialize socket connection
         const socket = io("/dm");
         socketRef.current = socket;
 
@@ -105,30 +114,27 @@ const Chat = () => {
             console.error("Connection timeout:", timeout)
         );
 
-        // Join conversation if id is available
-        if (idConversation.data?.id) {
+        if (dmId) {
             socket.emit("joinConversation", {
-                conversationId: idConversation.data.id,
-                userId: user?.id,
+                conversationId: dmId,
             });
             socket.on("joinConversation", (data) =>
                 console.log(`Joined conversation successfully`, data)
             );
         }
 
-        // Cleanup on component unmount
         return () => {
             socket.disconnect();
         };
-    }, [idConversation.data?.id, user?.id]);
+    }, [dmId, user?.id]);
 
     const sendMessage = (e) => {
         e.preventDefault();
 
-        if (message.trim() && idConversation.data?.id && socketRef.current) {
+        if (message.trim() && dmId && socketRef.current) {
             const messageData = {
                 content: message, // Use the state variable here
-                conversationId: idConversation.data.id,
+                conversationId: dmId,
                 senderId: user?.id,
             };
 
@@ -140,7 +146,6 @@ const Chat = () => {
 
     const shouldDisplayAvatarAndTimestamp = (currentIndex: number): boolean => {
         if (currentIndex === 0) {
-            // Le premier message doit toujours afficher l'avatar et l'horodatage
             return true;
         }
 
@@ -156,13 +161,11 @@ const Chat = () => {
             return true;
         }
 
-        const previousMessage = allMessages.messages[currentIndex - 1];
-        const currentMessage = allMessages.messages[currentIndex];
+        const previousMessage = allMessages.data[currentIndex - 1];
+        const currentMessage = allMessages.data[currentIndex];
 
         return previousMessage.senderId !== currentMessage.senderId;
     };
-
-    console.log("profileIdUser", profileIdUser.datadata);
 
     const [isPopupOpen, setIsPopupOpen] = useState(false);
 
@@ -178,9 +181,9 @@ const Chat = () => {
         navigate("/play");
     };
 
-    //     if (!conversationID) {
-    //         return <div>Please select a conversation to start chatting.</div>;
-    //     }
+    if (!dmId) {
+        return <div>Please select a conversation to start chatting.</div>;
+    }
 
     return (
         <div className="w-full bg-discord-light-grey">
@@ -192,15 +195,13 @@ const Chat = () => {
                     <div className="w-full flex">
                         <div className="flex item-center mt-[10px] ml-[20px]">
                             <Avatar
-                                imgUrl={profileIdUser.data?.avatarUrl}
+                                imgUrl={otherUser?.avatarUrl}
                                 size="md"
-                                userId={profileIdUser.data?.id ?? 0}
+                                userId={otherUser?.userId ?? 0}
                             />
                         </div>
                         <div className="ml-2 mt-4 font-bold text-xl">
-                            <button onClick={openPopup}>
-                                {profileIdUser.data?.username}
-                            </button>
+                            <button onClick={openPopup}>{otherUser?.username}</button>
                             <span className="ml-[20px]">|</span>
                         </div>
                         <div>
@@ -218,9 +219,9 @@ const Chat = () => {
                 </div>
             </div>
             <div className="flex justify-center">
-                {isPopupOpen && (
+                {isPopupOpen && otherUser && (
                     <ModalLayout>
-                        <UserPopup user={profileIdUser.data} onClose={closePopup} />
+                        <UserPopup user={otherUser} onClose={closePopup} />
                     </ModalLayout>
                 )}
             </div>
@@ -245,7 +246,7 @@ const Chat = () => {
                                         <div className="font-bold ml-[30px]">
                                             {msg.senderId === user?.id
                                                 ? user?.username
-                                                : profileIdUser.data?.username}
+                                                : otherUser?.username}
                                         </div>
                                     )}
                                 </div>
@@ -285,4 +286,5 @@ const Chat = () => {
         </div>
     );
 };
+
 export default Chat;

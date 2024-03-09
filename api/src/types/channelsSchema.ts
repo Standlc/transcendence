@@ -8,7 +8,7 @@ export interface ChannelCreationData {
   photoUrl: string | null;
 }
 
-export type ChannelWithoutPsw = Omit<Selectable<Channel>, | 'password'>
+export type ChannelWithoutPsw = Omit<Selectable<Channel>, 'password'>;
 
 export type UserId = { userId: number };
 
@@ -122,10 +122,14 @@ export interface AllConversationsPromise {
     userId: number;
     avatarUrl: string;
     username: string;
+    rating: number;
+    status: number;
   };
   user2: {
     userId: number;
     avatarUrl: string;
     username: string;
+    rating: number;
+    status: number;
   };
 }

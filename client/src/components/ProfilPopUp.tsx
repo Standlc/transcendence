@@ -4,7 +4,13 @@ import { Avatar } from "../UIKit/avatar/Avatar";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 
 interface Popuser {
-    user: AppUser | undefined;
+    user: {
+        userId: number;
+        avatarUrl: string;
+        username: string;
+        rating: number;
+        status: number;
+    };
     onClose: () => void;
 }
 
