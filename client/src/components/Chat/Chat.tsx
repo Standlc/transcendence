@@ -3,72 +3,20 @@ import io from "socket.io-client";
 import { Timestamp } from "../../../../api/src/types/schema";
 import defaultAvatar from "./../../components/defaultAvatar.png";
 import { Avatar } from "../../UIKit/avatar/Avatar";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import ModalLayout from "../../UIKit/ModalLayout";
+import { UserPopup } from "../ProfilPopUp";
+import { useGetUser } from "../../utils/useGetUser";
+import axios from "axios";
+import { AppUser } from "@api/types/clientSchema";
+import { useQuery } from "@tanstack/react-query";
+import { NotificationBox } from "../NotificationBox";
 
 {
     // TODO: Pour l'input chat
     /* <TextArea></TextArea> */
     // search friend input requette pour pas avoir besoin d'appuyer , affiche directement
 }
-
-interface Popuser {
-    user: AppUser | null;
-    onClose: () => void;
-}
-
-const UserPopup: React.FC<Popuser> = ({ user, onClose }: Popuser) => {
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const toggleMenu = () => {
-        setIsMenuOpen(!isMenuOpen);
-    };
-
-    return (
-        <div className="h-full w-full rounded-lg overflow-hidden">
-            <div className="flex rounded-top-lg bg-discord-light-black w-full h-[100px]"></div>
-            <div className="flex bg-discord-light-grey items-center justify-between w-full">
-                <div className="ml-[40px] mt-[10px] mb-[20px]">
-                    <Avatar
-                        imgUrl={user?.avatarUrl}
-                        size="2xl"
-                        userId={user?.id ?? 0}
-                    />
-                </div>
-                <div className="flex items-center">
-                    {" "}
-                    <div className="bg-green py-2 rounded-lg px-3 block mr-2">
-                        <button>Send message</button>
-                    </div>
-                    <div className="relative">
-                        <button onClick={toggleMenu}>
-                            <MoreVertIcon></MoreVertIcon>
-                        </button>
-                        {isMenuOpen && (
-                            <div className="absolute right-0 top-8 bg-discord-black rounded-lg shadow-md border">
-                                <button className="block px-4 text-red-500 py-2 w-full text-left hover:bg-discord-light-grey font-bold">
-                                    Delete
-                                </button>
-                                <button className="block px-4 py-2 w-full text-left hover:bg-discord-light-grey whitespace-nowrap">
-                                    Send Message
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-            <div className=" bg-discord-light-grey h-full">
-                <div className="bg-discord-black mr-[10px] rounded-lg ml-[10px] h-[300px]">
-                    <div className="text-left ml-[20px] text-xl font-bold">
-                        <div> {user?.username}</div>
-                        <div> elo : {user?.rating}</div>
-                        <div> {user?.bio}</div>
-                    </div>
-                </div>
-                <button onClick={onClose}>on close</button>
-            </div>
-        </div>
-    );
-};
 
 interface Message {
     avatarUrl: string | null;
@@ -81,164 +29,114 @@ interface Message {
     username: string;
 }
 
-interface UserProfile {
-    avatarUrl: string | null;
-    bio: string | null;
-    createdAt: Timestamp;
-    email: string | null;
-    firstname: string | null;
+interface conversationResponse {
     id: number;
-    lastname: string | null;
-    rating: number;
-    username: string | null;
+    createdAt: Timestamp;
+    user1_id: number;
+    user2_id: number;
 }
 
 const Chat = () => {
     const { dmId } = useParams();
-
-    return <>Chat for {dmId}</>;
-
-    const [message, setMessage] = useState("");
-    const [messages, setMessages] = useState<Message[]>([]);
-    const socketRef = useRef<any>(null);
-    const [isPopupOpen, setIsPopupOpen] = useState(false);
-    const [friendProfile, setProfile] = useState<AppUser | null>(null);
+    const user = useGetUser();
     const navigate = useNavigate();
+    const [message, setMessage] = useState("");
+    const socketRef = useRef<any>(null);
 
-    // TODO:Query
-    const getUserProfile = async (id: number) => {
-        try {
-            const response = await fetch(
-                `http://localhost:3000/api/users/${id}/profile`,
-                {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                }
+    console.log("User", user);
+    const idConversation = useQuery({
+        queryKey: ["conversationId"],
+        queryFn: async () => {
+            const res = await axios.get<conversationResponse>(`/api/dm/${dmId}`);
+            return res.data;
+        },
+    });
+
+    console.log("IdConversation", idConversation.data);
+
+    const otherId =
+        user?.id === idConversation.data?.user1_id
+            ? idConversation.data?.user2_id
+            : idConversation.data?.user1_id;
+
+    console.log("otherId", otherId);
+
+    const profileIdUser = useQuery({
+        queryKey: ["userIdProfile"],
+        queryFn: async () => {
+            if (!otherId) {
+                console.log("otherId is undefined, cannot fetch profile");
+                return null; // You can return a default value or handle this case as needed
+            }
+            const res = await axios.get<AppUser>(`/api/users/${otherId}/profile`);
+            return res.data;
+        },
+    });
+
+    const allMessages = useQuery<Message[]>({
+        queryKey: ["allMessages"],
+        queryFn: async (): Promise<Message[]> => {
+            if (!idConversation.data?.id) {
+                return []; // Return an empty array if there's no conversation ID
+            }
+            const response = await axios.get<Message[]>(
+                `/api/dm/${idConversation.data.id}/messages`
             );
+            return response.data;
+        },
+        enabled: !!idConversation.data?.id, // Enable query only if id is available
+    });
 
-            const contentType = response.headers.get("content-type");
-            if (contentType && contentType.indexOf("application/json") !== -1) {
-                const data = await response.json();
-                setProfile(data);
-                console.log("Profile data", data);
-            } else {
-                console.error("Received non-JSON response from server");
-                const textResponse = await response.text();
-                console.log("Server response:", textResponse);
-                throw new Error("Server returned a non-JSON response");
-            }
-        } catch (error) {
-            console.error("Fetching profile failed:", error);
-        }
-    };
+    if (allMessages.isLoading || !allMessages.data) {
+        return <div>Loading...</div>;
+    }
 
     useEffect(() => {
-        if (selectedFriend) {
-            getUserProfile(selectedFriend.id);
+        // Initialize socket connection
+        const socket = io("/dm");
+        socketRef.current = socket;
+
+        // Setup event listeners
+        socket.on("connect", () => console.log("Connected to server"));
+        socket.on("connect_error", (error) =>
+            console.error("Connection error:", error)
+        );
+        socket.on("connect_timeout", (timeout) =>
+            console.error("Connection timeout:", timeout)
+        );
+
+        // Join conversation if id is available
+        if (idConversation.data?.id) {
+            socket.emit("joinConversation", {
+                conversationId: idConversation.data.id,
+                userId: user?.id,
+            });
+            socket.on("joinConversation", (data) =>
+                console.log(`Joined conversation successfully`, data)
+            );
         }
 
-        if (conversationID) {
-            socketRef.current = io("/dm");
-
-            socketRef.current.on("connect", () => {
-                console.log("Connected to server");
-            });
-
-            console.log("Socket id", socketRef.current);
-
-            socketRef.current.on("connect_error", (error) => {
-                console.error("Connection error:", error);
-            });
-
-            socketRef.current.on("connect_timeout", (timeout) => {
-                console.error("Connection timeout:", timeout);
-            });
-
-            socketRef.current.emit("joinConversation", {
-                conversationId: conversationID,
-                userId: loginResponse?.id,
-            });
-
-            socketRef.current.on("joinedConversation", (data) => {
-                console.log(`Joined conversation successfully`, data);
-            });
-
-            return () => {
-                socketRef.current.disconnect();
-            };
-        }
-    }, [conversationID, SERVER_URL, selectedFriend]);
-
-    useEffect(() => {
-        const getFullConversation = async () => {
-            if (!conversationID) return;
-
-            try {
-                const response = await fetch(
-                    `http://localhost:3000/api/dm/${conversationID}/messages`,
-                    {
-                        method: "GET",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                    }
-                );
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                // Assuming the API response is directly in the format we need
-                setMessages(data);
-                console.log("Messages", data);
-            } catch (error) {
-                console.error("Fetching conversation failed:", error);
-            }
+        // Cleanup on component unmount
+        return () => {
+            socket.disconnect();
         };
+    }, [idConversation.data?.id, user?.id]);
 
-        getFullConversation();
-    }, [conversationID]);
-
-    const sendMessage = (e: React.FormEvent) => {
+    const sendMessage = (e) => {
         e.preventDefault();
 
-        if (message.trim() && conversationID && socketRef.current) {
+        if (message.trim() && idConversation.data?.id && socketRef.current) {
             const messageData = {
-                content: message,
-                conversationId: conversationID,
-                senderId: loginResponse?.id,
+                content: message, // Use the state variable here
+                conversationId: idConversation.data.id,
+                senderId: user?.id,
             };
 
             socketRef.current.emit("createDirectMessage", messageData);
 
-            socketRef.current.emit("joinConversation", {
-                conversationId: conversationID,
-                userId: loginResponse?.id,
-            });
-
             setMessage("");
         }
     };
-
-    const openPopup = () => {
-        setIsPopupOpen(true);
-    };
-
-    // Fonction pour fermer la popup
-    const closePopup = () => {
-        setIsPopupOpen(false);
-    };
-
-    const handleClickPlay = () => {
-        navigate("/play");
-    };
-
-    if (!conversationID) {
-        return <div>Please select a conversation to start chatting.</div>;
-    }
 
     const shouldDisplayAvatarAndTimestamp = (currentIndex: number): boolean => {
         if (currentIndex === 0) {
@@ -246,8 +144,8 @@ const Chat = () => {
             return true;
         }
 
-        const previousMessage = messages[currentIndex - 1];
-        const currentMessage = messages[currentIndex];
+        const previousMessage = allMessages.data[currentIndex - 1];
+        const currentMessage = allMessages.data[currentIndex];
 
         // Vérifie si le message précédent est du même expéditeur
         return previousMessage.senderId !== currentMessage.senderId;
@@ -258,11 +156,31 @@ const Chat = () => {
             return true;
         }
 
-        const previousMessage = messages[currentIndex - 1];
-        const currentMessage = messages[currentIndex];
+        const previousMessage = allMessages.messages[currentIndex - 1];
+        const currentMessage = allMessages.messages[currentIndex];
 
         return previousMessage.senderId !== currentMessage.senderId;
     };
+
+    console.log("profileIdUser", profileIdUser.datadata);
+
+    const [isPopupOpen, setIsPopupOpen] = useState(false);
+
+    const openPopup = () => {
+        setIsPopupOpen(true);
+    };
+
+    const closePopup = () => {
+        setIsPopupOpen(false);
+    };
+
+    const handleClickPlay = () => {
+        navigate("/play");
+    };
+
+    //     if (!conversationID) {
+    //         return <div>Please select a conversation to start chatting.</div>;
+    //     }
 
     return (
         <div className="w-full">
@@ -274,14 +192,14 @@ const Chat = () => {
                     <div className="w-full flex">
                         <div className="flex item-center mt-[10px] ml-[20px]">
                             <Avatar
-                                imgUrl={selectedFriend?.avatarUrl}
+                                imgUrl={profileIdUser.data?.avatarUrl}
                                 size="md"
-                                userId={selectedFriend?.id ?? 0}
+                                userId={profileIdUser.data?.id ?? 0}
                             />
                         </div>
                         <div className="ml-2 mt-4 font-bold text-xl">
                             <button onClick={openPopup}>
-                                {selectedFriend?.username}
+                                {profileIdUser.data?.username}
                             </button>
                             <span className="ml-[20px]">|</span>
                         </div>
@@ -299,17 +217,15 @@ const Chat = () => {
                     </div>
                 </div>
             </div>
-            <div className="flex w-[200px] justify-center">
+            <div className="flex justify-center">
                 {isPopupOpen && (
-                    <div className="fixed top-0 left-0 w-full h-full flex justify-center bg-black bg-opacity-[30%] z-10    items-center">
-                        <div className="bg-gray w-[600px] h-[650px] rounded-md shadow-lg ">
-                            <UserPopup user={friendProfile} onClose={closePopup} />
-                        </div>
-                    </div>
+                    <ModalLayout>
+                        <UserPopup user={profileIdUser.data} onClose={closePopup} />
+                    </ModalLayout>
                 )}
             </div>
             <div className="text-white text-left h-[800px] w-[1400px] ml-[20px] overflow-auto">
-                {messages.map((msg, index) => (
+                {allMessages.data.map((msg, index) => (
                     <div className="mt-[20px]  " key={index}>
                         <div className="flex ">
                             {shouldDisplayAvatarAndTimestamp(index) && (
@@ -327,9 +243,9 @@ const Chat = () => {
                                     )}
                                     {shouldDisplayUsername(index) && (
                                         <div className="font-bold ml-[30px]">
-                                            {msg.senderId === loginResponse?.id
-                                                ? loginResponse?.username
-                                                : selectedFriend?.username}{" "}
+                                            {msg.senderId === user?.id
+                                                ? user?.username
+                                                : profileIdUser.data?.username}
                                         </div>
                                     )}
                                 </div>
@@ -354,18 +270,19 @@ const Chat = () => {
                     </div>
                 ))}
             </div>
-            <form onSubmit={sendMessage}>
+            <form onSubmit={sendMessage} className="chat-input-form">
                 <input
-                    className="text-black w-[800px] h-[50px] bg-gray  ml-[20px]"
+                    className="chat-input text-black w-full h-12 px-4"
                     type="text"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    value={message} // Bind the state to the input
+                    onChange={(e) => setMessage(e.target.value)} // Update the state on change
                     placeholder="Write a message..."
                 />
-                <button type="submit">Send</button>
+                <button type="submit" className="send-message-btn">
+                    Send
+                </button>
             </form>
         </div>
     );
 };
-
 export default Chat;

@@ -1,16 +1,26 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 export const NotificationBox: React.FC = () => {
     const [isChatBoxVisible, setIsChatBoxVisible] = useState(false);
-    const [isPopupVisible, setIsPopupVisible] = useState(false); // State to manage popup visibility
+    const [isPopupVisible, setIsPopupVisible] = useState(false);
     const chatBoxRef = useRef<HTMLDivElement>(null);
 
-    const toggleChatBox = () => {
-        setIsChatBoxVisible(!isChatBoxVisible);
-    };
-
+    const toggleChatBox = () => setIsChatBoxVisible(!isChatBoxVisible);
     const showPopup = () => setIsPopupVisible(true);
     const hidePopup = () => setIsPopupVisible(false);
+
+    const handleClickOutside = (event: MouseEvent) => {
+        if (chatBoxRef.current && !chatBoxRef.current.contains(event.target as Node)) {
+            setIsChatBoxVisible(false);
+            setIsPopupVisible(false); // Optionally hide the popup too
+        }
+    };
+
+    useEffect(() => {
+        document.addEventListener("mousedown", handleClickOutside);
+
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     return (
         <div className="text-right ">
@@ -39,22 +49,22 @@ export const NotificationBox: React.FC = () => {
                 {isPopupVisible && (
                     <div className="absolute top-full right-0 bg-discord-light-black text-white  p-1.5 rounded-md shadow-lg ">
                         <span className="text-sm">Notification box</span>
-                        {/* X represents the number of new notifications */}
                     </div>
                 )}
             </div>
             {isChatBoxVisible && (
-                <div className="p-4 bg-gray-100 rounded-lg shadow" ref={chatBoxRef}>
+                <div
+                    className="w-[300px] mt-[100px] p-4 bg-discord-light-black rounded-lg shadow"
+                    ref={chatBoxRef}
+                >
                     <div className="flex items-center gap-2">
-                        <img
-                            alt="logo"
-                            src="./logo_official.png"
-                            className="w-8 h-8" // Adjust size as needed
-                        />
+                        <img alt="logo" src="./logo_official.png" className="w-8 h-8" />
                         <span className="font-semibold">Boîte de réception</span>
                     </div>
                     {/* Chat box content goes here */}
-                    <div className="mt-4">{/* Messages or content */}</div>
+                    <div className="mt-4 text-left bg-discord-light-grey rounded-lg">
+                        <div className="ml-2">{/* Messages or content */}Blabla</div>
+                    </div>
                 </div>
             )}
         </div>
