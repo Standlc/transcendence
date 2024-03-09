@@ -7,6 +7,8 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { AppUser } from 'src/types/clientSchema';
 import { ChannelWithoutPsw } from 'src/types/channelsSchema';
+import * as sharp from 'sharp';
+import { unlink } from 'fs/promises';
 
 @ApiTags('upload')
 @Controller('upload')
@@ -30,8 +32,7 @@ export class UploadController {
   });
 
   private static filefilterMulter = function(req, file, callback) {
-    const ext = extname(file.originalname);
-    if (ext == '.jpg' || ext == '.jpeg' || ext == '.png' || ext == '.gif')
+    if (file.mimetype.match(/\/(jpg|jpeg|png|gif)$/))
       callback(null, true);
     else
       callback(null, false);
@@ -90,7 +91,25 @@ export class UploadController {
     ): Promise<AppUser> {
       if (!file)
         throw new UnprocessableEntityException('Invalid file format');
-      return await this.uploadService.setUserAvatar(req.user.id, `/api/users/${file.path}`);
+      try {
+        const isAnimated = file.mimetype.match(/\/(gif)$/) ? true : false;
+        await sharp(file.path, {
+          animated: isAnimated
+        })
+        .resize(400, 400, {
+          fit: 'cover'
+        })
+        .webp()
+        .toFile(file.path.replace(extname(file.filename), '.webp'))
+        .then(() => {
+            unlink(file.path);
+            console.log("Resizing finished");
+        });
+      } catch (error) {
+        await unlink(file.path);
+        throw new UnprocessableEntityException('File is not an image, nor a supported format');
+      }
+      return await this.uploadService.setUserAvatar(req.user.id, `/api/users/${file.path.replace(extname(file.filename), '.webp')}`);
     }
 
     //#endregion
@@ -114,6 +133,24 @@ export class UploadController {
     ): Promise<ChannelWithoutPsw> {
       if (!file)
         throw new UnprocessableEntityException('Invalid file format');
+      try {
+        const isAnimated = file.mimetype.match(/\/(gif)$/) ? true : false;
+        await sharp(file.path, {
+          animated: isAnimated
+        })
+        .resize(400, 400, {
+          fit: 'cover'
+        })
+        .webp()
+        .toFile(file.path.replace(extname(file.filename), '.webp'))
+        .then(() => {
+            unlink(file.path);
+            console.log("Resizing finished");
+        });
+      } catch (error) {
+        await unlink(file.path);
+        throw new UnprocessableEntityException('File is not an image, nor a supported format');
+      }
       return await this.uploadService.setChannelPhoto(req.user.id, channelId, `/api/channels/${file.path}`);
     }
 
