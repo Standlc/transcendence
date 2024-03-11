@@ -209,7 +209,7 @@ export default function GamePage() {
             />
           </ModalLayout>
         ) : !!startCountdown ? (
-          <div className="animate-fadein bg-black bg-opacity-80 fixed top-0 left-0 h-full w-full z-10 flex items-center justify-center">
+          <div className="animate-fadein bg-black bg-opacity-80 fixed top-0 left-[75px] h-full w-[calc(100%-75px)] z-10 flex items-center justify-center">
             <div className="p-5 text-8xl font-gameFont flex items-center justify-center animate-scalein">
               <InfiniteSlotMachine state={startCountdown} />
             </div>
