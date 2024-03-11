@@ -19,8 +19,8 @@ import { Login } from "./pages/LoginRegister/Login";
 import { Settings } from "./pages/Settings/subComponents/Settings";
 import { AppUser } from "@api/types/clientSchema";
 import { ChannelsLayout } from "./components/ChannelsLayout";
-import Chat from "./components/Chat/Chat";
-import { Channel } from "./components/Channel";
+import Chat from "./pages/Chat/Chat";
+import { Channel } from "./pages/Channel";
 
 function App() {
     const queryClient = useQueryClient();

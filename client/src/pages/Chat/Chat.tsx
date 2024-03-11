@@ -3,21 +3,22 @@ import io from "socket.io-client";
 import { Avatar } from "../../UIKit/avatar/Avatar";
 import { useNavigate, useParams } from "react-router-dom";
 import ModalLayout from "../../UIKit/ModalLayout";
-import { UserPopup } from "../ProfilPopUp";
+import { UserPopup } from "../../components/ProfilPopUp";
 import { useGetUser } from "../../utils/useGetUser";
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
-import { NotificationBox } from "../NotificationBox";
+import { NotificationBox } from "../../components/NotificationBox";
 import { AllUserDm } from "../../types/allUserDm";
 import { MessageDm } from "../../types/messageDm";
+import TextArea from "../../UIKit/TextArea";
 
 const Chat = () => {
     const { dmId } = useParams();
     const user = useGetUser();
     const navigate = useNavigate();
-    const [message, setMessage] = useState("");
     const socketRef = useRef<any>(null);
     const [realTimeMessages, setRealTimeMessages] = useState<MessageDm[]>([]);
+    const [textAreaValue, setTextAreaValue] = useState("");
 
     const allUsers = useQuery({
         queryKey: ["conversationAllUser"],
@@ -86,8 +87,6 @@ const Chat = () => {
                 ]);
                 socketRef.current = socket;
             });
-
-            //socket.on("leaveConversation") !!! TODO need to add this
         }
 
         return () => {
@@ -101,21 +100,29 @@ const Chat = () => {
         console.log("realTimeMessages updated:", realTimeMessages);
     }, [realTimeMessages]);
 
-    const sendMessage = (e) => {
-        e.preventDefault();
-
-        if (message.trim() && dmId && socketRef.current) {
+    const sendMessage = () => {
+        if (textAreaValue.trim() && dmId && socketRef.current) {
             const messageData = {
-                content: message,
+                content: textAreaValue,
                 conversationId: dmId,
                 senderId: user?.id,
             };
 
-            console.log("Sending message:", messageData);
             socketRef.current.emit("createDirectMessage", messageData);
 
-            setMessage("");
+            setTextAreaValue(""); // Réinitialiser la valeur du TextArea après envoi
         }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    };
+
+    const handleTextAreaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setTextAreaValue(e.target.value);
     };
 
     const shouldDisplayAvatarAndTimestamp = (currentIndex: number): boolean => {
@@ -202,7 +209,9 @@ const Chat = () => {
                         </div>
                     )}
                 </div>
-                <div className="mt-[-15px] block text-md ml-[80px]">{msg.content}</div>
+                <div className="mt-[-15px] block text-md ml-[80px] hover:bg-discord-dark-grey ">
+                    {msg.content}
+                </div>
             </div>
         ));
     };
@@ -247,7 +256,9 @@ const Chat = () => {
                         </div>
                     )}
                 </div>
-                <div className="mt-[-15px] block text-md ml-[80px]">{msg.content}</div>
+                <div className="mt-[-15px] block text-md ml-[80px]  ">
+                    {msg.content}
+                </div>
             </div>
         ));
     };
@@ -315,18 +326,16 @@ const Chat = () => {
                 {renderMessages()}
                 {renderRealTimeMessages()}
             </div>
-            <form onSubmit={sendMessage} className="chat-input-form">
-                <input
-                    className="chat-input text-black w-full h-12 px-4"
-                    type="text"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Write a message..."
+
+            <div className="bg-discord-dark-grey mt-auto p-2 rounded-lg ml-5 mr-5 mb-5">
+                <TextArea
+                    value={textAreaValue}
+                    onChange={handleTextAreaChange}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Type something..."
+                    autoFocus={true}
                 />
-                <button type="submit" className="send-message-btn">
-                    Send
-                </button>
-            </form>
+            </div>
         </div>
     );
 };

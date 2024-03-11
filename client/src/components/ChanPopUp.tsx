@@ -17,42 +17,42 @@ interface NewChannelData {
 export const ChanPopUp: React.FC<Props> = ({ onClose }: Props) => {
     const [isPublic, setIsPublic] = useState(true);
     const queryClient = useQueryClient();
-    const [selectedFile, setSelectedFile] = useState<File>();
+    // const [selectedFile, setSelectedFile] = useState<File>();
     const [channelName, setChannelName] = useState("");
     const [password, setPassword] = useState("");
 
-    const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const fileList = event.target.files;
-        if (fileList && fileList.length > 0) {
-            const file = fileList[0];
-            setSelectedFile(file);
-        }
-    };
+    // const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    //     const fileList = event.target.files;
+    //     if (fileList && fileList.length > 0) {
+    //         const file = fileList[0];
+    //         setSelectedFile(file);
+    //     }
+    // };
 
-    const uploadChannelAvatar = async () => {
-        if (selectedFile) {
-            const formData = new FormData();
-            formData.append("file", selectedFile);
+    // const uploadChannelAvatar = async () => {
+    //     if (selectedFile) {
+    //         const formData = new FormData();
+    //         formData.append("file", selectedFile);
 
-            try {
-                const response = await axios.post(
-                    "/api/upload/channel-photo",
-                    formData,
-                    {
-                        headers: {
-                            "Content-Type": "multipart/form-data",
-                        },
-                    }
-                );
+    //         try {
+    //             const response = await axios.post(
+    //                 "/api/upload/channel-photo",
+    //                 formData,
+    //                 {
+    //                     headers: {
+    //                         "Content-Type": "multipart/form-data",
+    //                     },
+    //                 }
+    //             );
 
-                alert("Avatar channel updated successfully");
-                console.log("Avatar updated successfully", response.data.avatarUrl);
-            } catch (error) {
-                console.error("Failed to upload avatar", error);
-                alert("Failed to upload avatar");
-            }
-        }
-    };
+    //             alert("Avatar channel updated successfully");
+    //             console.log("Avatar updated successfully", response.data.avatarUrl);
+    //         } catch (error) {
+    //             console.error("Failed to upload avatar", error);
+    //             alert("Failed to upload avatar");
+    //         }
+    //     }
+    // };
 
     const createNewChannel = useMutation<any, any, NewChannelData>({
         mutationFn: async (newChannelData) => {
@@ -81,15 +81,13 @@ export const ChanPopUp: React.FC<Props> = ({ onClose }: Props) => {
     });
 
     const handleConfirm = () => {
-        uploadChannelAvatar();
         console.log("is public", isPublic);
         console.log("channel name", channelName);
-        console.log("selected file", selectedFile);
         console.log("password", password);
         createNewChannel.mutate({
             isPublic,
             name: channelName,
-            photoUrl: selectedFile ? selectedFile.name : null,
+            photoUrl: null,
             password: isPublic ? null : password,
         });
 
@@ -153,7 +151,7 @@ export const ChanPopUp: React.FC<Props> = ({ onClose }: Props) => {
                         />
                     </div>
                 ) : null}
-                <div className="block  mt-5 text-left ml-10">
+                {/* <div className="block  mt-5 text-left ml-10">
                     Select Channel's Avatar
                     <div className="text-red-500">
                         <label
@@ -169,7 +167,7 @@ export const ChanPopUp: React.FC<Props> = ({ onClose }: Props) => {
                             id="select-avatar"
                         />
                     </div>
-                </div>
+                </div> */}
 
                 <div className="mt-[450px] ml-[200px]  fixed">
                     <button
@@ -188,7 +186,7 @@ export const ChanPopUp: React.FC<Props> = ({ onClose }: Props) => {
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
-                            strokeWidth="2" // Change from stroke-width to strokeWidth
+                            strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
                         >

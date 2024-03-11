@@ -30,7 +30,9 @@ export const Collapsible: React.FC<Props> = ({ title, children }: Props) => {
                 <span className="font-bold text-greyple">{title}</span>
                 {isOpen ? <ArrowDropUp /> : <ArrowDropDown />}
             </div>
-            {isOpen && <div className="">{children}</div>}
+            {isOpen && (
+                <div style={{ maxHeight: "300px", overflowY: "auto" }}>{children}</div>
+            )}
         </div>
     );
 };

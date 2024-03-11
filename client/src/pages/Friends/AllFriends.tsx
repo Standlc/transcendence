@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import Chat from "../../components/Chat/Chat";
+import Chat from "../Chat/Chat";
 import ModalLayout from "../../UIKit/ModalLayout";
 import { ConfirmPopUp } from "../../components/ConfirmPopUp";
 import { Avatar } from "../../UIKit/avatar/Avatar";

@@ -99,12 +99,12 @@ export const ChanColumn = () => {
 
                 <span className="bloc text-right">+</span>
             </div>
-            <div className="ml-5 mt-2 text-left ">
+            <div className="ml-5 text-left h-[300px] overflow-y-auto ">
                 <Collapsible title="Conversation">
                     {allDms.data?.map((conv, index) => (
                         <Link
                             key={index}
-                            className={`mb-5 flex hover:bg-discord-light-grey py-2 rounded-lg w-[280px] ${
+                            className={`mb-2 flex hover:bg-discord-light-grey py-2 rounded-lg w-[280px] ${
                                 activeButton == index
                                     ? "bg-discord-light-grey"
                                     : "bg-not-quite-black"
@@ -123,12 +123,12 @@ export const ChanColumn = () => {
                     ))}
                 </Collapsible>
             </div>
-            <div className="ml-5 mt-2 text-left ">
+            <div className="ml-5 mt-2 text-left h-[370px] overflow-y-auto">
                 <Collapsible title="Channels">
                     {allChannels.data?.map((channel, index) => (
                         <Link
                             key={index}
-                            className={`mb-5 flex hover:bg-discord-light-grey py-2 rounded-lg w-[280px] ${
+                            className={`mb-2 flex hover:bg-discord-light-grey py-2 rounded-lg w-[280px] ${
                                 activeButton === index
                                     ? "bg-discord-light-grey"
                                     : "bg-not-quite-black"
