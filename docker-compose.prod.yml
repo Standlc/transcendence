@@ -1,0 +1,61 @@
+version: "3.8"
+
+services:
+  db:
+    container_name: db
+    image: postgres:16.1
+    environment:
+      - POSTGRES_USER=$DB_USER
+      - POSTGRES_PASSWORD=$DB_PASSWORD
+      - POSTGRES_DB=$DB_NAME
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    restart: always
+
+  backend:
+    container_name: backend
+    environment:
+      - PGHOST=postgresql
+      - PGPORT=$DB_PORT
+      - PGUSER=$DB_USER
+      - PGPASSWORD=$DB_PASSWORD
+      - PGDATABASE=$DB_NAME
+      - DATABASE_URL=$DATABASE_URL
+    depends_on:
+      - db
+    build: ./api
+    volumes:
+      - ./api/:/app
+      - /app/node_modules
+    ports:
+      - 5000:5000
+    command: sh -c "npm run migrate && npm run start"
+    restart: always
+    stop_grace_period: 1s
+
+  frontend:
+    container_name: frontend
+    depends_on:
+      - backend
+    build:
+      context: ./client
+      dockerfile: Dockerfile.prod
+    environment:
+      - REACT_APP_API_HOST
+      - GAME_SOCKET_SERVER_HOST=http://backend:5050
+    volumes:
+      - ./client/:/app
+      - /app/node_modules
+      - ./api/src/types:/api/src/types
+      - ./api/src/pong/gameLogic/:/api/src/pong/gameLogic/
+    ports:
+      - 3000:3000
+    command: npm run preview
+    restart: always
+    stop_grace_period: 1s
+
+volumes:
+  postgres:
+    name: transcendence_postgres
