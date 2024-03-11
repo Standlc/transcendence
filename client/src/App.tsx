@@ -20,6 +20,7 @@ import { Settings } from "./pages/Settings/subComponents/Settings";
 import { AppUser } from "@api/types/clientSchema";
 import { ChannelsLayout } from "./components/ChannelsLayout";
 import Chat from "./components/Chat/Chat";
+import { Channel } from "./components/Channel";
 
 function App() {
     const queryClient = useQueryClient();
@@ -64,7 +65,10 @@ function App() {
                         >
                             <Route path="/home" element={<ChannelsLayout />}>
                                 <Route path="friends" element={<Friends />} />
-                                <Route path="channels/:channelId"></Route>
+                                <Route
+                                    path="channels/:channelId"
+                                    element={<Channel />}
+                                ></Route>
                                 <Route path="dm/:dmId" element={<Chat />}></Route>
                             </Route>
 

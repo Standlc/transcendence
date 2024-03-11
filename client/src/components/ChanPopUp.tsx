@@ -1,14 +1,25 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 import { useState } from "react";
+import { CreateChannelResponse } from "../types/channel";
 
 interface Props {
     onClose: () => void;
+}
+
+interface NewChannelData {
+    isPublic: boolean;
+    name: string;
+    photoUrl?: string | null;
+    password?: string | null;
 }
 
 export const ChanPopUp: React.FC<Props> = ({ onClose }: Props) => {
     const [isPublic, setIsPublic] = useState(true);
     const queryClient = useQueryClient();
     const [selectedFile, setSelectedFile] = useState<File>();
+    const [channelName, setChannelName] = useState("");
+    const [password, setPassword] = useState("");
 
     const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
         const fileList = event.target.files;
@@ -18,30 +29,72 @@ export const ChanPopUp: React.FC<Props> = ({ onClose }: Props) => {
         }
     };
 
-    // const handleConfirmChange = async () => {
-    //     if (selectedFile) {
-    //         const formData = new FormData();
-    //         formData.append("file", selectedFile);
+    const uploadChannelAvatar = async () => {
+        if (selectedFile) {
+            const formData = new FormData();
+            formData.append("file", selectedFile);
 
-    //         try {
-    //             const response = await axios.post("/api/upload/user-avatar", formData, {
-    //                 headers: {
-    //                     "Content-Type": "multipart/form-data",
-    //                 },
-    //             });
-    //             queryClient.setQueryData<AppUser | undefined>(["user"], (oldData) => {
-    //                 return { ...oldData, avatarUrl: response.data.avatarUrl };
-    //             });
+            try {
+                const response = await axios.post(
+                    "/api/upload/channel-photo",
+                    formData,
+                    {
+                        headers: {
+                            "Content-Type": "multipart/form-data",
+                        },
+                    }
+                );
 
-    //             alert("Avatar updated successfully");
-    //             console.log("Avatar updated successfully", response.data.avatarUrl);
-    //         } catch (error) {
-    //             console.error("Failed to upload avatar", error);
-    //             alert("Failed to upload avatar");
-    //         }
-    //     }
-    //     setShowConfirmAvatarPopup(false); // Hide the popup regardless of the outcome
-    // };
+                alert("Avatar channel updated successfully");
+                console.log("Avatar updated successfully", response.data.avatarUrl);
+            } catch (error) {
+                console.error("Failed to upload avatar", error);
+                alert("Failed to upload avatar");
+            }
+        }
+    };
+
+    const createNewChannel = useMutation<any, any, NewChannelData>({
+        mutationFn: async (newChannelData) => {
+            try {
+                const response = await axios.post("/api/channels", newChannelData);
+                console.log(response.data);
+                return response.data;
+            } catch (error) {
+                throw new Error(error.response.data.message);
+            }
+        },
+        onSuccess: (data) => {
+            console.log("New channel created:", data);
+            queryClient.setQueryData<CreateChannelResponse[] | undefined>(
+                ["channels"],
+                (oldData) => {
+                    if (!oldData) return [data]; // Si les données sont vides, ajoutez simplement le nouveau canal
+                    return [...oldData, data]; // Ajoutez le nouveau canal aux données existantes
+                }
+            );
+            queryClient.invalidateQueries("channels", { exact: true });
+        },
+        onError: (error) => {
+            console.error("Error creating channel:", error);
+        },
+    });
+
+    const handleConfirm = () => {
+        uploadChannelAvatar();
+        console.log("is public", isPublic);
+        console.log("channel name", channelName);
+        console.log("selected file", selectedFile);
+        console.log("password", password);
+        createNewChannel.mutate({
+            isPublic,
+            name: channelName,
+            photoUrl: selectedFile ? selectedFile.name : null,
+            password: isPublic ? null : password,
+        });
+
+        onClose();
+    };
 
     return (
         <div className=" top-0 left-0 w-full h-full flex justify-center items-center bg-discord-light-grey bg-opacity-30 z-10">
@@ -78,6 +131,7 @@ export const ChanPopUp: React.FC<Props> = ({ onClose }: Props) => {
                         type="text"
                         required
                         placeholder="Channel Name"
+                        onChange={(e) => setChannelName(e.target.value)}
                         className="px-4 py-2 bg-discord-black text-white rounded"
                     />
                 </div>
@@ -93,6 +147,8 @@ export const ChanPopUp: React.FC<Props> = ({ onClose }: Props) => {
                         <input
                             type="text"
                             placeholder="Password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
                             className="px-4 py-2 bg-discord-black text-white rounded"
                         />
                     </div>
@@ -118,7 +174,7 @@ export const ChanPopUp: React.FC<Props> = ({ onClose }: Props) => {
                 <div className="mt-[450px] ml-[200px]  fixed">
                     <button
                         className="mt-4 w-[100px] px-4 py-2 bg-green-700 text-white rounded hover:bg-green-500 mr-5"
-                        onClick={onClose}
+                        onClick={handleConfirm}
                     >
                         CONFIRM
                     </button>

@@ -7,6 +7,7 @@ import axios from "axios";
 import { useGetUser } from "../../utils/useGetUser";
 import { Avatar } from "../../UIKit/avatar/Avatar";
 import { AllUserDm } from "../../types/allUserDm";
+import { AllChannels } from "../../types/channel";
 
 export const ChanColumn = () => {
     const navigate = useNavigate();
@@ -17,6 +18,14 @@ export const ChanColumn = () => {
         queryKey: ["dms"],
         queryFn: async () => {
             const res = await axios.get<AllUserDm[]>("/api/dm");
+            return res.data;
+        },
+    });
+
+    const allChannels = useQuery({
+        queryKey: ["allChannels"],
+        queryFn: async () => {
+            const res = await axios.get<AllChannels[]>("/api/channels");
             return res.data;
         },
     });
@@ -115,9 +124,27 @@ export const ChanColumn = () => {
                 </Collapsible>
             </div>
             <div className="ml-5 mt-2 text-left ">
-                {/* <Collapsible title="Channels">
-
-                </Collapsible> */}
+                <Collapsible title="Channels">
+                    {allChannels.data?.map((channel, index) => (
+                        <Link
+                            key={index}
+                            className={`mb-5 flex hover:bg-discord-light-grey py-2 rounded-lg w-[280px] ${
+                                activeButton === index
+                                    ? "bg-discord-light-grey"
+                                    : "bg-not-quite-black"
+                            }`}
+                            to={`channels/${channel.id}`}
+                        >
+                            <Avatar
+                                imgUrl={channel.photoUrl}
+                                size="md"
+                                userId={channel.id}
+                                borderRadius={0.5}
+                            />
+                            <div className="ml-5">{channel.name}</div>
+                        </Link>
+                    ))}
+                </Collapsible>
             </div>
             <div className="flex bg-almost-black text-m user-chancolumn items-center justify-between">
                 <div className="flex items-center">
