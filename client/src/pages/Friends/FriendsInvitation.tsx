@@ -25,22 +25,27 @@ export const FriendsInvitation: React.FC<Props> = ({
     useEffect(() => {
         const fetchFriendsRequest = async () => {
             try {
-                const response = await fetch(
-                    `http://localhost:3000/api/friends/request`,
-                    {
-                        method: "GET",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                    }
-                );
+                const response = await fetch(`/api/friends/request`, {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                });
 
                 if (!response.ok) {
+                    if (response.status === 404) {
+                        console.log("NOFRIENDS");
+                        return;
+                    }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 const data = await response.json();
-                setFriendsRequest(data);
+                if (data.friendRequests.length === 0) {
+                    console.log("no friends request");
+                } else {
+                    setFriendsRequest(data);
+                }
                 console.log(data);
             } catch (error) {
                 console.error("Fetching friends failed:", error);

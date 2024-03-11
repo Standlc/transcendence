@@ -14,6 +14,13 @@ export const Channel = () => {
         setTextAreaValue(event.target.value);
     };
 
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    };
+
     const getChannel = async (channelId: string) => {
         try {
             const response = await fetch(`/api/channels/${channelId}/channel`, {
@@ -41,6 +48,17 @@ export const Channel = () => {
         }
     }, [channelId]);
 
+    const sendMessage = () => {
+        // if (textAreaValue.trim() && dmId && socketRef.current) {
+        //     const messageData = {
+        //         content: textAreaValue,
+        //         conversationId: dmId,
+        //         senderId: user?.id,
+        //     };
+        //     socketRef.current.emit("createDirectMessage", messageData);
+        setTextAreaValue("");
+    };
+
     return (
         <div
             className="w-full bg-discord-light-grey flex flex-col"
@@ -50,20 +68,21 @@ export const Channel = () => {
                 className="bg-discord-greyple topbar-section border-b border-b-almost-black"
                 style={{ borderBottomWidth: "3px" }}
             >
-                <div className="w-full flex justify-between items-center">
-                    <div className="w-full flex">
-                        <div className="flex item-center mt-[10px] ml-[20px]">
+                <div className="w-full flex justify-between items-center ">
+                    <div className="w-full flex ">
+                        <div className="flex item-center  ml-[20px]">
                             <Avatar
                                 imgUrl={chanInfo.photoUrl}
                                 size="md"
                                 userId={chanInfo.id ?? 0}
+                                borderRadius={0.5}
                             />
                         </div>
-                        <div className="ml-2 mt-4 font-bold text-xl">
+                        <div className="ml-2 mt-2 font-bold text-xl">
                             <button>{chanInfo.name}</button>
                             <span className="ml-[20px]">|</span>
                         </div>
-                        <div className="ml-5 mt-5">
+                        <div className="ml-5 mt-2 text-xl">
                             <div>USERS</div>
                         </div>
                     </div>
@@ -76,8 +95,9 @@ export const Channel = () => {
                 <TextArea
                     value={textAreaValue}
                     onChange={handleTextAreaChange}
+                    onKeyDown={handleKeyDown}
                     placeholder="Type something..."
-                    style={{ color: "black" }}
+                    autoFocus={true}
                 />
             </div>
         </div>

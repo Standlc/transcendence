@@ -56,6 +56,8 @@ export const ChanColumn = () => {
         }
     };
 
+    console.log("allchannels", allChannels.data);
+
     return (
         <div className="bg-not-quite-black chan-column">
             <div
