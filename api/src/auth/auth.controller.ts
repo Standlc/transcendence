@@ -157,7 +157,7 @@ export class AuthController {
   @ApiInternalServerErrorResponse({ description: "Whenever the backend fail in some point, probably an error with the db." })
   @Post('2fa/turn-on')
   @UseGuards(JwtAuthGuard)
-  async turnOnTwoFactorAuthentication(@Res() res, @Req() req, @Query('code') twoFactorAuthenticationCode) {
+  async turnOnTwoFactorAuthentication(@Res({ passthrough: true }) res, @Req() req, @Query('code') twoFactorAuthenticationCode) {
     const isCodeValid = await this.authService.isTwoFactorAuthenticationCodeValid(
       twoFactorAuthenticationCode,
       req.user.id
@@ -169,7 +169,7 @@ export class AuthController {
     const session: {
       jwt: string,
       expires: Date
-    } = await this.authService.login(req.user.id);
+    } = await this.authService.loginWith2fa(req.user.id);
     res.cookie('token', session.jwt, {
       expires: session.expires,
       sameSite: 'strict',
