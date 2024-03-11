@@ -112,7 +112,7 @@ export class AuthController {
   @ApiInternalServerErrorResponse({ description: "Whenever the backend fail in some point, probably an error with the db." })
   @UseGuards(LocalAuthGuard)
   @Post('login')
-  async loginWithPassword(@Request() req, @Res({ passthrough: true }) res: ResponseType): Promise<AppUser> {
+  async loginWithPassword(@Request() req, @Res({ passthrough: true }) res: ResponseType): Promise<Partial<AppUser>> {
     if (!req.user.id)
       throw new UnauthorizedException("Missing Id from the payload");
     const session: {
@@ -124,11 +124,8 @@ export class AuthController {
       sameSite: 'strict',
       httpOnly: true
     });
-    if (req.user.isTwoFactorAuthenticationEnabled) {
-      let emptyUser: AppUser = <AppUser>{};
-      emptyUser.isTwoFactorAuthenticationEnabled = req.user.isTwoFactorAuthenticationEnabled;
-      return emptyUser;
-    }
+    if (req.user.isTwoFactorAuthenticationEnabled)
+      return { isTwoFactorAuthenticationEnabled: req.user.isTwoFactorAuthenticationEnabled };
     return req.user;
   }
 
