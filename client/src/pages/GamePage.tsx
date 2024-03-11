@@ -191,7 +191,7 @@ export default function GamePage() {
   }
 
   return (
-    <div className="flex justify-center h-[100vh] p-5 gap-5">
+    <div className="flex justify-center h-[100vh] w-full p-5 gap-5">
       <div className="max-w-[1100px] contents">
         {(gameRequest.data || gameInvitations.data?.length) &&
         gameRecord.data.winnerId != null ? null : achievements ? (

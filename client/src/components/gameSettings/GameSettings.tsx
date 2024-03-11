@@ -14,7 +14,7 @@ export default function GamePreferences({ hide }: { hide: () => void }) {
         <Tune fontSize="small" />
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 text-left">
         <span className="text-sm opacity-50 font-bold">
           MATCHING PREFERENCES
         </span>

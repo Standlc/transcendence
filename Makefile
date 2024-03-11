@@ -7,7 +7,7 @@ DOCKER_COMPOSE	=	./docker-compose.yml
 #------------------------------------------------------------------------------#
 
 # Basic rules #
-all:		build up
+all:		build attach
 .PHONY:		all
 
 $(NAME):	all

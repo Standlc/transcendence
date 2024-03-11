@@ -9,7 +9,7 @@ import {
   UserPlayingMask,
 } from "./userStatusIndicators";
 
-export const COLORS = [
+const COLORS = [
   "#309d51",
   "#5765f2",
   "#FEE75C",
@@ -19,7 +19,7 @@ export const COLORS = [
   "#bb397f",
 ];
 
-export const AVATAR_SIZES = {
+const AVATAR_SIZES = {
   xs: 18,
   sm: 30,
   md: 45,
@@ -107,7 +107,7 @@ export const Avatar = ({
             className="h-full w-full overflow-hidden"
           >
             {imgUrl ? (
-              <img src={imgUrl} className="h-full w-full objvect-coer" />
+              <img src={imgUrl} className="h-full w-full object-cover" />
             ) : (
               <div
                 style={{
