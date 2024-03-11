@@ -2,6 +2,7 @@ import React from "react";
 
 export interface ErrorType {
   message: string;
+  isSuccess?: boolean;
 }
 
 export interface ErrorContextType {
