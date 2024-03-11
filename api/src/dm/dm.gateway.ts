@@ -11,7 +11,7 @@ import {
   WsException,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { ConnectToDm, DirectMessageContent } from 'src/types/channelsSchema';
+import { DirectMessageContent } from 'src/types/channelsSchema';
 import { WsAuthGuard } from 'src/auth/ws-auth.guard';
 import { ConnectedUsersService } from 'src/connectedUsers/connectedUsers.service';
 
@@ -72,15 +72,9 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('joinConversation')
   async joinConversation(
     @ConnectedSocket() socket: Socket,
-    @MessageBody() payload: ConnectToDm,
+    @MessageBody() payload: { conversationId: number },
   ) {
-    try {
-      await this.dmService.userExists(payload.userId);
-    } catch (error) {
-      console.error(error);
-
-      throw new WsException('User not found');
-    }
+    const userId = socket.data.id;
 
     try {
       await this.dmService.conversationExists(payload.conversationId);
@@ -92,15 +86,18 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       socket.join(payload.conversationId.toString());
       console.log(
-        `User ${payload.userId} joined conversation ${payload.conversationId}`,
+        `User ${userId} joined conversation ${payload.conversationId}`,
       );
 
       if (socket.rooms.has(payload.conversationId.toString())) {
         this.server
           .to(payload.conversationId.toString())
-          .emit('message', 'User joined conversation');
+          .emit(
+            'message',
+            `User ${userId} joined conversation ${payload.conversationId}`,
+          );
       }
-      this.connectedUsersService.addUser(payload.userId, socket);
+      this.connectedUsersService.addUser(userId, socket);
     } catch (error) {
       console.error(error);
       throw new WsException('Unable to join conversation');
@@ -113,18 +110,21 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('leaveConversation')
   async leaveConversation(
     @ConnectedSocket() socket: Socket,
-    @MessageBody() payload: ConnectToDm,
+    @MessageBody() payload: { conversationId: number },
   ) {
+    const userId = socket.data.id;
+
     try {
       if (socket.rooms.has(payload.conversationId.toString())) {
         this.server
           .to(payload.conversationId.toString())
-          .emit('message', 'User left conversation');
+          .emit(
+            'message',
+            `User ${userId} left conversation ${payload.conversationId}`,
+          );
       }
       socket.leave(payload.conversationId.toString());
-      console.log(
-        `User ${payload.userId} left conversation ${payload.conversationId}`,
-      );
+      console.log(`User ${userId} left conversation ${payload.conversationId}`);
 
       this.connectedUsersService.removeUserWithSocketId(socket.id);
     } catch (error) {
@@ -138,7 +138,7 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
   //
   //
   @SubscribeMessage('createDirectMessage')
-  create(
+  async createDirectMessage(
     @ConnectedSocket() socket: Socket,
     @MessageBody() payload: DirectMessageContent,
   ) {
@@ -150,16 +150,50 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     try {
+      const senderId = socket.data.id;
+
       if (socket.rooms.has(payload.conversationId.toString())) {
-        this.dmService.createDirectMessage(payload);
+        this.dmService.createDirectMessage(payload, senderId);
         this.server
           .to(payload.conversationId.toString())
-          .emit('createDirectMessage', payload);
+          .emit('createDirectMessage', {
+            senderId: senderId,
+            content: payload.content,
+            conversationId: payload.conversationId,
+          });
       }
     } catch (error) {
       this.connectedUsersService.removeUserWithSocketId(socket.id);
       console.error(error);
       throw new WsException('Cannot send message');
+    }
+  }
+
+  //
+  //
+  //
+  @SubscribeMessage('getDirectMessages')
+  async getDirectMessages(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() payload: { conversationId: number },
+  ) {
+    try {
+      this.connectedUsersService.verifyConnection(socket);
+    } catch (error) {
+      console.error(error);
+      throw new WsException('User did not join channel room');
+    }
+
+    try {
+      const userId = socket.data.id;
+      const messages = await this.dmService.getConversationMessages(
+        payload.conversationId,
+        userId,
+      );
+      socket.emit('getDirectMessages', messages);
+    } catch (error) {
+      console.error(error);
+      throw new WsException('Cannot get messages');
     }
   }
 }

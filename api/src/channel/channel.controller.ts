@@ -1,6 +1,7 @@
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiCookieAuth,
   ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -20,6 +21,7 @@ import {
   Put,
   UseGuards,
   Request,
+  Res,
 } from '@nestjs/common';
 import { ChannelService } from './channel.service';
 import {
@@ -53,12 +55,6 @@ export class UserController {
       items: {
         type: 'object',
         properties: {
-          avatarUrl: {
-            type: 'string | null',
-          },
-          username: {
-            type: 'string',
-          },
           channelId: {
             type: 'number',
           },
@@ -86,6 +82,15 @@ export class UserController {
           isMuted: {
             type: 'boolean',
           },
+          mutedEnd: {
+            type: 'Date | null',
+          },
+          avatarUrl: {
+            type: 'string | null',
+          },
+          username: {
+            type: 'string',
+          },
           senderIsBlocked: {
             type: 'boolean',
           },
@@ -99,12 +104,12 @@ export class UserController {
   })
   @ApiUnauthorizedResponse({ description: 'User is banned' })
   @Get(':channelId/messages')
-  getMessages(
+  async getMessages(
     @Param('channelId') channelId: number,
     @Request() req,
   ): Promise<MessageWithSenderInfo[]> {
     console.log('GET: Recieved channelId:', channelId);
-    return this.channelService.getChannelMessages(req.user.id, channelId);
+    return await this.channelService.getChannelMessages(req.user.id, channelId);
   }
 
   //
@@ -131,6 +136,12 @@ export class UserController {
           },
           isPublic: {
             type: 'boolean',
+          },
+          name: {
+            type: 'string',
+          },
+          photoUrl: {
+            type: 'string | null',
           },
           users: {
             type: 'array',
@@ -159,7 +170,7 @@ export class UserController {
     @Request() req,
   ): Promise<ChannelDataWithoutPassword[]> {
     console.log('GET: Recieved all channels of the user: ', req.user.id);
-    return this.channelService.getAllChannelsOfTheUser(req.user.id);
+    return await this.channelService.getAllChannelsOfTheUser(req.user.id);
   }
 
   //
@@ -225,12 +236,12 @@ export class UserController {
       Password can only contain letters, numbers, and special characters !@#$%^&*',
   })
   @Post()
-  createChannel(
+  async createChannel(
     @Body() channel: ChannelCreationData,
     @Request() req,
   ): Promise<ChannelDataWithoutPassword> {
     console.log('POST: Recieved name:', channel.name);
-    return this.channelService.createChannel(channel, req.user.id);
+    return await this.channelService.createChannel(channel, req.user.id);
   }
 
   //
@@ -259,17 +270,23 @@ export class UserController {
         isPublic: {
           type: 'boolean',
         },
+        name: {
+          type: 'string',
+        },
+        photoUrl: {
+          type: 'string | null',
+        },
       },
     },
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @ApiNotFoundResponse({ description: 'Channel not found' })
-  @Get(':channelId')
+  @Get(':channelId/channel')
   async getChannel(
     @Param('channelId') channelId: number,
   ): Promise<ChannelDataWithoutPassword> {
     console.log('GET: Recieved channelId:', channelId);
-    return this.channelService.getChannel(channelId);
+    return await this.channelService.getChannel(channelId);
   }
 
   //
@@ -294,9 +311,6 @@ export class UserController {
         password: {
           type: 'string | null',
         },
-        photoUrl: {
-          type: 'string | null',
-        },
       },
     },
   })
@@ -307,7 +321,6 @@ export class UserController {
     description:
       'No data to update | \
       Invalid channel name length (1-49) | \
-      Invalid photoUrl length (1-49) | \
       A public channel cannot have a password | \
       Channel name already exists | \
       Invalid isPublic value | \
@@ -324,13 +337,17 @@ export class UserController {
       | Only the owner can change the channel password',
   })
   @Put(':channelId')
-  updateChannel(
+  async updateChannel(
     @Param('channelId') channelId: number,
     @Body() channel: ChannelUpdate,
     @Request() req,
   ): Promise<string> {
     console.log('PUT: Recieved id:', channelId);
-    return this.channelService.updateChannel(channelId, channel, req.user.id);
+    return await this.channelService.updateChannel(
+      channelId,
+      channel,
+      req.user.id,
+    );
   }
 
   //
@@ -349,8 +366,69 @@ export class UserController {
     description: 'Only the owner can delete this channel',
   })
   @Delete(':channelId')
-  deleteChannel(@Param('channelId') channelId: number, @Request() req) {
+  async deleteChannel(
+    @Param('channelId') channelId: number,
+    @Request() req,
+  ): Promise<string> {
     console.log('DELETE: Received channelId:', channelId);
-    return this.channelService.deleteChannel(channelId, req.user.id);
+    return await this.channelService.deleteChannel(channelId, req.user.id);
   }
+
+  //
+  //
+  //
+  @ApiOperation({
+    summary:
+      "Get all available channels the user didn't join. Public or private from the inviteList",
+  })
+  @ApiOkResponse({
+    description: 'Channels found',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          channelOwner: {
+            type: 'number',
+          },
+          createdAt: {
+            type: 'Date',
+          },
+          id: {
+            type: 'number',
+          },
+          isPublic: {
+            type: 'boolean',
+          },
+          name: {
+            type: 'string',
+          },
+          photoUrl: {
+            type: 'string | null',
+          },
+        },
+      },
+    },
+  })
+  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
+  @Get('availableChannels')
+  async getAllChannels(@Request() req): Promise<ChannelDataWithoutPassword[]> {
+    console.log('GET: Recieved all channels');
+    return await this.channelService.getAllAvailableChannels(req.user.id);
+  }
+
+    //#region Get Photo
+
+    @ApiOperation({summary: "Get the photoUrl using fileId"})
+    @ApiCookieAuth()
+    @ApiParam({name: 'fileId', description: 'Should start with /api/channels'})
+    @ApiOkResponse({description: "Image file"})
+    @ApiNotFoundResponse({description: "No such file exist"})
+    @UseGuards(JwtAuthGuard)
+    @Get('photo/:fileId')
+    async getPhoto(@Param('fileId') fileId, @Res() res) {
+      res.sendFile(fileId, { root: './public/channels' });
+    }
+
+    //#endregion
 }

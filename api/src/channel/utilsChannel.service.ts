@@ -6,11 +6,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { db } from 'src/database';
-import {
-  ChannelCreationData,
-  ChannelMessageContent,
-  ChannelUpdate,
-} from 'src/types/channelsSchema';
+import { ChannelCreationData, ChannelUpdate } from 'src/types/channelsSchema';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -20,7 +16,7 @@ export class Utils {
   //
   //
   //
-  // !!! tested
+
   async updateChannelAsOwner(
     channelId: number,
     channel: ChannelUpdate,
@@ -51,7 +47,6 @@ export class Utils {
           isPublic: channel.isPublic,
           name: channel.name,
           password: hashedPassword,
-          photoUrl: channel.photoUrl,
         })
         .where('id', '=', channelId)
         .executeTakeFirst();
@@ -65,10 +60,9 @@ export class Utils {
   //
   //
   //
-  // !!! tested
+
   async updateChannelAsAdmin(
     name: string | null,
-    photoUrl: string | null,
     channelId: number,
   ): Promise<string> {
     try {
@@ -76,7 +70,6 @@ export class Utils {
         .updateTable('channel')
         .set({
           name: name,
-          photoUrl: photoUrl,
         })
         .where('id', '=', channelId)
         .executeTakeFirst();
@@ -88,7 +81,7 @@ export class Utils {
 
   //
   //
-  // !!! tested
+
   async channelNameIsTaken(
     name: string | null,
     channelId: number,
@@ -113,7 +106,7 @@ export class Utils {
   //
   //
   //
-  // !!! tested
+
   verifyLength(name: string | null): void {
     if (!name || name == null) return;
     if (name.length < 1 || name.length > 49) {
@@ -124,9 +117,9 @@ export class Utils {
   //
   //
   //
-  // !!! tested
-  canSetPassword(isPublic: string, password: string | null): void {
-    if (isPublic === 'true' && password) {
+
+  canSetPassword(isPublic: boolean, password: string | null): void {
+    if (isPublic == true && password) {
       throw new UnprocessableEntityException(
         'A public channel cannot have a password',
       );
@@ -136,20 +129,14 @@ export class Utils {
   //
   //
   //
-  // !!! tested
+
   dataCanBeUpdated(channel: ChannelUpdate): void {
-    if (
-      !channel.isPublic &&
-      !channel.name &&
-      !channel.password &&
-      !channel.photoUrl
-    ) {
+    if (!channel.isPublic && !channel.name && !channel.password) {
       throw new UnprocessableEntityException('No data to update');
     }
 
     try {
-      const isPublicBool = channel.isPublic.toString();
-      this.canSetPassword(isPublicBool, channel.password);
+      this.canSetPassword(channel.isPublic, channel.password);
     } catch (error) {
       throw error;
     }
@@ -161,18 +148,12 @@ export class Utils {
         'Invalid channel name length (1-49)',
       );
     }
-
-    try {
-      this.verifyLength(channel.photoUrl);
-    } catch (error) {
-      throw new UnprocessableEntityException('Invalid photoUrl length (1-49)');
-    }
   }
 
   //
   //
   //
-  // !!! tested
+
   async userAuthorizedToUpdate(
     isPublic: boolean,
     password: string | null,
@@ -227,7 +208,7 @@ export class Utils {
   //
   //
   //
-  // !!! to test or replace
+  // !!! to test
   async getChannelId(
     userId: number,
     channel: ChannelCreationData,
@@ -235,16 +216,30 @@ export class Utils {
     try {
       const newChannelId = await db
         .selectFrom('channel')
-        .select('id')
+        .select(['id', 'password'])
         .where('channelOwner', '=', userId)
         .where('name', '=', channel.name)
         .where('isPublic', '=', channel.isPublic)
         .executeTakeFirstOrThrow();
 
-      console.log('Channel created:', newChannelId);
+      if (
+        (channel.password == null && newChannelId.password != null) ||
+        (channel.password != null && newChannelId.password == null)
+      )
+        throw new NotFoundException('Channel not found');
+      else if (channel.password != null && newChannelId.password != null) {
+        const passwordMatch = await bcrypt.compare(
+          channel.password,
+          newChannelId.password,
+        );
+
+        if (passwordMatch) return newChannelId.id;
+        else throw new NotFoundException('Channel not found');
+      }
 
       return newChannelId.id;
     } catch (error) {
+      if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException();
     }
   }
@@ -254,7 +249,7 @@ export class Utils {
   //
   //
   //
-  // !!! tested
+
   async passwordSecurityVerification(password: string): Promise<void> {
     if (password.length < 8 || password.length > 20) {
       throw new UnprocessableEntityException('Invalid password length');
@@ -279,7 +274,7 @@ export class Utils {
 
   //
   //
-  // !!! tested
+
   async channelExists(channelId: number): Promise<void> {
     let channelIdExists: { id: number }[];
     try {
@@ -321,14 +316,14 @@ export class Utils {
   //
   //
   //
-  async userIsMuted(channelMessage: ChannelMessageContent): Promise<void> {
+  async userIsMuted(senderId: number, channelId: number): Promise<void> {
     let mutedUser: { userId: number; mutedEnd: Date }[];
     try {
       mutedUser = await db
         .selectFrom('mutedUser')
         .select(['userId', 'channelId', 'mutedEnd'])
-        .where('channelId', '=', channelMessage.channelId)
-        .where('userId', '=', channelMessage.senderId)
+        .where('channelId', '=', channelId)
+        .where('userId', '=', senderId)
         .where('mutedEnd', '>', new Date())
         .execute();
 

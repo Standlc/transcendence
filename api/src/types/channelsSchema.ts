@@ -1,4 +1,5 @@
-import { ChannelMessage, DirectMessage } from './schema';
+import { Selectable } from 'kysely';
+import { Channel, ChannelMessage, DirectMessage } from './schema';
 
 export interface ChannelCreationData {
   isPublic: boolean;
@@ -7,25 +8,37 @@ export interface ChannelCreationData {
   photoUrl: string | null;
 }
 
+export type ChannelWithoutPsw = Omit<Selectable<Channel>, | 'password'>
+
 export type UserId = { userId: number };
 
-export type DirectMessageContent = Omit<DirectMessage, 'createdAt' | 'id'>;
+export type DirectMessageContent = Omit<
+  DirectMessage,
+  'createdAt' | 'id' | 'senderId'
+>;
 
-export type ChannelMessageContent = Omit<ChannelMessage, 'createdAt' | 'id'>;
-
-export interface ChannelDataWithoutPassword {
-  channelOwner: number;
-  createdAt: Date;
-  id: number;
-  isPublic: boolean;
-}
+export type ChannelMessageContent = Omit<
+  ChannelMessage,
+  'createdAt' | 'id' | 'senderId'
+>;
 
 export interface ChannelDataWithUsersWithoutPassword {
   channelOwner: number;
   createdAt: Date;
   id: number;
   isPublic: boolean;
+  name: string;
+  photoUrl: string | null;
   users: UserInfo[];
+}
+
+export interface ChannelDataWithoutPassword {
+  channelOwner: number;
+  createdAt: Date;
+  id: number;
+  isPublic: boolean;
+  name: string;
+  photoUrl: string | null;
 }
 
 export interface UserInfo {
@@ -63,38 +76,18 @@ export interface DmWithSenderInfo {
 
 export interface ConnectToChannel {
   channelId: number;
-  userId: number;
   password: string;
 }
 
-export interface ConnectToDm {
-  conversationId: number;
-  userId: number;
-}
-
 export interface ActionOnUser {
-  userId: number;
   targetUserId: number;
   channelId: number;
 }
 
 export interface MuteUser {
-  userId: number;
   targetUserId: number;
   channelId: number;
   muteEnd: Date | null;
-}
-
-export interface BlockUser {
-  userId: number;
-  targetUserId: number;
-}
-
-export interface ConversationPromise {
-  id: number;
-  createdAt: Date;
-  user1_id: number;
-  user2_id: number;
 }
 
 export interface AllConversationsPromise {
@@ -104,22 +97,20 @@ export interface AllConversationsPromise {
     userId: number;
     avatarUrl: string;
     username: string;
+    rating: number;
+    status: number;
   };
   user2: {
     userId: number;
     avatarUrl: string;
     username: string;
+    rating: number;
+    status: number;
   };
-}
-
-export interface QuitChannel {
-  channelId: number;
-  userId: number;
 }
 
 export interface ChannelUpdate {
   isPublic: boolean;
   name: string | null;
   password: string | null;
-  photoUrl: string | null;
 }

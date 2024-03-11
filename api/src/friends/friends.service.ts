@@ -1,12 +1,17 @@
-import { Injectable, InternalServerErrorException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { Inject, Injectable, InternalServerErrorException, NotFoundException, UnprocessableEntityException, forwardRef } from '@nestjs/common';
 import { db } from 'src/database';
 import { DeleteResult } from 'kysely';
 import { AppUser, AppUserDB, ListUsers } from 'src/types/clientSchema';
 import { UsersStatusGateway } from 'src/usersStatusGateway/UsersStatus.gateway';
+import { BlockedUserService } from 'src/blocked-user/blocked-user.service';
 
 @Injectable()
 export class FriendsService {
-  constructor(private usersStatusGateway: UsersStatusGateway) {}
+  constructor(
+    private usersStatusGateway: UsersStatusGateway,
+    @Inject(forwardRef(() => BlockedUserService))
+    private blockeduserService: BlockedUserService
+  ) {}
 
   //#region <-- Request -->
 
@@ -104,6 +109,10 @@ export class FriendsService {
       console.log("Tried to send a friend request to a user who is already friend with.");
       throw new UnprocessableEntityException(targetId, "You are already friend with this user.");
     }
+
+    // ? Check if nobody block the other person
+    if (await this.blockeduserService.hasUserBlock(sourceId, targetId) || await this.blockeduserService.hasUserBlock(targetId, sourceId))
+      throw new UnprocessableEntityException("Can't send a friend request to someone you block or to someone who blocked you");
 
     // ? Check if you didn't already sent a request
     let alreadySent: {
@@ -247,7 +256,7 @@ export class FriendsService {
           ])
         ])),
       )
-      .select(['user.avatarUrl', 'user.id', 'user.username', 'user.rating', 'user.bio', 'user.createdAt', 'user.email', 'user.firstname', 'user.lastname'])
+      .select(['user.avatarUrl', 'user.id', 'user.username', 'user.rating', 'user.bio', 'user.createdAt', 'user.email', 'user.firstname', 'user.lastname', 'user.isTwoFactorAuthenticationEnabled'])
       .execute();
       return friends.map(u => ({
         ...u,

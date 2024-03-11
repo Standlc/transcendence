@@ -11,14 +11,59 @@ import {
   ChannelDataWithUsersWithoutPassword,
   ChannelDataWithoutPassword,
   ChannelUpdate,
+  ChannelWithoutPsw,
   MessageWithSenderInfo,
 } from 'src/types/channelsSchema';
 import * as bcrypt from 'bcrypt';
 import { Utils } from './utilsChannel.service';
+import { unlink } from 'fs/promises';
 
 @Injectable()
 export class ChannelService {
   constructor(private readonly utilsChannelService: Utils) {}
+
+  async setPhoto(userId: number, channelId: number, path: string): Promise<ChannelWithoutPsw> {
+    // ? Check if user is Admin Owner
+    if (!await this.utilsChannelService.userIsAdmin(userId, channelId) && !await this.utilsChannelService.userIsOwner(userId, channelId)) {
+      await unlink(path.replace('/api/channels/', ''));
+      throw new UnprocessableEntityException("user is not channel admin nor owner");
+    }
+
+    try {
+      const result = await db
+      .selectFrom('channel')
+      .select('photoUrl')
+      .where('id', '=', channelId)
+      .executeTakeFirst();
+      try {
+        if (result != undefined && result.photoUrl != null && result.photoUrl.includes(`/api/channels`, 0)) {
+          await unlink(result.photoUrl.replace(`/api/channels/photo`, 'public/channels/'));
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    } catch (error) {
+      throw new InternalServerErrorException();
+    }
+
+    try {
+      const result = await db
+      .updateTable('channel')
+      .set('photoUrl', path.replace('public/channels/', 'photo/'))
+      .where('channel.id', '=', channelId)
+      .executeTakeFirst();
+      const channel = await db
+      .selectFrom('channel')
+      .selectAll()
+      .where('id', '=', channelId)
+      .executeTakeFirstOrThrow();
+      const {password, ...channelWithoutPsw} = channel;
+      return channelWithoutPsw;
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
+  }
 
   //
   //
@@ -131,15 +176,8 @@ export class ChannelService {
     }
 
     try {
-      this.utilsChannelService.verifyLength(channel.photoUrl);
-    } catch (error) {
-      throw new UnprocessableEntityException('Invalid photo url length (1-49)');
-    }
-
-    try {
-      const isPublicBoolean = channel.isPublic.toString();
       this.utilsChannelService.canSetPassword(
-        isPublicBoolean,
+        channel.isPublic,
         channel.password,
       );
     } catch (error) {
@@ -240,7 +278,7 @@ export class ChannelService {
   //
   //
   //
-  // !!! tested
+  
   async deleteChannel(channelId: number, userId: number): Promise<string> {
     try {
       await this.utilsChannelService.channelExists(channelId);
@@ -312,23 +350,8 @@ export class ChannelService {
     }
 
     try {
-      // !!! test type variable
-      console.log(typeof channel.isPublic);
-      // !!! need to ask Seth
-      //
-      const isPublicString = channel.isPublic.toString();
-      let isPublicBoolean: boolean;
-      if (isPublicString === 'true') {
-        isPublicBoolean = true;
-      } else if (isPublicString === 'false') {
-        isPublicBoolean = false;
-      } else {
-        throw new UnprocessableEntityException('Invalid isPublic value');
-      }
-      //
-
       await this.utilsChannelService.userAuthorizedToUpdate(
-        isPublicBoolean,
+        channel.isPublic,
         channel.password,
         channelId,
         userIsOwner,
@@ -354,7 +377,6 @@ export class ChannelService {
       try {
         return await this.utilsChannelService.updateChannelAsAdmin(
           channel.name,
-          channel.photoUrl,
           channelId,
         );
       } catch (error) {
@@ -442,6 +464,8 @@ export class ChannelService {
           createdAt: channelInfo.createdAt,
           id: channelInfo.id,
           isPublic: channelInfo.isPublic,
+          name: channelInfo.name as string,
+          photoUrl: channelInfo.photoUrl,
           users: usersInfo.map((userInfo) => ({
             userId: userInfo.userId,
             username: userInfo.username as string,
@@ -452,6 +476,57 @@ export class ChannelService {
       }
 
       return channelsWithUsers;
+    } catch (error) {
+      throw new InternalServerErrorException();
+    }
+  }
+
+  //
+  //
+  //
+  // channels the user did not join yet that are either public
+  //                 or private and user is in the invite list
+  async getAllAvailableChannels(
+    userId: number,
+  ): Promise<ChannelDataWithoutPassword[]> {
+    try {
+      const channels = await db
+        .selectFrom('channel')
+        .leftJoin('channelMember', 'channel.id', 'channelMember.channelId')
+        .where('channel.isPublic', '=', true)
+        .where('channelMember.userId', 'is', null)
+        .select([
+          'channel.channelOwner',
+          'channel.createdAt',
+          'channel.id',
+          'channel.isPublic',
+          'channel.name',
+          'channel.photoUrl',
+        ])
+        .union(
+          db
+            .selectFrom('channel')
+            .where('channel.isPublic', '=', false)
+            .leftJoin(
+              'channelInviteList',
+              'channel.id',
+              'channelInviteList.channelId',
+            )
+            .where('channelInviteList.invitedUserId', '=', userId)
+            .leftJoin('channelMember', 'channel.id', 'channelMember.channelId')
+            .where('channelMember.userId', 'is', null)
+            .select([
+              'channel.channelOwner',
+              'channel.createdAt',
+              'channel.id',
+              'channel.isPublic',
+              'channel.name',
+              'channel.photoUrl',
+            ]),
+        )
+        .orderBy('createdAt', 'asc')
+        .execute();
+      return channels as ChannelDataWithoutPassword[];
     } catch (error) {
       throw new InternalServerErrorException();
     }
