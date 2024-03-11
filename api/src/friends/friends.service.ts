@@ -177,7 +177,7 @@ export class FriendsService {
     }
 
     if (!requestsId || requestsId.length === 0)
-      throw new NotFoundException();
+      return [];
 
     let arrayRequestId: number[] = [];
     requestsId.forEach(requestId => {
