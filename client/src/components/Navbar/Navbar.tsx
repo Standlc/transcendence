@@ -43,7 +43,7 @@ export const NavBar = () => {
 
     return (
         <div
-            className="flex flex-col justify-center items-center bg-discord-light-black"
+            className="flex flex-col justify-center items-center bg-discord-light-black sticky"
             style={{
                 minWidth: "75px",
                 maxWidth: "75px",

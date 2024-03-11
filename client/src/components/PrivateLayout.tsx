@@ -12,6 +12,7 @@ import { GameRequestModal } from "./GameRequestModal";
 import { GameInvitationModal } from "./GameInvitationsModal";
 import { AppUser } from "@api/types/clientSchema";
 import { NavBar } from "./Navbar/Navbar";
+import { RejoinGameNotification } from "./RejoinGameNotification";
 
 interface PrivateLayoutProps {
     user: AppUser  | undefined;
@@ -56,6 +57,7 @@ export default function PrivateLayout({ user }: PrivateLayoutProps) {
                         <div className="flex min-h-[100vh] w-full h-full">
                             <NavBar />
                             {error && <ErrorModal />}
+                            <RejoinGameNotification />
                             <GameRequestModal />
                             <GameInvitationModal />
                             <Outlet />

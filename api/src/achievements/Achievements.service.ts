@@ -23,26 +23,18 @@ export class AchievementsService {
     loser: PlayerType & PlayerRatingChangeType,
     game: GameType,
   ) {
-    const achievements = await this.getUserAchievementQuery(
-      winner.id,
-    ).execute();
+    const achievements = await this.getUserAchievementQuery(userId).execute();
 
     const updatedAchievements: Selectable<Achievement>[] = [];
     const pushAchievement = (a: Selectable<Achievement>) =>
       updatedAchievements.push(a);
 
     if (userId === winner.id) {
-      await this.handleFirstVictory(winner.id, achievements, pushAchievement);
+      await this.handleFirstVictory(userId, achievements, pushAchievement);
       await this.handleUnderdogVictory(
         userId,
         winner.prevRating,
         loser.prevRating,
-        achievements,
-        pushAchievement,
-      );
-      await this.handleShutout(
-        winner.id,
-        loser.score,
         achievements,
         pushAchievement,
       );
@@ -54,15 +46,15 @@ export class AchievementsService {
         pushAchievement,
       );
       if (game.userDisconnectedId === undefined) {
-        await this.handleQuickWitted(
-          userId,
-          game.startTime,
+        await this.handleShutout(
+          winner.id,
+          loser.score,
           achievements,
           pushAchievement,
         );
-        await this.handleMarathonMan(
+        await this.handleQuickWitted(
           userId,
-          game.startTime,
+          game,
           achievements,
           pushAchievement,
         );
@@ -70,6 +62,7 @@ export class AchievementsService {
       await this.handleWinningStreak(userId, achievements, pushAchievement);
     }
 
+    await this.handleMarathonMan(userId, game, achievements, pushAchievement);
     await this.handleSocialButterfly(userId, achievements, pushAchievement);
     await this.handleVeteranPlayer(userId, achievements, pushAchievement);
     await this.handleRookieRiser(
@@ -211,12 +204,12 @@ export class AchievementsService {
 
   private async handleMarathonMan(
     userId: number,
-    gameStartTime: number,
+    game: GameType,
     achievements: Selectable<Achievement>[],
     pushAchievement: (a: Selectable<Achievement>) => void,
   ) {
     if (!achievements.some((a) => a.type === ACHIEVEMENTS.MARATHON_MAN)) {
-      if (Date.now() - gameStartTime >= MARATHON_MAN_ACHIEVEMENT_TIME) {
+      if (game.endTime - game.startTime >= MARATHON_MAN_ACHIEVEMENT_TIME) {
         pushAchievement(
           await this.unlock(userId, ACHIEVEMENTS.MARATHON_MAN, 0),
         );
@@ -226,12 +219,12 @@ export class AchievementsService {
 
   private async handleQuickWitted(
     userId: number,
-    gameStartTime: number,
+    game: GameType,
     achievements: Selectable<Achievement>[],
     pushAchievement: (a: Selectable<Achievement>) => void,
   ) {
     if (!achievements.some((a) => a.type === ACHIEVEMENTS.QUICK_WITTED)) {
-      if (Date.now() - gameStartTime < QUICK_WITTED_ACHIEVEMENT_TIME) {
+      if (game.endTime - game.startTime < QUICK_WITTED_ACHIEVEMENT_TIME) {
         pushAchievement(
           await this.unlock(userId, ACHIEVEMENTS.QUICK_WITTED, 0),
         );
@@ -251,7 +244,6 @@ export class AchievementsService {
         winnerId,
         loserId,
       ]);
-      console.log(previousGameWithLoser);
       if (previousGameWithLoser && previousGameWithLoser.winnerId === loserId) {
         pushAchievement(await this.unlock(winnerId, ACHIEVEMENTS.REVENGE, 0));
       }

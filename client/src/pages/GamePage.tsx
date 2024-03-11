@@ -1,5 +1,4 @@
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useContext, useEffect, useRef, useState } from "react";
 import GameDisconnectionModal from "../components/PlayerDisconnectionInfos";
 import {
   WsGameEndType,
@@ -14,25 +13,23 @@ import { UserGame } from "@api/types/games";
 import ModalLayout from "../UIKit/ModalLayout";
 import { Spinner } from "../UIKit/Kit";
 import GameCanvas from "../components/gameComponents/GameCanvas";
-import { GameFinishedCard } from "../components/GameFinishedCard";
 import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
 import { createGamePositions } from "@api/pong/gameLogic/gamePositions";
 import { useGameControls } from "../utils/game/useGameControls";
-import GamePreferences from "../components/gameSettings/GameSettings";
 import { usePingServer } from "../utils/game/usePingServer";
 import { UserAchievement } from "@api/types/achievements";
 import { NewGameAchievements } from "../components/achievements/NewGameAchievements";
 import { useGameRequest } from "../utils/useGameRequest";
-import { useGame } from "../utils/useGame";
 import { useGameInvitations } from "../utils/useGameInvitations";
+import { GameFinishedModal } from "../components/GameFinishedModal";
+import { useFetchGame } from "../utils/useFetchGame";
+import { useGameIdParam } from "../utils/useGameIdParam";
 
 export default function GamePage() {
-  const { gameId } = useParams();
-  const gameIdNumber = useMemo(() => Number(gameId), [gameId]);
+  const { gameId } = useGameIdParam();
   const queryClient = useQueryClient();
   const { gameSocket, gameSocketOn, gameSocketOff } =
     useContext(SocketsContext);
-  const [showGameSettings, setShowGameSettings] = useState(false);
   const [playerDisconnectionInfo, setPlayerDisconnectionInfo] =
     useState<WsPlayerDisconnection>();
   const [isPaused, setIsPaused] = useState(true);
@@ -40,7 +37,7 @@ export default function GamePage() {
   const gameRef = useRef<GameStateType>(createGamePositions({}));
   const [achievements, setAchievements] = useState<UserAchievement[]>();
   const [playersPingRtt, setPlayersPingRtt] = useState([0, 0]);
-  const gameRecord = useGame();
+  const gameRecord = useFetchGame(gameId);
   useGameControls({ gameRecord: gameRecord.data, isPaused });
   const isPlayerDisconnected = usePingServer({ gameRecord: gameRecord.data });
   const gameRequest = useGameRequest();
@@ -49,9 +46,9 @@ export default function GamePage() {
   useEffect(() => {
     gameRef.current = createGamePositions({});
     setPlayerDisconnectionInfo(undefined);
-    setShowGameSettings(false);
     setStartCountdown(undefined);
     setIsPaused(true);
+    setAchievements(undefined);
   }, [gameId]);
 
   const updatePlayersScores = (
@@ -104,7 +101,8 @@ export default function GamePage() {
       queryClient.setQueryData(
         ["gameRecord", gameId],
         (prev: UserGame | undefined) => {
-          if (!prev) return undefined;
+          if (!prev || data.id !== gameRecord.data?.id) return undefined;
+
           const prevCopy = { ...prev };
           prevCopy.winnerId = data.winnerId;
           prevCopy.playerOne = {
@@ -166,83 +164,69 @@ export default function GamePage() {
       gameSocketOff("startCountdown", handleGameStartCountdown);
       gameSocketOff("achievements", handleNewAchievements);
     };
-  }, [gameSocketOn, gameSocketOff, gameIdNumber]);
+  }, [gameSocketOn, gameSocketOff, gameId, gameRecord.data?.id]);
 
   useEffect(() => {
-    const payload: WsGameIdType = { gameId: gameIdNumber };
+    const payload: WsGameIdType = { gameId: gameId };
     gameSocket.emit("joinRoom", payload);
     return () => {
       gameSocket.emit("leaveGame", payload);
     };
-  }, [gameSocket, gameIdNumber]);
+  }, [gameSocket, gameId]);
 
   if (gameRecord.error) {
-    return <div>We could not find this game</div>;
+    return (
+      <div className="h-[100vh] w-full flex items-center justify-center">
+        We could not find this game
+      </div>
+    );
+  }
+
+  if (!gameRecord.data) {
+    return (
+      <div className="h-[100vh] w-full flex items-center justify-center">
+        <Spinner isLoading={true} />
+      </div>
+    );
   }
 
   return (
-    <div className="flex justify-center h-[100vh] p-5 gap-5">
+    <div className="flex justify-center h-[100vh] w-full p-5 gap-5">
       <div className="max-w-[1100px] contents">
-        {!achievements &&
-          gameRecord.data?.winnerId &&
-          !showGameSettings &&
-          !gameRequest.data &&
-          !gameInvitations.data?.length && (
-            <ModalLayout>
-              <GameFinishedCard
-                game={gameRecord.data}
-                showSettings={() => setShowGameSettings(true)}
-              />
-            </ModalLayout>
-          )}
-
-        {achievements && (
+        {(gameRequest.data || gameInvitations.data?.length) &&
+        gameRecord.data.winnerId != null ? null : achievements ? (
           <ModalLayout>
             <NewGameAchievements
               achievements={achievements}
               hide={() => setAchievements(undefined)}
             />
           </ModalLayout>
-        )}
-
-        {showGameSettings && (
+        ) : playerDisconnectionInfo && !isPlayerDisconnected ? (
           <ModalLayout>
-            <GamePreferences hide={() => setShowGameSettings(false)} />
+            <GameDisconnectionModal
+              disconnectionInfo={playerDisconnectionInfo}
+              gameRecord={gameRecord.data}
+            />
           </ModalLayout>
-        )}
-
-        {gameRecord.data &&
-          playerDisconnectionInfo &&
-          !isPlayerDisconnected && (
-            <ModalLayout isLoading={gameRecord.isPending}>
-              <GameDisconnectionModal
-                disconnectionInfo={playerDisconnectionInfo}
-                gameRecord={gameRecord.data}
-              />
-            </ModalLayout>
-          )}
-
-        {!!startCountdown && (
+        ) : !!startCountdown ? (
           <div className="animate-fadein bg-black bg-opacity-80 fixed top-0 left-0 h-full w-full z-10 flex items-center justify-center">
             <div className="p-5 text-8xl font-gameFont flex items-center justify-center animate-scalein">
-              <InfiniteSlotMachine state={startCountdown ?? 0} />
+              <InfiniteSlotMachine state={startCountdown} />
             </div>
           </div>
-        )}
+        ) : gameRecord.data.winnerId ? (
+          <GameFinishedModal gameRecord={gameRecord.data} />
+        ) : null}
 
-        {gameRecord.data ? (
-          <div className="flex pt-[calc(40px+1.25rem)]">
-            <GameLayout
-              gameRecord={gameRecord.data}
-              playersPingRtt={playersPingRtt}
-              isDisconnected={isPlayerDisconnected}
-            >
-              <GameCanvas gameRef={gameRef} isPaused={isPaused} />
-            </GameLayout>
-          </div>
-        ) : (
-          <Spinner isLoading={true} />
-        )}
+        <div className="flex pt-[calc(40px+1.25rem)]">
+          <GameLayout
+            gameRecord={gameRecord.data}
+            playersPingRtt={playersPingRtt}
+            isDisconnected={isPlayerDisconnected}
+          >
+            <GameCanvas gameRef={gameRef} isPaused={isPaused} />
+          </GameLayout>
+        </div>
       </div>
     </div>
   );

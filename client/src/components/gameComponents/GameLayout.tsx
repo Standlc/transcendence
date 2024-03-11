@@ -8,8 +8,6 @@ import { GameSettingsContext } from "../../ContextsProviders/GameSettingsContext
 import { VolumeOffRounded, VolumeUpRounded } from "@mui/icons-material";
 import { PlayerRating } from "../../UIKit/PlayerRating";
 
-const CONNECTION_BARS = 4;
-
 const GameLayout = memo(
   ({
     gameRecord,
@@ -174,40 +172,46 @@ const PlayersInfos = memo(
   }
 );
 
+const CONNECTION_BARS = 4;
+
 const ConnectionDescriptions = [
   "Very low lag",
   "Low lag",
+  "Moderate lag",
   "High lag",
   "Very high lag",
-  "Disconnected",
 ];
 
 const ConnectionStatus = memo(({ pingRtt }: { pingRtt: number }) => {
   const normalized = useMemo(() => {
-    const normalized = 1 - (pingRtt > 40 ? 40 : pingRtt) / 40;
+    const normalized = 1 - (pingRtt > 100 ? 100 : pingRtt) / 100;
     const connectionQuality = Math.round(normalized * CONNECTION_BARS);
     return connectionQuality;
   }, [pingRtt]);
 
   return (
-    <div className="relative flex justify-center peer">
+    <div className="relative flex justify-center peer [flex-direction:inherit]">
       <div className="min-h-[20px] flex gap-[2px] [flex-direction:inherit] peer/connection cursor-pointer py-[5px]">
-        {Array(normalized)
+        {Array(CONNECTION_BARS)
           .fill(0)
-          .map((_, i) => (
-            <div
-              key={i}
-              className="h-full w-[4px] bg-green-500 opacity-70 rounded-[2px]"
-            ></div>
-          ))}
-        {Array(CONNECTION_BARS - normalized)
-          .fill(0)
-          .map((_, i) => (
-            <div
-              key={i}
-              className="h-full w-[4px] bg-green-500 opacity-20 rounded-[2px]"
-            ></div>
-          ))}
+          .map((_, i) =>
+            !normalized && !i ? (
+              <div
+                key={i}
+                className="h-full w-[4px] bg-red-500 rounded-[2px]"
+              ></div>
+            ) : i < normalized ? (
+              <div
+                key={i}
+                className="h-full w-[4px] bg-green-500 opacity-70 rounded-[2px]"
+              ></div>
+            ) : (
+              <div
+                key={i}
+                className="h-full w-[4px] bg-white opacity-10 rounded-[2px]"
+              ></div>
+            )
+          )}
       </div>
       <div className="z-[2] cursor-none whitespace-nowrap absolute -top-1 translate-y-[-100%] bg-zinc-950 text-xs font-[500] rounded-md px-2 py-1 opacity-0 [visibility:hidden] peer-hover/connection:opacity-100 scale-90 peer-hover/connection:scale-100 peer-hover/connection:[visibility:visible] origin-bottom transition-all [transition-timing-function:cubic-bezier(0.7,0,0,1.4)]">
         {ConnectionDescriptions.at(CONNECTION_BARS - normalized)}

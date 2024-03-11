@@ -3,7 +3,7 @@ import {
   GameStateType,
   ObjectType,
   PlayerType,
-} from 'src/types/gameServer/pongGameTypes';
+} from '../../types/gameServer/pongGameTypes';
 import { CANVAS_H } from './constants';
 import { boundingBoxIntersection } from './collisions';
 import { movePaddle } from './paddle';

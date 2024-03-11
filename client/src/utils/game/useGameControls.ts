@@ -57,5 +57,5 @@ export const useGameControls = ({
       removeEventListener("keydown", handleKeyDown);
       removeEventListener("keyup", handleKeyUp);
     };
-  }, [isUserAPlayer, isPaused]);
+  }, [isUserAPlayer, isPaused, gameSocket]);
 };
