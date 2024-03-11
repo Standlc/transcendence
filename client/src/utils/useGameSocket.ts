@@ -99,17 +99,6 @@ export const useGameSocket = (addError: (error: ErrorType) => void) => {
     gameSocket.on("error", handleServerError);
     gameSocketOn("gameStart", handleGameStart);
 
-    const handleTest = () => {
-      console.log("got event");
-    };
-
-    const handleTestAll = () => {
-      console.log("event for all");
-    };
-
-    gameSocket.on("test", handleTest);
-    gameSocket.on("test_all", handleTestAll);
-
     return () => {
       if (!gameSocket) return;
       gameSocket.off("disconnect", handleDisconnect);
@@ -117,9 +106,6 @@ export const useGameSocket = (addError: (error: ErrorType) => void) => {
       gameSocket.off("connect_failed", handleErrors);
       gameSocket.off("error", handleServerError);
       gameSocketOff("gameStart", handleGameStart);
-
-      gameSocket.off("test", handleTest);
-      gameSocket.off("test_all", handleTestAll);
     };
   }, [gameSocket, queryClient, navigate, gameSocketOn, gameSocketOff]);
 

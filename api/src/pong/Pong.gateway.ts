@@ -8,6 +8,7 @@ import { GamesService } from 'src/games/games.service';
 import { Inject, UseGuards, forwardRef } from '@nestjs/common';
 import { WsAuthGuard, authenticateSocket } from 'src/auth/ws-auth.guard';
 import {
+  PlayerRatingChangeType,
   PlayersRatingChangesType,
   PlayersService,
 } from '../games/players/players.service';
@@ -21,7 +22,6 @@ import {
 } from 'src/types/gameServer/pongGameTypes';
 import {
   EmitPayloadType,
-  Tuple,
   WsGameIdType,
   WsPlayerMove,
 } from 'src/types/gameServer/socketPayloadTypes';
@@ -89,14 +89,14 @@ export class PongGateway {
 
   async handleConnection(client: Socket) {
     const userId = this.extractUserId(client);
-    await client.join(userId.toString());
-    // console.log('NEW CONNECTION:', client.id, 'with userId', userId);
+    const userIdToAlpha = btoa(userId.toString());
+    await client.join(userIdToAlpha);
   }
 
   async handleDisconnect(client: Socket) {
     const userId = this.extractUserId(client);
-    await client.leave(userId.toString());
-    // console.log('DISCONNECTION:', client.id, 'with userId', userId);
+    const userIdToAlpha = btoa(userId.toString());
+    await client.leave(userIdToAlpha);
   }
 
   @SubscribeMessage('leaveGame')
@@ -158,11 +158,6 @@ export class PongGateway {
       this.emitNewLiveGame(gameState);
     }
 
-    this.server.to(gameRecord.playerOneId.toString()).emit('test', 'hello');
-    this.server.to(gameRecord.playerTwoId.toString()).emit('test', 'hello');
-    // TEST
-    this.server.emit('test_all', 'hello everyone');
-
     this.sendTo(gameState.roomId, 'gameStart', gameState.roomId);
     await this.sendGameStartCountdown(gameState);
     gameState.isPaused = false;
@@ -171,61 +166,17 @@ export class PongGateway {
     gameState.startTime = now;
     gameState.nextUpdateTime = now + INTERVAL_MS;
 
-    this.runGame(
-      gameState,
-      gameRecord.isPublic
-        ? {
-            onPlayerScore: () => {
-              this.sendLiveGameUpdate(gameState);
-            },
-            onGameEnd: async () => {
-              await this.handlePublicGameEnd(gameState);
-            },
-          }
-        : {
-            onPlayerScore: () => {},
-            onGameEnd: async () => {
-              await this.handlePrivateGameEnd(gameState);
-            },
-          },
-    );
+    this.runGame(gameState);
   }
 
   async joinUsersToGameRoom(gameRecord: Selectable<Game>, roomId: string) {
     const playerOneIdToString = gameRecord.playerOneId.toString();
     const playerTwoIdToString = gameRecord.playerTwoId.toString();
-
-    this.server.in(playerOneIdToString).socketsJoin(roomId);
-    this.server.in(playerTwoIdToString).socketsJoin(roomId);
-
-    // this.server.in(playerOneIdToString).disconnectSockets();
-    // this.server.in(playerTwoIdToString).disconnectSockets();
-
-    // TEST
-    console.log(
-      'User',
-      gameRecord.playerOneId,
-      'Sockets',
-      (await this.server.in(playerOneIdToString).fetchSockets()).length,
-    );
-    console.log(
-      'User',
-      gameRecord.playerTwoId,
-      'Sockets',
-      (await this.server.in(playerTwoIdToString).fetchSockets()).length,
-    );
+    this.server.in(btoa(playerOneIdToString)).socketsJoin(roomId);
+    this.server.in(btoa(playerTwoIdToString)).socketsJoin(roomId);
   }
 
-  async runGame(
-    gameState: GameType,
-    {
-      onPlayerScore,
-      onGameEnd,
-    }: {
-      onPlayerScore: () => void;
-      onGameEnd: () => Promise<void>;
-    },
-  ) {
+  async runGame(gameState: GameType) {
     const handleEmitGameState = () => {
       this.sendTo(gameState.roomId, 'updateGameState', gameState.game);
     };
@@ -235,7 +186,11 @@ export class PongGateway {
       clearInterval(gameState.disconnectionIntervalId);
       clearInterval(gameState.intervalId);
       try {
-        await onGameEnd();
+        if (gameState.isPublic) {
+          await this.handlePublicGameEnd(gameState);
+        } else {
+          await this.handlePrivateGameEnd(gameState);
+        }
       } catch (error) {
         try {
           await this.gamesService.delete(gameState.gameId);
@@ -257,7 +212,9 @@ export class PongGateway {
       try {
         const newScore = score !== undefined ? score : player.score + 1;
         await this.updatePlayerScore(gameState, player, newScore);
-        onPlayerScore();
+        if (gameState.isPublic) {
+          this.sendLiveGameUpdate(gameState);
+        }
       } catch (error) {
         this.sendTo(gameState.roomId, 'error', {
           message: 'Error while updating player score.',
@@ -376,17 +333,12 @@ export class PongGateway {
   }
 
   async handlePrivateGameEnd(game: GameType) {
-    const { playerOne, playerTwo } = game.game;
     const { winner } = getWinner(game);
     const updatedGameRecord = await this.gamesService.finishGame(
       game.gameId,
       winner.id,
     );
-    this.sendToRooms(
-      [game.roomId, playerOne.id.toString(), playerTwo.id.toString()],
-      'gameEnd',
-      updatedGameRecord,
-    );
+    this.sendGameEndEvent(updatedGameRecord, game);
   }
 
   async handlePublicGameEnd(game: GameType) {
@@ -403,12 +355,9 @@ export class PongGateway {
       playersRatingsChange,
     );
 
+    this.sendGameEndEvent(updatedGameRecord, game);
     await this.updatePlayersAchievements(game, playersRatingsChange);
-    this.sendToRooms(
-      [game.roomId, playerOne.id.toString(), playerTwo.id.toString()],
-      'gameEnd',
-      updatedGameRecord,
-    );
+
     this.sendToAll('liveGameEnd', game.gameId);
     this.sendLeaderboardUpdates(game, playersRatingsChange, winner.id);
   }
@@ -423,6 +372,18 @@ export class PongGateway {
 
     handlePlayerMove(game.nextUpdateTime, player, data.move, () =>
       this.sendTo(game.roomId, 'playerMoveUpdate', player),
+    );
+  }
+
+  sendGameEndEvent(gameRecord: Selectable<Game>, game: GameType) {
+    this.sendToRooms(
+      [
+        game.roomId,
+        btoa(game.game.playerOne.id.toString()),
+        btoa(game.game.playerTwo.id.toString()),
+      ],
+      'gameEnd',
+      gameRecord,
     );
   }
 
@@ -446,31 +407,34 @@ export class PongGateway {
       ],
     };
 
-    const playerOneAchievements =
-      await this.achievementsService.updateUserAchievements(
-        playerOne.id,
-        winnerWithRatingChange,
-        loserWithRatingChange,
-        game,
-      );
-    await this.sendAchievementsUpdates(
+    await this.updatePlayerAchievements(
       playerOne.id,
-      playerOneAchievements,
-      game.roomId,
+      winnerWithRatingChange,
+      loserWithRatingChange,
+      game,
     );
 
-    const playerTwoAchievements =
-      await this.achievementsService.updateUserAchievements(
-        playerTwo.id,
-        winnerWithRatingChange,
-        loserWithRatingChange,
-        game,
-      );
-    await this.sendAchievementsUpdates(
+    await this.updatePlayerAchievements(
       playerTwo.id,
-      playerTwoAchievements,
-      game.roomId,
+      winnerWithRatingChange,
+      loserWithRatingChange,
+      game,
     );
+  }
+
+  async updatePlayerAchievements(
+    userId: number,
+    winner: PlayerType & PlayerRatingChangeType,
+    loser: PlayerType & PlayerRatingChangeType,
+    game: GameType,
+  ) {
+    const achievements = await this.achievementsService.updateUserAchievements(
+      userId,
+      winner,
+      loser,
+      game,
+    );
+    await this.sendAchievementsUpdates(userId, achievements, game.roomId);
   }
 
   async sendAchievementsUpdates(
@@ -480,11 +444,8 @@ export class PongGateway {
   ) {
     if (achievements.length) {
       const userSockets = await this.server
-        .in(userId.toString())
+        .in(btoa(userId.toString()))
         .fetchSockets();
-
-      // TEST
-      console.log('sockets cound for userId', userId, userSockets.length);
 
       userSockets.forEach((socket) => {
         if (socket.rooms.has(gameRoomId)) {
