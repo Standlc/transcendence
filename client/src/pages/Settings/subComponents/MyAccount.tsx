@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import defaultAvatar from "../../../components/defaultAvatar.png";
 import { AppUser } from "@api/types/clientSchema";
 
 export const MonCompte = ({ loginResponse }: { loginResponse: AppUser }) => {
@@ -30,7 +29,7 @@ export const MonCompte = ({ loginResponse }: { loginResponse: AppUser }) => {
                                 />
                             ) : (
                                 <img
-                                    src={defaultAvatar}
+                                    src={"/defaultAvatar.png"}
                                     alt="avatar"
                                     className="w-32 h-32 "
                                 />

@@ -1,27 +1,13 @@
 import { Link, useNavigate } from "react-router-dom";
-import defaultAvatar from "./../defaultAvatar.png";
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
 import { Settings } from "@mui/icons-material";
 import { Collapsible } from "./Collapsible";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useGetUser } from "../../utils/useGetUser";
 import { Avatar } from "../../UIKit/avatar/Avatar";
+import { AllUserDm } from "../../types/allUserDm";
 
-interface Conversation {
-    createdAt: string;
-    id: number;
-    user1: {
-        userId: number;
-        username: string;
-        avatarUrl: string | null;
-    };
-    user2: {
-        userId: number;
-        username: string;
-        avatarUrl: string | null;
-    };
-}
 export const ChanColumn = () => {
     const navigate = useNavigate();
     // const [allConversation, setallConversation] = useState<Conversation[]>([]);
@@ -30,7 +16,7 @@ export const ChanColumn = () => {
     const allDms = useQuery({
         queryKey: ["dms"],
         queryFn: async () => {
-            const res = await axios.get<Conversation[]>("/api/dm");
+            const res = await axios.get<AllUserDm[]>("/api/dm");
             return res.data;
         },
     });
@@ -53,32 +39,11 @@ export const ChanColumn = () => {
         navigate("/settings");
     };
 
-    const whichUsername = (conv: Conversation) => {
+    const otherhUser = (conv: AllUserDm) => {
         if (conv.user1.userId === user?.id) {
-            return conv.user2.username;
+            return conv.user2;
         } else {
-            return conv.user1.username;
-        }
-    };
-
-    const whichAvatar = (conv: Conversation) => {
-        if (conv.user1.userId === user?.id) {
-            if (conv.user2.avatarUrl !== null) {
-                return conv.user2.avatarUrl;
-            }
-        } else {
-            if (conv.user1.avatarUrl !== null) {
-                return conv.user1.avatarUrl;
-            }
-        }
-        return defaultAvatar;
-    };
-
-    const whichID = (conv: Conversation) => {
-        if (conv.user1.userId === user?.id) {
-            return conv.user2.userId;
-        } else {
-            return conv.user1.userId;
+            return conv.user1;
         }
     };
 
@@ -138,11 +103,13 @@ export const ChanColumn = () => {
                             to={`dm/${conv.id}`}
                         >
                             <Avatar
-                                imgUrl={whichAvatar(conv)}
+                                imgUrl={otherhUser(conv).avatarUrl}
                                 size="md"
-                                userId={whichID(conv)}
+                                userId={otherhUser(conv).userId}
+                                status={otherhUser(conv).status}
+                                borderRadius={0.5}
                             />
-                            <div className="ml-5">{whichUsername(conv)}</div>
+                            <div className="ml-5">{otherhUser(conv).username}</div>
                         </Link>
                     ))}
                 </Collapsible>

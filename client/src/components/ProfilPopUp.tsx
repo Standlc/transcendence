@@ -21,14 +21,14 @@ export const UserPopup: React.FC<Popuser> = ({ user, onClose }: Popuser) => {
 
     return (
         // Adjusted class names for full viewport coverage and corrected bg-opacity class
-        <div className=" top-0 left-0 w-full h-full flex justify-center items-center bg-black bg-opacity-30 z-10">
+        <div className=" top-0 left-0 w-full h-full flex justify-center items-center bg-black bg-opacity-30 z-10  ">
             <div className="bg-gray-200 w-[600px] h-[650px] rounded-md shadow-lg flex flex-col">
                 <div className="flex rounded-top-lg bg-discord-light-black w-full h-[100px]"></div>
                 <div className="flex bg-discord-light-grey items-center justify-between w-full p-4">
                     <Avatar
                         imgUrl={user?.avatarUrl}
                         size="2xl"
-                        userId={user?.id ?? 0}
+                        userId={user.userId ?? 0}
                     />
                     <div className="flex items-center gap-2">
                         <div className="bg-green-500 py-2 rounded-lg px-3">
@@ -56,7 +56,6 @@ export const UserPopup: React.FC<Popuser> = ({ user, onClose }: Popuser) => {
                         <div className="text-xl font-bold">
                             <div>{user?.username}</div>
                             <div>elo: {user?.rating}</div>
-                            <div>{user?.bio}</div>
                         </div>
                     </div>
                     <button className="mt-4" onClick={onClose}>

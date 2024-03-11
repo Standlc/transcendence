@@ -4,7 +4,6 @@ import {
     createBrowserRouter,
     createRoutesFromElements,
     Navigate,
-    Outlet,
 } from "react-router-dom";
 import PrivateLayout from "./components/PrivateLayout";
 import PublicLayout from "./components/PublicLayout";
@@ -14,9 +13,9 @@ import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { LiveGamesPage } from "./pages/LiveGamesPage";
-import { Register } from "./pages/Register";
-import { Friends } from "./pages/Friends";
-import { Login } from "./pages/Login";
+import { Register } from "./pages/LoginRegister/Register";
+import { Friends } from "./pages/Friends/Friends";
+import { Login } from "./pages/LoginRegister/Login";
 import { Settings } from "./pages/Settings/subComponents/Settings";
 import { AppUser } from "@api/types/clientSchema";
 import { ChannelsLayout } from "./components/ChannelsLayout";
@@ -24,7 +23,6 @@ import Chat from "./components/Chat/Chat";
 
 function App() {
     const queryClient = useQueryClient();
-    const SERVER_URL = "http://localhost:3000/socket.io";
 
     const getUser = useQuery({
         queryKey: ["user"],

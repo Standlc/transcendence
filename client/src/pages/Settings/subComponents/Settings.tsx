@@ -1,10 +1,11 @@
 import { useNavigate } from "react-router-dom";
-import defaultAvatar from "./../../../components/defaultAvatar.png";
 import { useState } from "react";
 import { ConfirmAvatarPopUp } from "./ConfirmAvatarPopUp";
 import { AppUser } from "@api/types/clientSchema";
 import { useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
+import { InsideProfil } from "../../../components/InsideProfil";
+import { Avatar } from "../../../UIKit/avatar/Avatar";
 
 interface Props {
     user: AppUser | undefined;
@@ -19,24 +20,6 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
     const [bio, setBio] = useState(user?.bio);
     const [firstname, setFirstname] = useState(user?.firstname);
     const [lastname, setLastname] = useState(user?.lastname);
-    const Achievements = () => <div>Achievements Content</div>;
-    const MatchHistory = () => <div>Match History Content</div>;
-    const Friends = () => <div>Friends Content</div>;
-
-    const [activeTab, setActiveTab] = useState("Achievements");
-
-    const renderTabContent = () => {
-        switch (activeTab) {
-            case "Achievements":
-                return <Achievements />;
-            case "Match History":
-                return <MatchHistory />;
-            case "Friends":
-                return <Friends />;
-            default:
-                return <div>Content not found</div>;
-        }
-    };
 
     const handleClickChangeAvatar = () => {
         setShowConfirmAvatarPopup(true);
@@ -231,20 +214,14 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
                     </div>
                     <div className="rounded-b-xl settings-account bg-discord-black flex flex-col items-center justify-center p-4 mt-20">
                         <div className="flex flex-row items-center">
-                            <div className="rounded-full bg-greyple p-1">
-                                {user?.avatarUrl ? (
-                                    <img
-                                        src={user.avatarUrl}
-                                        alt="avatar"
-                                        className="rounded-full w-32 h-32"
-                                    />
-                                ) : (
-                                    <img
-                                        src={defaultAvatar}
-                                        alt="avatar"
-                                        className="w-32 h-32"
-                                    />
-                                )}
+                            <div className="">
+                                <Avatar
+                                    imgUrl={user?.avatarUrl}
+                                    size="2xl"
+                                    borderRadius={0.5}
+                                    userId={user?.id ?? 0}
+                                    status={user?.status ?? 0}
+                                />
                             </div>
                             <div className="text-xl ml-4">
                                 <div className=" font-bold">{user?.username}</div>
@@ -252,41 +229,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
                                 <div>{user?.lastname}</div>
                             </div>
                         </div>
-                        <div className="rounded-xl settings-account-body bg-discord-dark-grey mt-4 w-full">
-                            <div className="flex justify-center">
-                                <div className="tabs">
-                                    <button
-                                        className={`align-items items-center ${
-                                            activeTab === "Achievements" ? "active" : ""
-                                        }`}
-                                        onClick={() => setActiveTab("Achievements")}
-                                    >
-                                        Achievements
-                                    </button>
-                                    <button
-                                        className={`align-items ${
-                                            activeTab === "Match History"
-                                                ? "active"
-                                                : ""
-                                        }`}
-                                        onClick={() => setActiveTab("Match History")}
-                                    >
-                                        Match History
-                                    </button>
-                                    <button
-                                        className={`align-items ${
-                                            activeTab === "Friends" ? "active" : ""
-                                        }`}
-                                        onClick={() => setActiveTab("Friends")}
-                                    >
-                                        Friends
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="rounded-xl  bg-discord-dark-grey mt-4 w-full">
-                                {renderTabContent()}
-                            </div>
-                        </div>
+                        <InsideProfil />
                     </div>
                 </div>
             </div>
