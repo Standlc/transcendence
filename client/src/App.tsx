@@ -1,9 +1,9 @@
-import { useState } from "react";
 import {
-  Route,
-  RouterProvider,
-  createBrowserRouter,
-  createRoutesFromElements,
+    Route,
+    RouterProvider,
+    createBrowserRouter,
+    createRoutesFromElements,
+    Navigate,
 } from "react-router-dom";
 import PrivateLayout from "./components/PrivateLayout";
 import PublicLayout from "./components/PublicLayout";
@@ -13,118 +13,87 @@ import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { LiveGamesPage } from "./pages/LiveGamesPage";
-import { AchievementsPage } from "./pages/AchievementsPage";
+import { Register } from "./pages/LoginRegister/Register";
+import { Friends } from "./pages/Friends/Friends";
+import { Login } from "./pages/LoginRegister/Login";
+import { Settings } from "./pages/Settings/subComponents/Settings";
 import { AppUser } from "@api/types/clientSchema";
-import { GameInvitationTestPage } from "./pages/GameInvitationTestPage";
+import { ChannelsLayout } from "./components/ChannelsLayout";
+import Chat from "./pages/Chat/Chat";
+import { Channel } from "./pages/Channel";
 
 function App() {
-  const queryClient = useQueryClient();
-  const [credentials, setCredentials] = useState({
-    username: "",
-    password: "",
-  });
+    const queryClient = useQueryClient();
 
-  const getUser = useQuery({
-    queryKey: ["user"],
-    retry: false,
-    queryFn: async () => {
-      const res = await axios.get<AppUser>("/api/auth/token");
-      return res.data;
-    },
-  });
+    const getUser = useQuery({
+        queryKey: ["user"],
+        retry: false,
+        queryFn: async () => {
+            const res = await axios.get<AppUser>("/api/auth/token");
+            return res.data;
+        },
+    });
 
-  const logUser = useMutation({
-    mutationKey: ["logUser", credentials],
-    mutationFn: async () => {
-      const res = await axios.post<AppUser>("/api/auth/login", {
-        username: credentials.username,
-        password: credentials.password,
-      });
-      return res.data;
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(["user"], data);
-    },
-    onError: () => {
-      // -> handle login error
-    },
-  });
+    const logUser = useMutation({
+        mutationFn: async (credentials: { username: string; password: string }) => {
+            const res = await axios.post<AppUser>("/api/auth/login", {
+                username: credentials.username,
+                password: credentials.password,
+            });
+            return res.data;
+        },
+        onSuccess: (data) => {
+            queryClient.setQueryData(["user"], data);
+        },
+        onError: () => {
+            // -> handle login error
+        },
+    });
 
-  if (getUser.isLoading) {
-    return null;
-  }
+    if (getUser.isLoading) {
+        return <div className="">Loading...</div>;
+    }
 
-  return (
-    <RouterProvider
-      router={createBrowserRouter(
-        createRoutesFromElements(
-          <>
-            {getUser.data ? (
-              <Route
-                element={<PrivateLayout user={getUser.data} />}
-                errorElement={<div>\(o_o)/</div>}
-              >
-                <Route index element={<div>home</div>}></Route>
-                <Route path="/play" element={<PlayPage />} />
-                <Route path="/play/:gameId" element={<GamePage />} />
-                <Route
-                  path="/invite-test"
-                  element={<GameInvitationTestPage />}
-                />
-                <Route
-                  path="/achievements/:userId"
-                  element={<AchievementsPage />}
-                />
-                <Route path="/leaderboard" element={<LeaderboardPage />} />
-                <Route path="/live" element={<LiveGamesPage />} />
-              </Route>
-            ) : (
-              <Route
-                element={<PublicLayout />}
-                errorElement={<div>\(o_o)/</div>}
-              >
-                {/* ALL OF THE BELOW IS TO BE REPLACED */}
-                <Route
-                  index
-                  element={
-                    <div className="text-black">
-                      {logUser.isPending && <span>Loading...</span>}
-                      {logUser.isError && <span>{logUser.error.message}</span>}
-                      <input
-                        placeholder="username"
-                        value={credentials.username}
-                        onChange={(e) =>
-                          setCredentials({
-                            ...credentials,
-                            username: e.target.value,
-                          })
-                        }
-                      />
-                      <br />
-                      <br />
-                      <input
-                        placeholder="password"
-                        value={credentials.password}
-                        onChange={(e) =>
-                          setCredentials({
-                            ...credentials,
-                            password: e.target.value,
-                          })
-                        }
-                      />
-                      <br />
-                      <br />
-                      <button onClick={() => logUser.mutate()}>LOGIN</button>
-                    </div>
-                  }
-                />
-              </Route>
+    return (
+        <RouterProvider
+            router={createBrowserRouter(
+                createRoutesFromElements(
+                    <>
+                        <Route
+                            element={<PrivateLayout user={getUser.data} />}
+                            errorElement={<Navigate to="/home" />}
+                        >
+                            <Route path="/home" element={<ChannelsLayout />}>
+                                <Route path="friends" element={<Friends />} />
+                                <Route
+                                    path="channels/:channelId"
+                                    element={<Channel />}
+                                ></Route>
+                                <Route path="dm/:dmId" element={<Chat />}></Route>
+                            </Route>
+
+                            <Route path="/play" element={<PlayPage />} />
+                            <Route path="/play/:gameId" element={<GamePage />} />
+                            <Route path="/leaderboard" element={<LeaderboardPage />} />
+                            <Route path="/live" element={<LiveGamesPage />} />
+                            <Route
+                                path="/settings"
+                                element={<Settings user={getUser.data} />}
+                            />
+                        </Route>
+
+                        <Route
+                            element={<PublicLayout />}
+                            errorElement={<Navigate to="/login" />}
+                        >
+                            <Route path="/login" element={<Login />} />
+                            <Route path="/create-account" element={<Register />} />
+                        </Route>
+                    </>
+                )
             )}
-          </>
-        )
-      )}
-    />
-  );
+        />
+    );
 }
 
 export default App;

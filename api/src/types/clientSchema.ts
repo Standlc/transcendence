@@ -1,4 +1,4 @@
-import { User } from './schema';
+import { Achievement, User } from './schema';
 import { Selectable } from 'kysely';
 
 export type AppUserDB = Omit<
@@ -6,7 +6,9 @@ export type AppUserDB = Omit<
   | 'password'
   | 'TwoFactorAuthenticationSecret'>;
 
-export interface AppUser extends AppUserDB { status: number };
+export interface AppUser extends AppUserDB {
+  status: number;
+}
 
 export type ListUsers = Omit<
   Selectable<User>,
