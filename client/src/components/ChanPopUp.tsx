@@ -44,7 +44,7 @@ export const ChanPopUp: React.FC<Props> = ({ onClose }: Props) => {
     // };
 
     return (
-        <div className="fixed top-0 left-0 w-full h-full flex justify-center items-center bg-discord-light-grey bg-opacity-30 z-10">
+        <div className=" top-0 left-0 w-full h-full flex justify-center items-center bg-discord-light-grey bg-opacity-30 z-10">
             <div className="bg-discord-light-grey w-[500px] h-[550px] rounded-md shadow-lg flex flex-col">
                 <div className="mt-10 text-2xl font-bold">Create your Channel</div>
                 <div className="flex justify-center mt-10">
