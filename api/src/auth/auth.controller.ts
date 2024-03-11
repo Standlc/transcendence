@@ -125,7 +125,8 @@ export class AuthController {
       httpOnly: true
     });
     if (req.user.isTwoFactorAuthenticationEnabled) {
-      let emptyUser = <AppUser>{ isTwoFactorAuthenticationEnabled: req.user.isTwoFactorAuthenticationEnabled };
+      let emptyUser: AppUser = <AppUser>{};
+      emptyUser.isTwoFactorAuthenticationEnabled = req.user.isTwoFactorAuthenticationEnabled;
       return emptyUser;
     }
     return req.user;
