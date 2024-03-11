@@ -120,7 +120,6 @@ const Chat = () => {
     return () => {
       if (socketRef.current) {
         socketRef.current.disconnect();
-        // !!! TODO resolve random disconnect after 2 - 4 messages
       }
     };
   }, [dmId]);
@@ -167,6 +166,28 @@ const Chat = () => {
 
     return previousMessage.senderId !== currentMessage.senderId;
   };
+
+  const shouldDisplayAvatarAndTimestampRT = (currentIndex: number): boolean => {  
+    if (currentIndex === 0) {
+      return true;
+    }
+
+    const previousMessage = realTimeMessages[currentIndex - 1];
+    const currentMessage = realTimeMessages[currentIndex];
+
+    return previousMessage?.senderId !== currentMessage?.senderId;
+  }
+
+  const shouldDisplayUsernameRT = (currentIndex: number): boolean => {
+    if (currentIndex === 0) {
+      return true;
+    }
+
+    const previousMessage = realTimeMessages[currentIndex - 1];
+    const currentMessage = realTimeMessages[currentIndex];
+
+    return previousMessage?.senderId !== currentMessage?.senderId;
+  }
 
   const renderMessages = () => {
     return (allMessages.data ?? []).map((msg, index) => (
@@ -217,7 +238,7 @@ const Chat = () => {
     return realTimeMessages.map((msg, index) => (
       <div className="mt-[20px]" key={index}>
         <div className="flex">
-          {shouldDisplayAvatarAndTimestamp(index) && (
+          {shouldDisplayAvatarAndTimestampRT(index) && (
             <div className="flex">
               {msg.avatarUrl ? (
                 <img
@@ -230,7 +251,7 @@ const Chat = () => {
                   className="h-[50px] w-[50px] rounded-full"
                 />
               )}
-              {shouldDisplayUsername(index) && (
+              {shouldDisplayUsernameRT(index) && (
                 <div className="font-bold ml-[30px]">
                   {msg.senderId === user?.id
                     ? user?.username
@@ -240,7 +261,7 @@ const Chat = () => {
             </div>
           )}
 
-          {shouldDisplayAvatarAndTimestamp(index) && (
+          {shouldDisplayAvatarAndTimestampRT(index) && (
             <div className="ml-[10px] mt-[4px] text-[13px]">
               {new Date(msg.createdAt).toLocaleString(undefined, {
                 year: "numeric",
