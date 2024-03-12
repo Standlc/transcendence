@@ -26,6 +26,7 @@ import {
 import { ChannelService } from './channel.service';
 import {
   ChannelCreationData,
+  ChannelDataWithUsersWithoutPassword,
   ChannelDataWithoutPassword,
   ChannelUpdate,
   MessageWithSenderInfo,
@@ -157,6 +158,12 @@ export class UserController {
                 avatarUrl: {
                   type: 'string',
                 },
+                rating: {
+                  type: 'number',
+                },
+                status: {
+                  type: 'number',
+                },
               },
             },
           },
@@ -276,6 +283,26 @@ export class UserController {
         photoUrl: {
           type: 'string | null',
         },
+        schema: {
+          type: 'object',
+          properties: {
+            userId: {
+              type: 'number',
+            },
+            username: {
+              type: 'string',
+            },
+            avatarUrl: {
+              type: 'string',
+            },
+            rating: {
+              type: 'number',
+            },
+            status: {
+              type: 'number',
+            },
+          },
+        },
       },
     },
   })
@@ -284,7 +311,7 @@ export class UserController {
   @Get(':channelId/channel')
   async getChannel(
     @Param('channelId') channelId: number,
-  ): Promise<ChannelDataWithoutPassword> {
+  ): Promise<ChannelDataWithUsersWithoutPassword> {
     console.log('GET: Recieved channelId:', channelId);
     return await this.channelService.getChannel(channelId);
   }
