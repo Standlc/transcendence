@@ -216,7 +216,7 @@ export class AuthController {
     const session: {
       jwt: string,
       expires: Date
-    } = await this.authService.login(req.user.id);
+    } = await this.authService.loginWith2fa(req.user.id);
     res.cookie('token', session.jwt, {
       expires: session.expires,
       sameSite: 'strict',
