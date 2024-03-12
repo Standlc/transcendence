@@ -1,5 +1,6 @@
 import { useContext, useEffect } from "react";
 import { ErrorContext } from "../ContextsProviders/ErrorContext";
+import { Check } from "@mui/icons-material";
 
 export const ErrorModal = () => {
   const { error, removeCurrentError } = useContext(ErrorContext);
@@ -24,10 +25,20 @@ export const ErrorModal = () => {
         style={{
           animationFillMode: "forwards",
         }}
-        className="animate-showUpAndLeave [outline:1px_solid_rgba(255,0,0,0.2)] fixed bottom-10 py-3 px-5 rounded-md bg-zinc-900 gap-2 items-center shadow-card"
+        className="fixed bottom-10 flex animate-showUpAndLeave"
       >
-        {/* <span className="">Oops, </span> */}
-        <span className="">{error.message}</span>
+        {error.isSuccess ? (
+          <div className="flex items-center gap-3 outline outline-[1px] outline-green-900 py-3 px-5 rounded-md bg-zinc-900 shadow-card">
+            <span>{error.message}</span>
+            <div className="h-[18px] aspect-square flex items-center justify-center bg-white bg-opacity-20 rounded-full">
+              <Check style={{ fontSize: 10 }} />
+            </div>
+          </div>
+        ) : (
+          <span className="outline outline-[1px] outline-red-900 py-3 px-5 rounded-md bg-zinc-900 shadow-card">
+            {error.message}
+          </span>
+        )}
       </div>
     </div>
   );
