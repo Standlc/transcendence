@@ -73,7 +73,7 @@ export const ChanPopUp: React.FC<Props> = ({ onClose }: Props) => {
                     return [...oldData, data]; // Ajoutez le nouveau canal aux données existantes
                 }
             );
-            queryClient.invalidateQueries("channels", { exact: true });
+
         },
         onError: (error) => {
             console.error("Error creating channel:", error);

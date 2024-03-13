@@ -31,7 +31,7 @@ export const ChanColumn = () => {
         },
     });
 
-    const queryClient = useQueryClient();
+    // const queryClient = useQueryClient();
 
     // const onClick = () => {
     //     queryClient.invalidateQueries({
