@@ -87,9 +87,6 @@ export const ChanPopUp: React.FC<Props> = ({ onClose }: Props) => {
             return;
         }
 
-        console.log("is public", isPublic);
-        console.log("channel name", channelName);
-        console.log("password", password);
         createNewChannel.mutate({
             isPublic,
             name: channelName,

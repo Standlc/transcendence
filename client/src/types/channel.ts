@@ -6,7 +6,16 @@ export interface CreateChannelResponse {
     id: number;
     isPublic: boolean;
     name: string;
-    photoUrl: string;
+    photoUrl: string | null;
+    users: ChannelUser[];
+}
+
+export interface ChannelUser {
+    userId: number;
+    username: string;
+    avatarUrl: string;
+    rating: number;
+    status: number;
 }
 
 interface User {

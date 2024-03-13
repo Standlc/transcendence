@@ -4,11 +4,32 @@ import { useEffect, useState } from "react";
 import { CreateChannelResponse } from "../types/channel";
 import TextArea from "../UIKit/TextArea";
 import { Avatar } from "../UIKit/avatar/Avatar";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import ModalLayout from "../UIKit/ModalLayout";
+import { CmdOpen } from "./Channel/subComponents/CmdPopUp";
 
 export const Channel = () => {
     const { channelId } = useParams();
-    const [chanInfo, setChanInfo] = useState<CreateChannelResponse>({});
+    const [chanInfo, setChanInfo] = useState<CreateChannelResponse>({
+        channelOwner: 0,
+        createdAt: {
+            __select__: new Date(),
+            __insert__: new Date(),
+            __update__: new Date(),
+        },
+        id: 0,
+        isPublic: false,
+        name: "",
+        photoUrl: "", // Initialement une chaîne vide
+        users: [], // Ajouter une propriété users, initialement un tableau vide
+    });
+
     const [textAreaValue, setTextAreaValue] = useState("");
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const toggleMenu = () => {
+        setIsMenuOpen(!isMenuOpen);
+    };
+    const [cmdOpen, setCmdOpen] = useState(false);
 
     const handleTextAreaChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         setTextAreaValue(event.target.value);
@@ -19,6 +40,28 @@ export const Channel = () => {
             e.preventDefault();
             sendMessage();
         }
+    };
+
+    const ShowAdminButton = () => {
+        return (
+            <div className="flex items-center">
+                <button onClick={() => setCmdOpen(true)} className="text-white">
+                    <MoreVertIcon />
+                </button>
+                <div>
+                    {cmdOpen && (
+                        <ModalLayout>
+                            <ModalLayout>
+                                <CmdOpen
+                                    onClose={() => setCmdOpen(false)}
+                                    chanInfo={chanInfo}
+                                />
+                            </ModalLayout>
+                        </ModalLayout>
+                    )}
+                </div>
+            </div>
+        );
     };
 
     const getChannel = async (channelId: string) => {
@@ -85,6 +128,11 @@ export const Channel = () => {
                         <div className="ml-5 mt-2 text-xl">
                             <div>USERS</div>
                         </div>
+                    </div>
+                    <div>
+                        <button onClick={toggleMenu}>
+                            <ShowAdminButton />
+                        </button>
                     </div>
                     <div>
                         <NotificationBox />
