@@ -12,15 +12,15 @@ export const CmdOpen: React.FC<Props> = ({ onClose, chanInfo }) => {
 
     const doCmd = (cmd: string) => {
         if (cmd === "kick") {
-            console.log("Action confirmée:", cmd);
+            console.log("Confirmed:", cmd);
             onClose();
         }
         if (cmd === "ban") {
-            console.log("Action confirmée:", cmd);
+            console.log("Confirmed:", cmd);
             onClose();
         }
         if (cmd === "mute") {
-            console.log("Action confirmée:", cmd);
+            console.log("Confirmed:", cmd);
             onClose();
         }
     };
@@ -85,7 +85,7 @@ export const CmdOpen: React.FC<Props> = ({ onClose, chanInfo }) => {
                         className="mt-4 w-[100px] px-4 py-2 bg-blurple text-white rounded hover:bg-blurple-hover mr-5"
                         onClick={onClose}
                     >
-                        Fermer
+                        Close
                     </button>
                 </div>
             </div>

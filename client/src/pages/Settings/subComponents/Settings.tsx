@@ -91,7 +91,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
             localStorage.removeItem("token");
             queryClient.invalidateQueries({ queryKey: ["user"] });
         } catch (error) {
-            console.error("Erreur lors de la déconnexion", error);
+            console.error("Error while disconnecting", error);
         }
         queryClient.setQueryData(["user"], null);
         navigate("/", { replace: true });

@@ -1,3 +1,3 @@
 export const Deconnection = () => {
-    return <div>Deconnection</div>;
+    return <div>Log out</div>;
 };

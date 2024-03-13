@@ -102,7 +102,7 @@ export const FriendsInvitation: React.FC<Props> = ({
                     ></path>
                 </svg>
                 <div className="ml-2 mt-4 font-bold text-xl ">
-                    Amis <span className="ml-[20px] text-greyple">|</span>
+                    Friends <span className="ml-[20px] text-greyple">|</span>
                 </div>
 
                 <div className="flex ml-[20px]  mt-[10px] mb-[10px]">
@@ -113,7 +113,7 @@ export const FriendsInvitation: React.FC<Props> = ({
                         }}
                         className="mr-[20px] text-white p-[10px] hover:bg-discord-light-grey rounded-lg text-s  py-1 text-center"
                     >
-                        Tous
+                        All
                     </button>
                     <button
                         className={`text-white mr-[20px] text-s py-1 text-center p-[10px] ${
@@ -122,7 +122,7 @@ export const FriendsInvitation: React.FC<Props> = ({
                                 : "hover:bg-discord-light-grey"
                         } p-[10px] rounded-lg text-s  text-center`}
                     >
-                        En attente
+                        Pending
                     </button>
                     <button
                         onClick={() => {
@@ -131,12 +131,12 @@ export const FriendsInvitation: React.FC<Props> = ({
                         }}
                         className="text-white bg-green p-[10px] py-2 rounded-lg text-s  text-center"
                     >
-                        Ajouter
+                        ADD
                     </button>
                 </div>
             </div>
             <div>
-                <div className="text-left mt-5 ml-5 font-bold">PENDING INVTATION</div>
+                <div className="text-left mt-5 ml-5 font-bold">PENDING INVITATION</div>
             </div>
             <div className="mt-5">
                 {friendsRequest.map((friend, index) => (
@@ -159,7 +159,7 @@ export const FriendsInvitation: React.FC<Props> = ({
                             onClick={() => acceptRequest(friend.id)}
                             className="bg-blurple hover:bg-blurple-hover text-white font-bold py-2 px-4 rounded mr-5"
                         >
-                            Accepter
+                            Accept
                         </button>
                     </div>
                 ))}

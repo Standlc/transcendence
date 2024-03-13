@@ -42,18 +42,18 @@ export const MonCompte = ({ loginResponse }: { loginResponse: AppUser }) => {
 
                     <div className="rounded-xl settings-account-body bg-discord-dark-grey">
                         <div className="w-[500px] ml-5 mt-5 text-greyple text-left">
-                            <div>NOM D'AFFICHAGE</div>
+                            <div>Username</div>
                             <div className="w-full flex block text-white">
                                 <div className=" w-full tata">
                                     <div>{loginResponse?.username}</div>
                                     <button className=" rounded-l  px-4  py-2 bg-grey block text-right ">
-                                        Modifier
+                                        Edit
                                     </button>
                                 </div>
                             </div>
                         </div>
                         <div className="w-[500px] ml-5 mt-5 text-greyple text-left">
-                            <div>NOM PRENOM</div>
+                            <div>Lastname Firstname</div>
                             <div className="w-full flex block text-white">
                                 <div className=" w-full tata">
                                     <div>
@@ -61,7 +61,7 @@ export const MonCompte = ({ loginResponse }: { loginResponse: AppUser }) => {
                                         {loginResponse?.firstname}
                                     </div>
                                     <button className=" rounded-l  px-4  py-2 bg-grey block text-right ">
-                                        Modifier
+                                        Edit
                                     </button>
                                 </div>
                             </div>
@@ -72,7 +72,7 @@ export const MonCompte = ({ loginResponse }: { loginResponse: AppUser }) => {
                                 <div className=" w-full tata">
                                     <div>{loginResponse?.email}</div>
                                     <button className=" rounded-l  px-4  py-2 bg-grey block text-right ">
-                                        Modifier
+                                        Edit
                                     </button>
                                 </div>
                             </div>
@@ -83,7 +83,7 @@ export const MonCompte = ({ loginResponse }: { loginResponse: AppUser }) => {
                                 <div className=" w-full tata">
                                     <div>{loginResponse?.id}</div>
                                     <button className=" rounded-l  px-4  py-2 bg-grey block text-right ">
-                                        Modifier
+                                        Can't Edit
                                     </button>
                                 </div>
                             </div>
@@ -93,14 +93,14 @@ export const MonCompte = ({ loginResponse }: { loginResponse: AppUser }) => {
                 <div className="mt-10 bg-grey border-b border-b-grey w-2/3 "></div>
                 <div className="mt-10 w-2/3">
                     <div className="text-left ml-10 font-bold text-xl">
-                        Mot de passe et authentification
+                        Password & authentification
                     </div>
                     <div className="text-left ml-10">
                         <button
                             type="submit"
                             className="text-white mt-5 bg-blurple hover:bg-blurple-hover font-bold rounded-lg text-s w-1/3  py-2.5 text-center"
                         >
-                            Changer le mot de passe
+                            Edit password
                         </button>
                     </div>
                 </div>

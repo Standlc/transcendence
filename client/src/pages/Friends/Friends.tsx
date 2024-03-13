@@ -103,7 +103,7 @@ export const Friends: React.FC = () => {
                             ></path>
                         </svg>
                         <div className="ml-2 mt-4 font-bold text-xl ">
-                            Amis <span className="ml-[20px] text-greyple">|</span>
+                            Friends <span className="ml-[20px] text-greyple">|</span>
                         </div>
 
                         <div className="flex ml-[20px]  mt-[10px] mb-[10px]">
@@ -111,19 +111,19 @@ export const Friends: React.FC = () => {
                                 onClick={() => setAllFriends(true)}
                                 className="mr-[20px] text-white p-[10px] hover:bg-discord-light-grey rounded-lg text-s  py-1 text-center"
                             >
-                                Tous
+                                All
                             </button>
                             <button
                                 onClick={() => setFriendsPending(true)}
                                 className="mr-[20px] text-white p-[10px] hover:bg-discord-light-grey rounded-lg text-s  py-1 text-center"
                             >
-                                En attente
+                                Pending
                             </button>
                             <button
                                 onClick={() => setAdding(true)}
                                 className="text-white bg-green p-[10px]  rounded-lg text-s py-2 text-center"
                             >
-                                Ajouter
+                                ADD
                             </button>
                         </div>
                     </div>

@@ -115,12 +115,12 @@ export const AllFriends: React.FC<Props> = ({
             } else {
                 // Gérer d'autres réponses inattendues
                 console.error(
-                    "Erreur lors de la recherche de la conversation:",
+                    "Error while retrieving conversation:",
                     response.status
                 );
             }
         } catch (error) {
-            console.error("Erreur lors de la recherche de la conversation:", error);
+            console.error("Error while retrieving conversation:", error);
         }
     };
 
@@ -186,7 +186,7 @@ export const AllFriends: React.FC<Props> = ({
                             ></path>
                         </svg>
                         <div className="ml-2 mt-4 font-bold text-xl ">
-                            Amis <span className="ml-[20px] text-greyple">|</span>
+                            Friends <span className="ml-[20px] text-greyple">|</span>
                         </div>
                         <div className="flex ml-[20px] mt-[10px] mb-[10px]">
                             <button
@@ -205,7 +205,7 @@ export const AllFriends: React.FC<Props> = ({
                                 }}
                                 className="mr-[20px] text-white p-[10px] hover:bg-discord-light-grey rounded-lg text-s  py-1 text-center"
                             >
-                                En attente
+                                Pending
                             </button>
                             <button
                                 onClick={() => {
@@ -214,7 +214,7 @@ export const AllFriends: React.FC<Props> = ({
                                 }}
                                 className="text-white bg-green p-[10px]  rounded-lg text-s py-2 text-center"
                             >
-                                Ajouter
+                                ADD
                             </button>
                         </div>
                     </div>
@@ -292,7 +292,7 @@ export const AllFriends: React.FC<Props> = ({
                                             }
                                             className="bg-blurple hover:bg-blurple-hover text-white py-2 font-bold  px-4 rounded mr-[10px] "
                                         >
-                                            supprimer
+                                            Remove
                                         </button>
                                     </div>
                                 </div>
