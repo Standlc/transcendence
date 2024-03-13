@@ -1,18 +1,18 @@
 export interface AllUserDm {
-    id: 0;
-    createdAt: "string";
+    id: number;
+    createdAt: string;
     user1: {
-        userId: 0;
-        avatarUrl: "string";
-        username: "string";
-        rating: 0;
-        status: 0;
+        userId: number;
+        avatarUrl: string;
+        username: string;
+        rating: number;
+        status: number;
     };
     user2: {
-        userId: 0;
-        avatarUrl: "string";
-        username: "string";
-        rating: 0;
-        status: 0;
+        userId: number;
+        avatarUrl: string;
+        username: string;
+        rating: number;
+        status: number;
     };
 }
