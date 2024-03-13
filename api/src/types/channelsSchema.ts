@@ -45,6 +45,8 @@ export interface UserInfo {
   userId: number;
   username: string;
   avatarUrl: string;
+  rating: number;
+  status: number;
 }
 
 // combine User interface and Channel interface
@@ -113,23 +115,4 @@ export interface ChannelUpdate {
   isPublic: boolean;
   name: string | null;
   password: string | null;
-}
-
-export interface AllConversationsPromise {
-  id: number;
-  createdAt: Date;
-  user1: {
-    userId: number;
-    avatarUrl: string;
-    username: string;
-    rating: number;
-    status: number;
-  };
-  user2: {
-    userId: number;
-    avatarUrl: string;
-    username: string;
-    rating: number;
-    status: number;
-  };
 }

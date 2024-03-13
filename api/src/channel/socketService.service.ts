@@ -97,7 +97,6 @@ export class SocketService {
   //
   //
   //
-  
   async unbanUser(
     userId: number,
     channelId: number,
@@ -144,7 +143,6 @@ export class SocketService {
   //
   //
   //
-  
   async muteUser(userId: number, payload: MuteUser): Promise<void> {
     if (
       (await this.utilsChannelService.isChannelMember(
@@ -273,7 +271,6 @@ export class SocketService {
   //
   //
   //
-  
   async blockUser(userId: number, targetUserId: number): Promise<void> {
     if (targetUserId === userId) {
       console.log('User cannot block itself');
@@ -345,7 +342,6 @@ export class SocketService {
   //
   //
   //
-  
   async addAdministrator(
     userId: number,
     channelId: number,
@@ -394,7 +390,6 @@ export class SocketService {
   //
   //
   //
-  
   async removeAdministrator(
     userId: number,
     channelId: number,
@@ -452,7 +447,6 @@ export class SocketService {
   //
   //
   //
-  
   async quitChannel(userId: number, channelId: number): Promise<void> {
     if (
       (await this.utilsChannelService.userIsOwner(userId, channelId)) === true
@@ -485,7 +479,6 @@ export class SocketService {
   //
   //
   //
-  
   async isOnlyOneMember(channelId: number): Promise<boolean> {
     try {
       const members = await db
@@ -503,7 +496,6 @@ export class SocketService {
   //
   //
   //
-  
   async hasAdmins(channelId: number): Promise<boolean> {
     try {
       const admins = await db
@@ -521,7 +513,6 @@ export class SocketService {
   //
   //
   //
-  
   async setFirstAdminAsOwner(
     ownerId: number,
     channelId: number,
@@ -551,7 +542,6 @@ export class SocketService {
   //
   //
   //
-  
   async setFirstMemberAsOwner(
     ownerId: number,
     channelId: number,
@@ -585,7 +575,6 @@ export class SocketService {
   //
   //
   //
-  
   async deleteFromChannelAdmin(
     userId: number,
     channelId: number,
@@ -605,7 +594,6 @@ export class SocketService {
   //
   //
   //
-  
   async deleteFromChannelMember(
     userId: number,
     channelId: number,
@@ -625,7 +613,6 @@ export class SocketService {
   //
   //
   //
-  
   async addNewAdmin(newOwnerId: number, channelId: number): Promise<void> {
     try {
       await db
@@ -643,7 +630,6 @@ export class SocketService {
   //
   //
   //
-  
   async quitChannelAsOwner(userId: number, channelId: number): Promise<void> {
     if ((await this.isOnlyOneMember(channelId)) === true) {
       console.log('Is only one member');
@@ -762,7 +748,6 @@ export class SocketService {
   //
   //
   //
-  
   async invitedListVerification(
     userId: number,
     channelId: number,
@@ -783,7 +768,6 @@ export class SocketService {
   //
   //
   //
-  
   async addToInviteList(
     userId: number,
     channelId: number,
@@ -818,7 +802,6 @@ export class SocketService {
   //
   //
   //
-  
   async removeFromInviteList(
     userId: number,
     channelId: number,
@@ -845,7 +828,6 @@ export class SocketService {
   //
   //
   //
-  
   async isInInviteList(userId: number, channelId: number) {
     try {
       const userInList = await db
