@@ -212,25 +212,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
                             </svg>
                         </button>
                     </div>
-                    <div className="rounded-b-xl settings-account bg-discord-black flex flex-col items-center justify-center p-4 mt-20">
-                        <div className="flex flex-row items-center">
-                            <div className="">
-                                <Avatar
-                                    imgUrl={user?.avatarUrl}
-                                    size="2xl"
-                                    borderRadius={0.5}
-                                    userId={user?.id ?? 0}
-                                    status={user?.status ?? 0}
-                                />
-                            </div>
-                            <div className="text-xl ml-4">
-                                <div className=" font-bold">{user?.username}</div>
-                                <div>{user?.firstname} </div>
-                                <div>{user?.lastname}</div>
-                            </div>
-                        </div>
-                        <InsideProfil />
-                    </div>
+
                 </div>
             </div>
             <div>

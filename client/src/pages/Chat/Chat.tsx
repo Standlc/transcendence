@@ -175,17 +175,8 @@ const Chat = () => {
                 <div className="flex">
                     {shouldDisplayAvatarAndTimestamp(index) && (
                         <div className="flex">
-                            {msg.avatarUrl ? (
-                                <img
-                                    src={msg.avatarUrl}
-                                    className="h-[50px] w-[50px] rounded-full"
-                                />
-                            ) : (
-                                <img
-                                    src={"/default-avatar.png"}
-                                    className="h-[50px] w-[50px] rounded-full"
-                                />
-                            )}
+
+                            <Avatar imgUrl={msg.avatarUrl} userId={msg.senderId} size="md" borderRadius={0.5} />
                             {shouldDisplayUsername(index) && (
                                 <div className="font-bold ml-[30px]">
                                     {msg.senderId === user?.id
@@ -295,6 +286,8 @@ const Chat = () => {
                                 imgUrl={otherUser?.avatarUrl}
                                 size="md"
                                 userId={otherUser?.userId ?? 0}
+                                borderRadius={0.5}
+                                status={otherUser?.status}
                             />
                         </div>
                         <div className="ml-2 mt-4 font-bold text-xl">
@@ -322,7 +315,7 @@ const Chat = () => {
                     </ModalLayout>
                 )}
             </div>
-            <div className="text-white text-left h-[800px] w-[1400px] ml-[20px] overflow-auto">
+            <div className="text-white text-left h-[750px] w-[1400px] ml-[20px] overflow-auto">
                 {renderMessages()}
                 {renderRealTimeMessages()}
             </div>

@@ -19,7 +19,7 @@ export const Channel = () => {
             __update__: new Date(),
         },
         id: 0,
-        isPublic: false,
+        isPublic: true,
         name: "",
         photoUrl: "", // Initialement une chaîne vide
         users: [], // Ajouter une propriété users, initialement un tableau vide
@@ -33,6 +33,8 @@ export const Channel = () => {
     const [cmdOpen, setCmdOpen] = useState(false);
     const { chatSocket } = useContext(SocketsContext);
 
+
+
     useEffect(() => {
         if (!chatSocket)
             return;
@@ -42,6 +44,7 @@ export const Channel = () => {
 
         return () => {
             chatSocket.off('joinChannel');
+            chatSocket.off('message');
         }
     }, [chatSocket])
 

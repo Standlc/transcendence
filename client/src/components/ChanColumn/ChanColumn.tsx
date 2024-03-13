@@ -2,13 +2,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Settings } from "@mui/icons-material";
 import { Collapsible } from "./Collapsible";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { useGetUser } from "../../utils/useGetUser";
 import { Avatar } from "../../UIKit/avatar/Avatar";
 import { AllUserDm } from "../../types/allUserDm";
-import { AllChannels } from "../../types/channel";
 import { Timestamp } from "@api/types/schema";
+import CachedIcon from '@mui/icons-material/Cached';
 
 interface AllChannels {
     channelOwner : number,
@@ -30,6 +30,14 @@ export const ChanColumn = () => {
             return res.data;
         },
     });
+
+    const queryClient = useQueryClient();
+
+    // const onClick = () => {
+    //     queryClient.invalidateQueries({
+    //         "queryKey": ["allChannels"]
+    //     });
+    // }
 
     const allChannels = useQuery({
         queryKey: ["allChannels"],
