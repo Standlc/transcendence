@@ -58,7 +58,7 @@ export const ChanPopUp: React.FC<Props> = ({ onClose }: Props) => {
         mutationFn: async (newChannelData) => {
             try {
                 const response = await axios.post("/api/channels", newChannelData);
-                console.log(response.data);
+                console.log("RESPONSE", response.data);
                 return response.data;
             } catch (error) {
                 throw new Error(error.response.data.message);

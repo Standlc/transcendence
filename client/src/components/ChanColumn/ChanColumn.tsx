@@ -8,10 +8,19 @@ import { useGetUser } from "../../utils/useGetUser";
 import { Avatar } from "../../UIKit/avatar/Avatar";
 import { AllUserDm } from "../../types/allUserDm";
 import { AllChannels } from "../../types/channel";
+import { Timestamp } from "@api/types/schema";
+
+interface AllChannels {
+    channelOwner : number,
+    createdAt : Timestamp;
+    id : number;
+    isPublic: boolean;
+    name : string ;
+    photoUrl : string | null;
+}
 
 export const ChanColumn = () => {
     const navigate = useNavigate();
-    // const [allConversation, setallConversation] = useState<Conversation[]>([]);
     const [activeButton, setActiveButton] = useState<number | null>(null);
     const user = useGetUser();
     const allDms = useQuery({
@@ -29,6 +38,8 @@ export const ChanColumn = () => {
             return res.data;
         },
     });
+
+
 
     const handleButtonClick = (index: number) => {
         if (index === -1) {
@@ -60,10 +71,7 @@ export const ChanColumn = () => {
 
     return (
         <div className="bg-not-quite-black chan-column">
-            <div
-                className="bg-not-quite-black topbar-section border-b border-b-almost-black "
-                style={{ borderBottomWidth: "3px" }}
-            ></div>
+
             <div className="w-full item-center justify-center">
                 <div
                     onClick={() => handleButtonClick(-1)}
