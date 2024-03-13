@@ -1,12 +1,13 @@
 import { useParams } from "react-router-dom";
 import { NotificationBox } from "../components/NotificationBox";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { CreateChannelResponse } from "../types/channel";
 import TextArea from "../UIKit/TextArea";
 import { Avatar } from "../UIKit/avatar/Avatar";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ModalLayout from "../UIKit/ModalLayout";
 import { CmdOpen } from "./Channel/subComponents/CmdPopUp";
+import { SocketsContext } from "../ContextsProviders/SocketsContext";
 
 export const Channel = () => {
     const { channelId } = useParams();
@@ -30,6 +31,19 @@ export const Channel = () => {
         setIsMenuOpen(!isMenuOpen);
     };
     const [cmdOpen, setCmdOpen] = useState(false);
+    const { chatSocket } = useContext(SocketsContext);
+
+    useEffect(() => {
+        if (!chatSocket)
+            return;
+        chatSocket.on('joinChannel', () => console.log('joinChannel'));
+        chatSocket.on('message', (data) => console.log('messeage' + data));
+        console.log("ici", chatSocket);
+
+        return () => {
+            chatSocket.off('joinChannel');
+        }
+    }, [chatSocket])
 
     const handleTextAreaChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         setTextAreaValue(event.target.value);
@@ -92,13 +106,7 @@ export const Channel = () => {
     }, [channelId]);
 
     const sendMessage = () => {
-        // if (textAreaValue.trim() && dmId && socketRef.current) {
-        //     const messageData = {
-        //         content: textAreaValue,
-        //         conversationId: dmId,
-        //         senderId: user?.id,
-        //     };
-        //     socketRef.current.emit("createDirectMessage", messageData);
+
         setTextAreaValue("");
     };
 

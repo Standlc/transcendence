@@ -61,24 +61,20 @@ export const FriendsAdd: React.FC<Props> = ({
         }
     };
 
-    // Utiliser useEffect pour surveiller les changements de 'username'
     useEffect(() => {
-        // Créer une fonction débouncée qui appelle findUser
         const debouncedSearch = _.debounce(() => {
             findUser();
-        }, 300); // Attendre 300ms après le dernier changement avant d'exécuter findUser
+        }, 300);
 
         if (username) {
             debouncedSearch();
         }
 
-        // Retourner une fonction de nettoyage qui annule le délai si le composant est démonté ou si username change
         return () => {
             debouncedSearch.cancel();
         };
     }, [username]);
 
-    console.log("users", usersFound);
     return (
         <div>
             <div

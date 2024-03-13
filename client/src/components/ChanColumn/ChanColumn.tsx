@@ -39,8 +39,6 @@ export const ChanColumn = () => {
         },
     });
 
-
-
     const handleButtonClick = (index: number) => {
         if (index === -1) {
             handleFriendsClick();
@@ -67,7 +65,6 @@ export const ChanColumn = () => {
         }
     };
 
-    console.log("allchannels", allChannels.data);
 
     return (
         <div className="bg-not-quite-black chan-column">

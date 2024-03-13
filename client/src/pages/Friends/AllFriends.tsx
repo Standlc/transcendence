@@ -41,9 +41,13 @@ export const AllFriends: React.FC<Props> = ({
 
     if (!loginResponse) return null;
 
-    useEffect(() => {
-        setLocalFriends(friends);
-    }, [friends]);
+    // useEffect(() => {
+    //     setLocalFriends(friends);
+    // }, [friends]);
+// TODO: ONline check and offline
+    // const checkOnline = () => {
+
+    // }
 
     const newConversation = async (userId: number) => {
         try {

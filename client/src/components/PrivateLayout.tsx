@@ -12,6 +12,7 @@ import { GameRequestModal } from "./GameRequestModal";
 import { GameInvitationModal } from "./GameInvitationsModal";
 import { AppUser } from "@api/types/clientSchema";
 import { NavBar } from "./Navbar/Navbar";
+import { useChatSocket } from "../utils/useChatSocket";
 
 interface PrivateLayoutProps {
     user: AppUser  | undefined;
@@ -26,9 +27,10 @@ export default function PrivateLayout({ user }: PrivateLayoutProps) {
     const { gameSocket, gameSocketOn, gameSocketOff } = useGameSocket(addError);
     const { usersStatusSocket, addHandler, removeHandler } =
         useUsersStatusSocket(addError);
+    const { chatSocket } = useChatSocket(addError);
     const [gameSettings, upadteGameSetting] = useGamePreferences();
 
-    if (!gameSocket || !usersStatusSocket) {
+    if (!gameSocket || !usersStatusSocket || !chatSocket) {
         // todo: add a nice loader like Discord before connection is established
         return (
             <ErrorContext.Provider value={{ error, addError, removeCurrentError }}>
@@ -36,6 +38,8 @@ export default function PrivateLayout({ user }: PrivateLayoutProps) {
             </ErrorContext.Provider>
         );
     }
+
+
 
     return (
         <UserContext.Provider value={{ user }}>
@@ -47,6 +51,7 @@ export default function PrivateLayout({ user }: PrivateLayoutProps) {
                     usersStatusSocket,
                     addUsersStatusHandler: addHandler,
                     removeUsersStatusHandler: removeHandler,
+                    chatSocket,
                 }}
             >
                 <ErrorContext.Provider value={{ error, addError, removeCurrentError }}>

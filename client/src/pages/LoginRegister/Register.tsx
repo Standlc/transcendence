@@ -2,6 +2,7 @@ import { AppUser } from "@api/types/clientSchema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 export const Register = () => {
     const [password, setPassword] = useState("");
@@ -48,6 +49,31 @@ export const Register = () => {
         },
     });
 
+    const checkPassword = () => {
+
+        const uppercaseRegex = /[A-Z]/;
+        const specialCharRegex = /[!@#$%^&*(),.?":{}|<>]/;
+        const numberRegex = /[0-9]/;
+
+        if (
+            password.trim().length < 8 ||
+            !uppercaseRegex.test(password) ||
+            !specialCharRegex.test(password) ||
+            !numberRegex.test(password)
+        ) {
+            alert(
+                "Password must contain at least one uppercase letter, one special character, and one number and 8 lenght min"
+            );
+            return;
+        }
+    }
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        checkPassword();
+        registerUser.mutate();
+    };
+
     return (
         <div
             className="bg-discord-light-black min-h-screen w-full
@@ -55,11 +81,7 @@ export const Register = () => {
         >
             <div className="bg-discord-dark-grey flex p-8 rounded-l">
                 <form
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        registerUser.mutate();
-                    }}
-                >
+                    onSubmit={handleSubmit}>
                     <div className="text-white text-2xl font-bold mb-5">
                         Creer un compte
                     </div>
@@ -93,7 +115,7 @@ export const Register = () => {
                             MOT DE PASSE <span className="text-discord-red">*</span>
                         </label>
                         <div className="mb-2 text-left text-greyple text-sm">
-                            1 upper, 1 lower, 1 digit, 1 special character, 6 min length
+                            1 upper, 1 lower, 1 digit, 1 special character, 8 min length
                         </div>
                         <input
                             type="password"
@@ -124,4 +146,3 @@ export const Register = () => {
     );
 };
 
-// maj min special nombre 6

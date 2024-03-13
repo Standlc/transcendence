@@ -28,26 +28,6 @@ export const Login = () => {
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        if (password.trim().length < 8) {
-            alert("Password must be at least 8 characters long");
-            return;
-        }
-
-        const uppercaseRegex = /[A-Z]/;
-        const specialCharRegex = /[!@#$%^&*(),.?":{}|<>]/;
-        const numberRegex = /[0-9]/;
-
-        if (
-            !uppercaseRegex.test(password) ||
-            !specialCharRegex.test(password) ||
-            !numberRegex.test(password)
-        ) {
-            alert(
-                "Password must contain at least one uppercase letter, one special character, and one number"
-            );
-            return;
-        }
-
         logUser.mutate({ username, password });
     };
     return (
@@ -118,7 +98,7 @@ export const Login = () => {
                     <div className="flex text-sm text-greyple items-center mt-2">
                         Need an account?
                         <a href="/create-account" className="text-sm hover:underline">
-                            <span className="text-discord-blue-link"> Register</span>
+                            <span className="text-discord-blue-link ml-2"> Register</span>
                         </a>
                     </div>
                 </form>
