@@ -156,14 +156,10 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const senderId = socket.data.id;
 
       if (socket.rooms.has(payload.conversationId.toString())) {
-        this.dmService.createDirectMessage(payload, senderId);
+        const newMessage = await this.dmService.createDirectMessage(payload, senderId);
         this.server
           .to(payload.conversationId.toString())
-          .emit('createDirectMessage', {
-            senderId: senderId,
-            content: payload.content,
-            conversationId: payload.conversationId,
-          });
+          .emit('createDirectMessage', newMessage);
       }
     } catch (error) {
       this.connectedUsersService.removeUserWithSocketId(socket.id);

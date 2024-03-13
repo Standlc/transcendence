@@ -111,6 +111,20 @@ export interface AllConversationsPromise {
   };
 }
 
+export interface UserConversation {
+  id: number;
+  createdAt: Date;
+  user1: ConversationUser;
+  user2: ConversationUser;
+  isBlocked: boolean;
+}
+
+export type ConversationUser = {
+  userId: number;
+  avatarUrl: string | null;
+  username: string;
+};
+
 export interface ChannelUpdate {
   isPublic: boolean;
   name: string | null;

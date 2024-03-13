@@ -11,9 +11,13 @@ import {
   AllConversationsPromise,
   DirectMessageContent,
   DmWithSenderInfo,
+  UserConversation,
 } from 'src/types/channelsSchema';
 import { FriendsService } from 'src/friends/friends.service';
 import { UsersStatusGateway } from 'src/usersStatusGateway/UsersStatus.gateway';
+import { DirectMessage } from 'src/types/schema';
+import { Selectable } from 'kysely';
+import { jsonBuildObject } from 'kysely/helpers/postgres';
 
 @Injectable()
 export class DmService {
@@ -194,53 +198,69 @@ export class DmService {
   async getConversation(
     conversationId: number,
     userId: number,
-  ): Promise<AllConversationsPromise> {
+  ): Promise<UserConversation> {
     try {
       const conversation = await db
         .selectFrom('conversation')
-        .leftJoin('user', 'conversation.user1_id', 'user.id')
-        .leftJoin('user as user2', 'conversation.user2_id', 'user2.id')
         .where('conversation.id', '=', conversationId)
-        .where((eb) =>
-          eb.or([eb('user1_id', '=', userId), eb('user2_id', '=', userId)]),
+        .innerJoin('user as member1', 'member1.id', 'conversation.user1_id')
+        .innerJoin('user as member2', 'member2.id', 'conversation.user2_id')
+        .leftJoin('blockedUser', (join) =>
+          join.on((eb) =>
+            eb.or([
+              eb.and([
+                eb('blockedUser.blockedById', '=', eb.ref('member1.id')),
+                eb('blockedUser.blockedId', '=', eb.ref('member2.id')),
+              ]),
+              eb.and([
+                eb('blockedUser.blockedById', '=', eb.ref('member2.id')),
+                eb('blockedUser.blockedId', '=', eb.ref('member1.id')),
+              ]),
+            ]),
+          ),
         )
-        .select([
-          'conversation.id',
-          'conversation.createdAt',
-          'user.id as user1Id',
-          'user.avatarUrl as user1AvatarUrl',
-          'user.username as user1Username',
-          'user.rating as user1Rating',
-          'user2.id as user2Id',
-          'user2.avatarUrl as user2AvatarUrl',
-          'user2.username as user2Username',
-          'user2.rating as user2Rating',
-        ])
+
+        .select((eb) =>
+          eb
+            .case()
+            .when('blockedUser.blockedId', 'is', null)
+            .then(false)
+            .else(true)
+            .end()
+            .as('isBlocked'),
+        )
+
+        .select((eb) =>
+          jsonBuildObject({
+            userId: eb.ref('member1.id'),
+            avatarUrl: eb.ref('member1.avatarUrl'),
+            username: eb.ref('member1.username'),
+          }).as('user1'),
+        )
+
+        .select((eb) =>
+          jsonBuildObject({
+            userId: eb.ref('member2.id'),
+            avatarUrl: eb.ref('member2.avatarUrl'),
+            username: eb.ref('member2.username'),
+          }).as('user2'),
+        )
+
+        .select((eb) =>
+          eb
+            .case()
+            .when('blockedUser.blockedId', 'is', null)
+            .then(false)
+            .else(true)
+            .end()
+            .as('isBlocked'),
+        )
+        .select(['conversation.id', 'conversation.createdAt'])
         .executeTakeFirst();
+
       if (!conversation) throw new NotFoundException('Conversation not found');
 
-      return {
-        id: conversation.id as number,
-        createdAt: conversation.createdAt as Date,
-        user1: {
-          userId: conversation.user1Id as number,
-          avatarUrl: conversation.user1AvatarUrl as string,
-          username: conversation.user1Username as string,
-          rating: conversation.user1Rating as number,
-          status: this.usersStatusGateway.getUserStatus(
-            conversation.user1Id as number,
-          ),
-        },
-        user2: {
-          userId: conversation.user2Id as number,
-          avatarUrl: conversation.user2AvatarUrl as string,
-          username: conversation.user2Username as string,
-          rating: conversation.user2Rating as number,
-          status: this.usersStatusGateway.getUserStatus(
-            conversation.user2Id as number,
-          ),
-        },
-      };
+      return conversation;
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException();
@@ -374,21 +394,24 @@ export class DmService {
   async createDirectMessage(
     directMessage: DirectMessageContent,
     senderId: number,
-  ) {
-    try {
-      await db
-        .insertInto('directMessage')
-        .values({
-          content: directMessage.content,
-          conversationId: directMessage.conversationId,
-          senderId: senderId,
-        })
-        .execute();
-      console.log(`Message sent to ${directMessage.conversationId}`);
-      console.log('Direct Message:', directMessage);
-    } catch (error) {
-      throw new InternalServerErrorException('Unable to send message');
-    }
+  ): Promise<Selectable<DirectMessage>> {
+    // try {
+    const message = await db
+      .insertInto('directMessage')
+      .values({
+        content: directMessage.content,
+        conversationId: directMessage.conversationId,
+        senderId: senderId,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return message;
+    // console.log(`Message sent to ${directMessage.conversationId}`);
+    // console.log('Direct Message:', directMessage);
+    // } catch (error) {
+    //   throw new InternalServerErrorException('Unable to send message');
+    // }
   }
 
   //

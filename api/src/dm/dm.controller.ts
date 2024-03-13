@@ -1,6 +1,7 @@
 import {
   AllConversationsPromise,
   DmWithSenderInfo,
+  UserConversation,
   UserId,
 } from './../types/channelsSchema';
 import {
@@ -214,7 +215,7 @@ export class DmController {
   async getConversation(
     @Param('id') id: string,
     @Request() req,
-  ): Promise<AllConversationsPromise> {
+  ): Promise<UserConversation> {
     return await this.dmService.getConversation(Number(id), req.user.id);
   }
 

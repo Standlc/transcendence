@@ -1,4 +1,4 @@
-import { Achievement, User } from './schema';
+import { Achievement, DirectMessage, User } from './schema';
 import { Selectable } from 'kysely';
 
 export type AppUserDB = Omit<
@@ -9,6 +9,8 @@ export type AppUserDB = Omit<
 export interface AppUser extends AppUserDB {
   status: number;
 }
+
+export type UserDirectMessage = Selectable<DirectMessage>;
 
 export type ListUsers = Omit<
   Selectable<User>,
