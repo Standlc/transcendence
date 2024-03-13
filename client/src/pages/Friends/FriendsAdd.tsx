@@ -100,7 +100,7 @@ export const FriendsAdd: React.FC<Props> = ({
                     ></path>
                 </svg>
                 <div className="ml-2 mt-4 font-bold text-xl ">
-                    Amis <span className="ml-[20px] text-greyple">|</span>
+                    Friends <span className="ml-[20px] text-greyple">|</span>
                 </div>
 
                 <div className="flex ml-[20px]  mt-[10px] mb-[10px]">
@@ -111,7 +111,7 @@ export const FriendsAdd: React.FC<Props> = ({
                         }}
                         className="mr-[20px] text-white p-[10px] hover:bg-discord-light-grey rounded-lg text-s  py-1 text-center"
                     >
-                        Tous
+                        All
                     </button>
                     <button
                         onClick={() => {
@@ -120,26 +120,26 @@ export const FriendsAdd: React.FC<Props> = ({
                         }}
                         className="mr-[20px] text-white p-[10px] hover:bg-discord-light-grey rounded-lg text-s  py-1 text-center"
                     >
-                        En attente
+                        Pending
                     </button>
                     <button
                         className={`${
                             adding ? "bg-transparent text-green" : "bg-green"
                         } p-[10px]  rounded-lg text-s py-1 text-center`}
                     >
-                        Ajouter
+                        ADD
                     </button>
                 </div>
             </div>
             <div>
-                <div className="text-left mt-5 ml-5 font-bold">AJOUTER</div>
+                <div className="text-left mt-5 ml-5 font-bold">ADD</div>
                 <div className="text-left mt-4 ml-5">
-                    Tu peux ajouter des amis grace a leur noms d'ulisateur Discord.
+                    You can search your friend using their username
                 </div>
                 <div className="relative mt-5 ml-5 mr-5">
                     <input
                         type="text"
-                        placeholder="Tu peux ajouter des amis grace a leur noms d'ulisateur Discord."
+                        placeholder="You can search your friend using their username"
                         className="block w-full py-3 px-4 bg-discord-black text-xl rounded"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
@@ -188,7 +188,7 @@ export const FriendsAdd: React.FC<Props> = ({
                             onClick={() => add(user.id)}
                             className="bg-blurple hover:bg-blurple-hover text-white font-bold py-2 px-4 rounded mr-5"
                         >
-                            Ajouter
+                            ADD
                         </button>
                     </div>
                 ))}
