@@ -54,7 +54,9 @@ export default function PlayPage() {
           </div>
 
           {showSettings && (
-            <GamePreferences hide={() => setShowSettings(false)} />
+            <div className="bg-white bg-opacity-5 rounded-md shadow-md">
+              <GamePreferences hide={() => setShowSettings(false)} />
+            </div>
           )}
         </div>
 

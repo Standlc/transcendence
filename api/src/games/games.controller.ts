@@ -41,4 +41,10 @@ export class GamesController {
     const game = await this.games.getByGameId(params.gameId, userId);
     return game;
   }
+
+  @Get('/history/:userId')
+  async getUserGames(@Param('userId') userId: number): Promise<UserGame[]> {
+    const games = await this.games.getUserGameHistory(userId);
+    return games;
+  }
 }

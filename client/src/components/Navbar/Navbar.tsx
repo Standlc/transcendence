@@ -14,6 +14,7 @@ export const NavBar = () => {
 
   return (
     <div
+      id="nav-bar"
       className="top-0 z-50 gap-4 flex flex-col justify-center items-center bg-discord-light-black sticky"
       style={{
         minWidth: "75px",

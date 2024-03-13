@@ -183,4 +183,13 @@ export class GamesService {
       .orderBy('game.createdAt desc')
       .executeTakeFirst();
   }
+
+  async getUserGameHistory(userId: number) {
+    const games = await this.selectGame({
+      playerId: userId,
+      isPublic: true,
+      ongoing: false,
+    }).execute();
+    return games;
+  }
 }

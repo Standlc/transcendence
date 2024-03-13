@@ -10,6 +10,8 @@ import {
   WsLiveGameUpdate,
 } from "@api//types/gameServer/socketPayloadTypes";
 import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
+import { EmojiEvents } from "@mui/icons-material";
+import { PlayerRating } from "../UIKit/PlayerRating";
 
 export default function LiveGames() {
   const { gameSocketOn, gameSocketOff } = useContext(SocketsContext);
@@ -110,36 +112,91 @@ export const GameInfo = ({ game }: { game: UserGame }) => {
   const { playerOne, playerTwo } = game;
   const navigate = useNavigate();
 
+  const ongoingGameStyle = "hover:bg-white hover:bg-opacity-10 cursor-pointer";
+
   return (
     <div
-      onClick={() => navigate(`/play/${game.id}`)}
-      className="flex items-center font-extrabold odd:bg-white odd:bg-opacity-5 gap-3 justify-around px-5 py-3 hover:bg-white hover:bg-opacity-10 cursor-pointer rounded-md"
+      onClick={() => !game.winnerId && navigate(`/play/${game.id}`)}
+      className={`relative flex items-center justify-center odd:bg-white rounded-md odd:bg-opacity-5 ${
+        !game.winnerId && ongoingGameStyle
+      }`}
     >
-      <div className="flex items-center gap-3 flex-1">
-        <Avatar imgUrl={undefined} size="md" userId={playerOne?.id ?? 0} />
-        <span className="text-base">{playerOne?.username ?? "Unkown"}</span>
-        <div className="text-sm text-indigo-400 rounded-md px-2 py-[2px] bg-indigo-400 bg-opacity-10">
-          {playerOne?.rating ?? "Unkown"}
+      <span className="text-sm absolute font-gameFont">-</span>
+      <div className="w-full grid grid-cols-2 gap-7 font-extrabold justify-around p-3">
+        <div className="flex items-center gap-3 flex-1">
+          <PlayerAvatar
+            playerId={game.playerOne.id}
+            winnerId={game.winnerId ?? 0}
+          />
+          <span className="text-base">{playerOne?.username ?? "Unkown"}</span>
+          <PlayerRating rating={playerOne.rating}>
+            {playerOne.ratingChange > 0 ? (
+              <span className="text-[12px] text-green-500 ml-1 opacity-100">
+                +{playerOne.ratingChange}
+              </span>
+            ) : playerOne.ratingChange < 0 ? (
+              <span className="text-[12px] text-red-500 ml-1 opacity-100">
+                {playerOne.ratingChange}
+              </span>
+            ) : null}
+          </PlayerRating>
+
+          <div className="text-lg font-gameFont justify-self-end flex-1 flex justify-end">
+            <InfiniteSlotMachine state={playerOne?.score ?? 0} />
+          </div>
         </div>
 
-        <div className="text-lg font-gameFont justify-self-end flex-1 flex justify-end">
-          <InfiniteSlotMachine state={playerOne?.score ?? 0} />
+        <div className="flex items-center gap-3 flex-1 justify-end">
+          <div className="text-lg font-gameFont flex-1 flex justify-start">
+            <InfiniteSlotMachine state={playerTwo?.score ?? 0} />
+          </div>
+
+          <PlayerRating rating={playerTwo.rating}>
+            {playerTwo.ratingChange > 0 ? (
+              <span className="text-[12px] text-green-500 ml-1 opacity-100">
+                +{playerTwo.ratingChange}
+              </span>
+            ) : playerTwo.ratingChange < 0 ? (
+              <span className="text-[12px] text-red-500 ml-1 opacity-100">
+                {playerTwo.ratingChange}
+              </span>
+            ) : null}
+          </PlayerRating>
+          <span className="text-base">{playerTwo?.username ?? "Unkown"}</span>
+          <PlayerAvatar
+            playerId={game.playerTwo.id}
+            winnerId={game.winnerId ?? 0}
+          />
         </div>
       </div>
+    </div>
+  );
+};
 
-      <span className="text-sm">-</span>
+const PlayerAvatar = ({
+  playerId,
+  winnerId,
+}: {
+  playerId: number;
+  winnerId: number;
+}) => {
+  const isWinner = winnerId === playerId;
 
-      <div className="flex items-center gap-3 flex-1 justify-end">
-        <div className="text-lg font-gameFont flex-1 flex justify-start">
-          <InfiniteSlotMachine state={playerTwo?.score ?? 0} />
-        </div>
-
-        <div className="text-sm text-indigo-400 rounded-md px-2 py-[2px] bg-indigo-400 bg-opacity-10">
-          {playerTwo?.rating ?? "Unkown"}
-        </div>
-        <span className="text-base">{playerTwo?.username ?? "Unkown"}</span>
+  return (
+    <div
+      style={{
+        borderStyle: !isWinner ? "hidden" : "solid",
+      }}
+      className="relative border-[3px] overflow-hidden rounded-xl border-indigo-600"
+    >
+      <div style={{ margin: isWinner ? "-3px" : "" }} className="relative">
+        <Avatar imgUrl={undefined} size={"md"} userId={playerId} />
       </div>
-      <Avatar imgUrl={undefined} size="md" userId={playerTwo?.id ?? 0} />
+      {isWinner && (
+        <div className="absolute -bottom-[3px] -right-[3px] rounded-tl-md bg-indigo-600 text-yellow-400 h-[20px] w-[20px] flex items-center justify-center">
+          <EmojiEvents style={{ fontSize: 13 }} />
+        </div>
+      )}
     </div>
   );
 };

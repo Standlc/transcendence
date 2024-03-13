@@ -484,11 +484,15 @@ export class PongGateway {
   }
 
   sendGameInvitation(invite: UserGameInvitation) {
-    this.sendTo(invite.targetUser.id.toString(), 'gameInvitation', invite);
+    this.sendTo(
+      btoa(invite.targetUser.id.toString()),
+      'gameInvitation',
+      invite,
+    );
   }
 
   sendGameInvitationRefused(inviterId: number) {
-    this.sendTo(inviterId.toString(), 'gameInvitationRefused', undefined);
+    this.sendTo(btoa(inviterId.toString()), 'gameInvitationRefused', undefined);
   }
 
   sendGameInvitationCanceled({
@@ -498,7 +502,7 @@ export class PongGateway {
     targetId: number;
     inviterId: number;
   }) {
-    this.sendTo(targetId.toString(), 'gameInvitationCanceled', {
+    this.sendTo(btoa(targetId.toString()), 'gameInvitationCanceled', {
       inviterId: inviterId,
     });
   }
