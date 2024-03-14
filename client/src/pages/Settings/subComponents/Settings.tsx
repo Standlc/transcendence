@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { InsideProfil } from "../../../components/InsideProfil";
 import { Avatar } from "../../../UIKit/avatar/Avatar";
+import { TwoFactorAuthentificationSetupModal } from "../../../components/TwoFactorAuthentificationSetupModal";
 
 interface Props {
     user: AppUser | undefined;
@@ -20,6 +21,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
     const [bio, setBio] = useState(user?.bio);
     const [firstname, setFirstname] = useState(user?.firstname);
     const [lastname, setLastname] = useState(user?.lastname);
+    const [show2FASetupModal, setShow2FASetupModal] = useState(false);
 
     const handleClickChangeAvatar = () => {
         setShowConfirmAvatarPopup(true);
@@ -104,6 +106,11 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
     return (
         <div className="flex w-full  ">
             {/* Section des champs d'entrée à gauche */}
+            {show2FASetupModal && (
+                <TwoFactorAuthentificationSetupModal
+                hide={() => setShow2FASetupModal(false)}
+                />
+            )}
             <div className="ml-[400px] mt-20 w-[400px] mr-[100px]">
                 <div className="text-xl font-bold text-left ml-10 mb-20">Profil</div>
                 <div className="mb-6  w-[250px]">
@@ -180,6 +187,18 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
                     className="w-[200px] border-b mt-[20px] border-b-discord-light-grey "
                     style={{ borderBottomWidth: "1px" }}
                 ></div>
+
+                {!user.isTwoFactorAuthenticationEnabled ? (
+                    <button
+                    onClick={() => setShow2FASetupModal(true)}
+                    className="bg-white bg-opacity-10 rounded-md p-2 px-3"
+                    >
+                    Set up 2FA
+                    </button>
+                ) : (
+                    <span className="text-green-500">2FA is set up</span>
+                )}
+
                 <div className="mt-[20px] text-left">
                     <button
                         onClick={() => logout()}

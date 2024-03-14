@@ -3,16 +3,16 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
+import { BroadcastOperator, Server, Socket } from 'socket.io';
 import { GamesService } from 'src/games/games.service';
-import { DefaultEventsMap } from '@socket.io/component-emitter';
 import { Inject, UseGuards, forwardRef } from '@nestjs/common';
 import { WsAuthGuard, authenticateSocket } from 'src/auth/ws-auth.guard';
 import {
+  PlayerRatingChangeType,
   PlayersRatingChangesType,
   PlayersService,
 } from '../games/players/players.service';
-import { Game, GameRequest } from 'src/types/schema';
+import { Game } from 'src/types/schema';
 import { Selectable } from 'kysely';
 import { initialize, startGameInterval } from './gameLogic/game';
 import {
@@ -28,13 +28,16 @@ import {
 import { getOtherPlayer, getWinner } from './gameLogic/utils';
 import {
   DISCONNECTION_END_GAME_TIMEMOUT,
+  INTERVAL_MS,
   PLAYER_PING_INTERVAL,
 } from './gameLogic/constants';
 import { handlePlayerMove } from './gameLogic/paddle';
 import { UsersStatusGateway } from 'src/usersStatusGateway/UsersStatus.gateway';
 import { AchievementsService } from 'src/achievements/Achievements.service';
 import { UserAchievement } from 'src/types/achievements';
-import { UserGameInvitation, UserGameRequest } from 'src/types/gameRequests';
+import { UserGameInvitation } from 'src/types/gameRequests';
+import { UsersStatusService } from 'src/usersStatusGateway/UsersStatusService';
+import { DecorateAcknowledgementsWithMultipleResponses } from 'socket.io/dist/typed-events';
 
 const getPlayer = (
   game: GameStateType,
@@ -74,7 +77,9 @@ export class PongGateway {
     private readonly gamesService: GamesService,
     private readonly wsGuard: WsAuthGuard,
     private readonly players: PlayersService,
+    @Inject(forwardRef(() => UsersStatusGateway))
     private readonly usersStatusGateway: UsersStatusGateway,
+    private readonly usersStatusService: UsersStatusService,
     private readonly achievementsService: AchievementsService,
   ) {}
 
@@ -82,21 +87,21 @@ export class PongGateway {
     authenticateSocket(client, this.wsGuard);
   }
 
-  handleConnection(client: Socket) {
+  async handleConnection(client: Socket) {
     const userId = this.extractUserId(client);
-    client.join(userId.toString());
-    // console.log('NEW CONNECTION:', client.id, 'with userId', client.data.id);
+    const userIdToAlpha = btoa(userId.toString());
+    await client.join(userIdToAlpha);
   }
 
   async handleDisconnect(client: Socket) {
     const userId = this.extractUserId(client);
-    client.leave(userId.toString());
-    // console.log('DISCONNECTION:', client.id, 'with userId', client.data.id);
+    const userIdToAlpha = btoa(userId.toString());
+    await client.leave(userIdToAlpha);
   }
 
   @SubscribeMessage('leaveGame')
-  handleDisconnectionEvent(client: Socket, data: WsGameIdType) {
-    client.leave(data.gameId.toString());
+  async handleDisconnectionEvent(client: Socket, data: WsGameIdType) {
+    await client.leave(data.gameId.toString());
   }
 
   @SubscribeMessage('joinRoom')
@@ -142,73 +147,50 @@ export class PongGateway {
       });
   }
 
-  startGame(gameRecord: Selectable<Game>) {
+  async startGame(gameRecord: Selectable<Game>) {
     const gameState = initialize(gameRecord);
     this.games.set(gameState.gameId, gameState);
-    this.joinUsersToGameRoom(gameRecord);
+    await this.joinUsersToGameRoom(gameRecord, gameState.roomId);
     this.usersStatusGateway.setUserAsPlaying(gameRecord.playerOneId);
     this.usersStatusGateway.setUserAsPlaying(gameRecord.playerTwoId);
 
-    this.runGame(
-      gameState,
-      gameRecord.isPublic
-        ? {
-            onGameStart: () => {
-              this.emitNewLiveGame(gameState);
-            },
-            onPlayerScore: () => {
-              this.sendLiveGameUpdate(gameState);
-            },
-            onGameEnd: async () => {
-              await this.handlePublicGameEnd(gameState);
-            },
-          }
-        : {
-            onGameStart: () => {},
-            onPlayerScore: () => {},
-            onGameEnd: async () => {
-              await this.handlePrivateGameEnd(gameState);
-            },
-          },
-    );
-  }
+    if (gameRecord.isPublic) {
+      this.emitNewLiveGame(gameState);
+    }
 
-  joinUsersToGameRoom(gameRecord: Selectable<Game>) {
-    this.server
-      .in(gameRecord.playerOneId.toString())
-      .socketsJoin(gameRecord.id.toString());
-    this.server
-      .in(gameRecord.playerTwoId.toString())
-      .socketsJoin(gameRecord.id.toString());
-  }
-
-  async runGame(
-    gameState: GameType,
-    {
-      onGameStart,
-      onPlayerScore,
-      onGameEnd,
-    }: {
-      onGameStart: () => void;
-      onPlayerScore: () => void;
-      onGameEnd: () => Promise<void>;
-    },
-  ) {
-    onGameStart();
     this.sendTo(gameState.roomId, 'gameStart', gameState.roomId);
     await this.sendGameStartCountdown(gameState);
     gameState.isPaused = false;
-    gameState.startTime = Date.now();
 
+    const now = Date.now();
+    gameState.startTime = now;
+    gameState.nextUpdateTime = now + INTERVAL_MS;
+
+    this.runGame(gameState);
+  }
+
+  async joinUsersToGameRoom(gameRecord: Selectable<Game>, roomId: string) {
+    const playerOneIdToString = gameRecord.playerOneId.toString();
+    const playerTwoIdToString = gameRecord.playerTwoId.toString();
+    this.server.in(btoa(playerOneIdToString)).socketsJoin(roomId);
+    this.server.in(btoa(playerTwoIdToString)).socketsJoin(roomId);
+  }
+
+  async runGame(gameState: GameType) {
     const handleEmitGameState = () => {
       this.sendTo(gameState.roomId, 'updateGameState', gameState.game);
     };
 
     const handleGameEnd = async () => {
+      gameState.endTime = Date.now();
       clearInterval(gameState.disconnectionIntervalId);
       clearInterval(gameState.intervalId);
       try {
-        await onGameEnd();
+        if (gameState.isPublic) {
+          await this.handlePublicGameEnd(gameState);
+        } else {
+          await this.handlePrivateGameEnd(gameState);
+        }
       } catch (error) {
         try {
           await this.gamesService.delete(gameState.gameId);
@@ -221,8 +203,8 @@ export class PongGateway {
           message: 'Error while setting game as finished.',
         });
       }
-      this.usersStatusGateway.setUserAsOnline(gameState.game.playerOne.id);
-      this.usersStatusGateway.setUserAsOnline(gameState.game.playerTwo.id);
+      this.deleteRoom(gameState.roomId);
+      await this.setUsersAsOnline(gameState.game);
       this.games.delete(gameState.gameId);
     };
 
@@ -230,7 +212,9 @@ export class PongGateway {
       try {
         const newScore = score !== undefined ? score : player.score + 1;
         await this.updatePlayerScore(gameState, player, newScore);
-        onPlayerScore();
+        if (gameState.isPublic) {
+          this.sendLiveGameUpdate(gameState);
+        }
       } catch (error) {
         this.sendTo(gameState.roomId, 'error', {
           message: 'Error while updating player score.',
@@ -298,6 +282,24 @@ export class PongGateway {
     }, 1000);
   }
 
+  async setUsersAsOnline(game: GameStateType) {
+    const { playerOne, playerTwo } = game;
+    try {
+      if (!(await this.usersStatusService.isUserPlaying(playerOne.id))) {
+        this.usersStatusGateway.setUserAsOnline(playerOne.id);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+    try {
+      if (!(await this.usersStatusService.isUserPlaying(playerTwo.id))) {
+        this.usersStatusGateway.setUserAsOnline(playerTwo.id);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   async sendGameStartCountdown(game: GameType): Promise<void> {
     await new Promise((resolve) => {
       let countdown = 3;
@@ -336,7 +338,7 @@ export class PongGateway {
       game.gameId,
       winner.id,
     );
-    this.sendTo(game.roomId, 'gameEnd', updatedGameRecord);
+    this.sendGameEndEvent(updatedGameRecord, game);
   }
 
   async handlePublicGameEnd(game: GameType) {
@@ -353,8 +355,9 @@ export class PongGateway {
       playersRatingsChange,
     );
 
+    this.sendGameEndEvent(updatedGameRecord, game);
     await this.updatePlayersAchievements(game, playersRatingsChange);
-    this.sendTo(game.roomId, 'gameEnd', updatedGameRecord);
+
     this.sendToAll('liveGameEnd', game.gameId);
     this.sendLeaderboardUpdates(game, playersRatingsChange, winner.id);
   }
@@ -369,6 +372,18 @@ export class PongGateway {
 
     handlePlayerMove(game.nextUpdateTime, player, data.move, () =>
       this.sendTo(game.roomId, 'playerMoveUpdate', player),
+    );
+  }
+
+  sendGameEndEvent(gameRecord: Selectable<Game>, game: GameType) {
+    this.sendToRooms(
+      [
+        game.roomId,
+        btoa(game.game.playerOne.id.toString()),
+        btoa(game.game.playerTwo.id.toString()),
+      ],
+      'gameEnd',
+      gameRecord,
     );
   }
 
@@ -392,28 +407,51 @@ export class PongGateway {
       ],
     };
 
-    const playerOneAchievements =
-      await this.achievementsService.updateUserAchievements(
-        playerOne.id,
-        winnerWithRatingChange,
-        loserWithRatingChange,
-        game,
-      );
-    this.sendAchievementsUpdates(playerOne.id, playerOneAchievements);
+    await this.updatePlayerAchievements(
+      playerOne.id,
+      winnerWithRatingChange,
+      loserWithRatingChange,
+      game,
+    );
 
-    const playerTwoAchievements =
-      await this.achievementsService.updateUserAchievements(
-        playerTwo.id,
-        winnerWithRatingChange,
-        loserWithRatingChange,
-        game,
-      );
-    this.sendAchievementsUpdates(playerTwo.id, playerTwoAchievements);
+    await this.updatePlayerAchievements(
+      playerTwo.id,
+      winnerWithRatingChange,
+      loserWithRatingChange,
+      game,
+    );
   }
 
-  sendAchievementsUpdates(userId: number, achievements: UserAchievement[]) {
+  async updatePlayerAchievements(
+    userId: number,
+    winner: PlayerType & PlayerRatingChangeType,
+    loser: PlayerType & PlayerRatingChangeType,
+    game: GameType,
+  ) {
+    const achievements = await this.achievementsService.updateUserAchievements(
+      userId,
+      winner,
+      loser,
+      game,
+    );
+    await this.sendAchievementsUpdates(userId, achievements, game.roomId);
+  }
+
+  async sendAchievementsUpdates(
+    userId: number,
+    achievements: UserAchievement[],
+    gameRoomId: string,
+  ) {
     if (achievements.length) {
-      this.sendTo(userId.toString(), 'achievements', achievements);
+      const userSockets = await this.server
+        .in(btoa(userId.toString()))
+        .fetchSockets();
+
+      userSockets.forEach((socket) => {
+        if (socket.rooms.has(gameRoomId)) {
+          socket.emit('achievements', achievements);
+        }
+      });
     }
   }
 
@@ -446,11 +484,15 @@ export class PongGateway {
   }
 
   sendGameInvitation(invite: UserGameInvitation) {
-    this.sendTo(invite.targetUser.id.toString(), 'gameInvitation', invite);
+    this.sendTo(
+      btoa(invite.targetUser.id.toString()),
+      'gameInvitation',
+      invite,
+    );
   }
 
   sendGameInvitationRefused(inviterId: number) {
-    this.sendTo(inviterId.toString(), 'gameInvitationRefused', undefined);
+    this.sendTo(btoa(inviterId.toString()), 'gameInvitationRefused', undefined);
   }
 
   sendGameInvitationCanceled({
@@ -460,7 +502,7 @@ export class PongGateway {
     targetId: number;
     inviterId: number;
   }) {
-    this.sendTo(targetId.toString(), 'gameInvitationCanceled', {
+    this.sendTo(btoa(targetId.toString()), 'gameInvitationCanceled', {
       inviterId: inviterId,
     });
   }
@@ -470,14 +512,34 @@ export class PongGateway {
     this.sendToAll('liveGame', payload);
   }
 
-  emitToAll(
-    clients: Socket<any, any, DefaultEventsMap, any>[],
-    ev: string,
-    data: any,
+  sendToRooms<T extends keyof EmitPayloadType>(
+    roomIds: string[],
+    ev: T,
+    payload: EmitPayloadType[T],
   ) {
-    clients.forEach((client) => {
-      this.server.to(client.id).emit(ev, data);
-    });
+    let broadcastEvent:
+      | BroadcastOperator<
+          DecorateAcknowledgementsWithMultipleResponses<any>,
+          any
+        >
+      | undefined;
+    roomIds.forEach((r) =>
+      !broadcastEvent
+        ? (broadcastEvent = this.server.to(r))
+        : (broadcastEvent = broadcastEvent.to(r)),
+    );
+    broadcastEvent?.emit(ev, payload);
+  }
+
+  emit<T extends keyof EmitPayloadType>(
+    broadcast: BroadcastOperator<
+      DecorateAcknowledgementsWithMultipleResponses<any>,
+      any
+    >,
+    ev: T,
+    payload: EmitPayloadType[T],
+  ) {
+    broadcast.emit(ev, payload);
   }
 
   sendTo<T extends keyof EmitPayloadType>(
@@ -499,7 +561,7 @@ export class PongGateway {
     this.server.in(roomId).socketsLeave(roomId);
   }
 
-  extractUserId(client: Socket) {
+  extractUserId(client: Socket): number {
     return client.data.id;
   }
 }

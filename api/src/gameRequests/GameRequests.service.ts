@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Inject,
   Injectable,
   InternalServerErrorException,
@@ -56,11 +57,37 @@ export class GameRequestsService {
   ): Promise<Selectable<GameRequest> | undefined> {
     const match = await db
       .selectFrom('gameRequest')
-      .where('points', '=', req.points)
+      .where('gameRequest.points', '=', req.points)
       .where('userId', '!=', userId)
-      .where('powerUps', 'is', req.powerUps)
+      .where('gameRequest.powerUps', 'is', req.powerUps)
       .where('targetId', 'is', null)
-      .selectAll()
+      .leftJoin('blockedUser', (join) =>
+        join.on((eb) =>
+          eb.or([
+            eb.and([
+              eb('blockedById', '=', userId),
+              eb('blockedId', '=', eb.ref('gameRequest.userId')),
+            ]),
+            eb.and([
+              eb('blockedById', '=', eb.ref('gameRequest.userId')),
+              eb('blockedId', '=', userId),
+            ]),
+          ]),
+        ),
+      )
+      .leftJoin('game as gameRequestUserCurrentGame', (join) =>
+        join
+          .on((eb) =>
+            eb.or([
+              eb('playerOneId', '=', eb.ref('gameRequest.userId')),
+              eb('playerTwoId', '=', eb.ref('gameRequest.userId')),
+            ]),
+          )
+          .on('gameRequestUserCurrentGame.winnerId', 'is', null),
+      )
+      .where('gameRequestUserCurrentGame.playerOneId', 'is', null)
+      .where('blockedId', 'is', null)
+      .selectAll('gameRequest')
       .executeTakeFirst();
     return match;
   }
@@ -215,5 +242,11 @@ export class GameRequestsService {
       .where('targetId', '=', targetId)
       .select(['userId', 'targetId'])
       .executeTakeFirst();
+  }
+
+  verifyGamePointsOrThrow(points: number) {
+    if (points !== 42 && points !== 21 && points !== 10) {
+      throw new BadRequestException();
+    }
   }
 }

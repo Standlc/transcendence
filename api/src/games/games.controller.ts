@@ -1,4 +1,11 @@
-import { Controller, Get, Param, Request, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Req,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { GamesService } from './games.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { UserGame } from 'src/types/games';
@@ -18,6 +25,13 @@ export class GamesController {
     return games;
   }
 
+  @Get('/current')
+  async getUserCurrentGame(@Request() req): Promise<UserGame | null> {
+    const userId: number = req.user.id;
+    const currentGame = await this.games.getUserCurrentGame(userId);
+    return currentGame ?? null;
+  }
+
   @Get('/:gameId')
   async getGameInfo(
     @Param() params: GameIdDto,
@@ -26,5 +40,11 @@ export class GamesController {
     const userId: number = req.user.id;
     const game = await this.games.getByGameId(params.gameId, userId);
     return game;
+  }
+
+  @Get('/history/:userId')
+  async getUserGames(@Param('userId') userId: number): Promise<UserGame[]> {
+    const games = await this.games.getUserGameHistory(userId);
+    return games;
   }
 }

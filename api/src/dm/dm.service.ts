@@ -56,7 +56,7 @@ export class DmService {
   //
   //
   //
-  async createConversation(user2: number, userId: number): Promise<string> {
+  async createConversation(user2: number, userId: number) {
     if (user2 == userId) {
       throw new UnprocessableEntityException(
         'Cannot create conversation with yourself',
@@ -91,22 +91,20 @@ export class DmService {
       throw error;
     }
 
-    try {
-      await db
-        .insertInto('conversation')
-        .values({
-          user1_id: userId,
-          user2_id: user2,
-        })
-        .execute();
-      console.log(`Conversation created for ${userId} and ${user2}`);
-    } catch (error) {
-      throw new InternalServerErrorException();
-    }
+    const conversation = await db
+      .insertInto('conversation')
+      .values({
+        user1_id: userId,
+        user2_id: user2,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return conversation.id;
 
     // !!! test of the global socket that will notify the user about the new conversation
-    this.liveChatSocket.handleNewConversation(userId, user2);
-    return `Conversation of user ${userId} and user ${user2} created`;
+    // this.liveChatSocket.handleNewConversation(userId, user2);
+    // return `Conversation of user ${userId} and user ${user2} created`;
   }
 
   //

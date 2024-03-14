@@ -13,8 +13,8 @@ export const ACHIEVEMENTS_INFOS: Record<ACHIEVEMENTS, AchievementInfosType> = {
   [ACHIEVEMENTS.FIRST_VICTORY]: {
     title: "First Victory",
     type: ACHIEVEMENTS.FIRST_VICTORY,
-    description: () => "Won a first game",
-    lockedDescription: () => "Win a first game",
+    description: () => "Won their first game",
+    lockedDescription: () => "Win your first game",
   },
   [ACHIEVEMENTS.SHUTOUT]: {
     title: "Shutout",
@@ -72,11 +72,11 @@ export const ACHIEVEMENTS_INFOS: Record<ACHIEVEMENTS, AchievementInfosType> = {
     title: "Quick Witted",
     type: ACHIEVEMENTS.QUICK_WITTED,
     description: () =>
-      `Played a game that lasted less than ${Math.floor(
+      `Won a game in less than ${Math.floor(
         QUICK_WITTED_ACHIEVEMENT_TIME / 1000
       )} seconds`,
     lockedDescription: () =>
-      `Play a game that lasts less than ${Math.floor(
+      `Win a game in less than ${Math.floor(
         QUICK_WITTED_ACHIEVEMENT_TIME / 1000
       )} seconds`,
   },

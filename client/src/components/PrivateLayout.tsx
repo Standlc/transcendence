@@ -13,14 +13,18 @@ import { GameInvitationModal } from "./GameInvitationsModal";
 import { AppUser } from "@api/types/clientSchema";
 import { NavBar } from "./Navbar/Navbar";
 import { useChatSocket } from "../utils/useChatSocket";
+import { RejoinGameNotification } from "./RejoinGameNotification";
+import { UserProfileContext } from "../ContextsProviders/UserProfileIdContext";
+import { useState } from "react";
+import { ProfileModal } from "./profile/ProfileModal";
 
 interface PrivateLayoutProps {
-    user: AppUser  | undefined;
+    user: AppUser | undefined;
 }
 
 export default function PrivateLayout({ user }: PrivateLayoutProps) {
     if (!user) {
-        return <Navigate to="/login"/>
+        return <Navigate to="/login" />;
     }
 
     const { error, addError, removeCurrentError } = useErrorQueue();
@@ -29,6 +33,7 @@ export default function PrivateLayout({ user }: PrivateLayoutProps) {
         useUsersStatusSocket(addError);
     const { chatSocket } = useChatSocket(addError);
     const [gameSettings, upadteGameSetting] = useGamePreferences();
+    const [userProfileId, setUserProfileId] = useState<number>();
 
     if (!gameSocket || !usersStatusSocket || !chatSocket) {
         // todo: add a nice loader like Discord before connection is established
@@ -38,8 +43,6 @@ export default function PrivateLayout({ user }: PrivateLayoutProps) {
             </ErrorContext.Provider>
         );
     }
-
-
 
     return (
         <UserContext.Provider value={{ user }}>
@@ -58,13 +61,19 @@ export default function PrivateLayout({ user }: PrivateLayoutProps) {
                     <GameSettingsContext.Provider
                         value={{ gameSettings, upadteGameSetting }}
                     >
-                        <div className="flex min-h-[100vh] w-full h-full">
-                            <NavBar />
-                            {error && <ErrorModal />}
-                            <GameRequestModal />
-                            <GameInvitationModal />
-                            <Outlet />
-                        </div>
+                        <UserProfileContext.Provider
+                            value={{ userProfileId, setUserProfileId }}
+                        >
+                            <div className="flex min-h-[100vh] w-full h-full">
+                                <NavBar />
+                                {error && <ErrorModal />}
+                                <Outlet />
+                                <ProfileModal />
+                                <RejoinGameNotification />
+                                <GameRequestModal />
+                                <GameInvitationModal />
+                            </div>
+                        </UserProfileContext.Provider>
                     </GameSettingsContext.Provider>
                 </ErrorContext.Provider>
             </SocketsContext.Provider>

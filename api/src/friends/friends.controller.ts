@@ -201,4 +201,9 @@ export class FriendsController {
   //#endregion
 
   //#endregion
+
+  @Delete("/cancel")
+  async cancelFriendRequest(@Request() req, @Query('id') id: number) {
+    await this.friendsService.cancelFriendRequest(req.user.id, id);
+  }
 }

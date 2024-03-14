@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 export const Register = () => {
     const [password, setPassword] = useState("");
     const [username, setUsername] = useState("");
+    const [isError, setIsError] = useState(false);
 
     const logUser = useMutation<AppUser, any, { username: string; password: string }>({
         mutationFn: async ({ username, password }) => {
@@ -18,14 +19,12 @@ export const Register = () => {
         },
         onSuccess: (data) => {
             queryClient.setQueryData(["user"], data);
-            // navigate("/home");
         },
         onError: () => {
             console.log("Error");
         },
     });
 
-    //   const { addError } = useContext(ErrorContext);
     const queryClient = useQueryClient();
     const registerUser = useMutation({
         mutationFn: async () => {
@@ -38,19 +37,19 @@ export const Register = () => {
             console.log(response.data);
             return response.data;
         },
-        onSuccess: (user) => {
+        onSuccess: () => {
             logUser.mutate({
                 username,
                 password,
             });
         },
         onError: (err) => {
-            console.log(err);
+            setIsError(true);
+            console.log(err.message);
         },
     });
 
     const checkPassword = () => {
-
         const uppercaseRegex = /[A-Z]/;
         const specialCharRegex = /[!@#$%^&*(),.?":{}|<>]/;
         const numberRegex = /[0-9]/;
@@ -66,7 +65,7 @@ export const Register = () => {
             );
             return;
         }
-    }
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -79,11 +78,10 @@ export const Register = () => {
             className="bg-discord-light-black min-h-screen w-full
 				flex items-center justify-center"
         >
-            <div className="bg-discord-dark-grey flex p-8 rounded-l">
-                <form
-                    onSubmit={handleSubmit}>
+            <div className="bg-discord-dark-grey flex p-8 rounded-md">
+                <form onSubmit={handleSubmit}>
                     <div className="text-white text-2xl font-bold mb-5">
-                        Creer un compte
+                        Create an Account
                     </div>
 
                     <div className="mb-6">
@@ -92,8 +90,7 @@ export const Register = () => {
                             className="text-left font-bold block mb-2 text-sm
 								text-white"
                         >
-                            NOM D'UTILISATEUR{" "}
-                            <span className="text-discord-red">*</span>
+                            USERNAME <span className="text-discord-red">*</span>
                         </label>
                         <input
                             type="text"
@@ -102,17 +99,17 @@ export const Register = () => {
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             className="bg-discord-light-black text-white text-sm
-								rounded-l block login-container h-10 px-2.5"
+								rounded-md block login-container h-10 px-2.5"
                             placeholder=""
                         />
                     </div>
-                    <div className="mb-6">
+                    <div className="">
                         <label
                             htmlFor="password"
                             className="text-left font-bold block text-sm
 								text-white"
                         >
-                            MOT DE PASSE <span className="text-discord-red">*</span>
+                            PASSWORD <span className="text-discord-red">*</span>
                         </label>
                         <div className="mb-2 text-left text-greyple text-sm">
                             1 upper, 1 lower, 1 digit, 1 special character, 8 min length
@@ -124,25 +121,31 @@ export const Register = () => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             className="bg-discord-light-black text-white text-sm
-								rounded-l block login-container h-10 px-2.5"
+								rounded-md block login-container h-10 px-2.5"
                             placeholder=""
                         />
                     </div>
+
+                    {isError && (
+                        <span className="text-sm text-center text-red-600 opacity-70">
+                            Username is taken or password is not ok
+                        </span>
+                    )}
+
                     <button
                         type="submit"
-                        className="text-white bg-blurple hover:bg-blurple-hover font-bold rounded-lg text-s w-full   py-2.5 text-center mb-6"
+                        className="text-white mt-6 bg-indigo-500 hover:translate-y-[-1px] font-bold rounded-lg text-xl w-full   py-2.5 text-center"
                     >
-                        Continuer
+                        Create Account
                     </button>
-                    <a
-                        href="/"
-                        className="flex text-sm text-discord-blue-link items-center mt-2"
+                    <Link
+                        to="/login"
+                        className="flex text-sm text-discord-blue-link items-center mt-2 hover:underline"
                     >
-                        Tu as deja un compte ?
-                    </a>
+                        Have an account?
+                    </Link>
                 </form>
             </div>
         </div>
     );
 };
-

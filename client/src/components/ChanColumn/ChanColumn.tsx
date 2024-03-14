@@ -19,6 +19,8 @@ interface AllChannels {
     name: string;
     photoUrl: string | null;
 }
+import { AllChannels } from "../../types/channel";
+import { USER_STATUS } from "@api/types/usersStatusTypes";
 
 export const ChanColumn = () => {
     const navigate = useNavigate();
@@ -211,12 +213,18 @@ export const ChanColumn = () => {
                         imgUrl={user?.avatarUrl}
                         size="md"
                         userId={user?.id ?? 0}
-                        status={1}
+                        status={user.status}
                         borderRadius={0.5}
                     />
                     <div className="ml-[10px]">
                         <div className="font-bold text-left ">{user?.username}</div>
-                        <div className="text-green text-left">En ligne</div>
+                        <div className="text-green text-left">
+                            {user.status === USER_STATUS.ONLINE
+                                ? "Online"
+                                : user.status === USER_STATUS.PLAYING
+                                ? "Playing"
+                                : "Offline"}
+                        </div>
                     </div>
                 </div>
                 <div className="flex justify-end">

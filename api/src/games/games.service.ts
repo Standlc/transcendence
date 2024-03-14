@@ -6,9 +6,9 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { db } from 'src/database';
-import { ExpressionBuilder, Insertable, Selectable } from 'kysely';
-import { DB, Game, GameRequest } from '../types/schema';
-import { jsonBuildObject, jsonObjectFrom } from 'kysely/helpers/postgres';
+import { Insertable, Selectable } from 'kysely';
+import { Game, GameRequest } from '../types/schema';
+import { jsonBuildObject } from 'kysely/helpers/postgres';
 import { UserGame } from 'src/types/games';
 import { PlayersRatingChangesType } from 'src/games/players/players.service';
 import { PongGateway } from 'src/pong/Pong.gateway';
@@ -21,9 +21,10 @@ export class GamesService {
   ) {}
 
   async getOngoingPublicGames(limit?: number): Promise<UserGame[]> {
-    const games: UserGame[] = await this.selectGame({ ongoing: true })
-      .where('winnerId', 'is', null)
-      .where('isPublic', 'is', true)
+    const games: UserGame[] = await this.selectGame({
+      ongoing: true,
+      isPublic: true,
+    })
       .orderBy('game.createdAt desc')
       .$if(!!limit, (eb) => eb.limit(limit ?? 0))
       .execute();
@@ -51,15 +52,15 @@ export class GamesService {
     gameId?: number;
     ongoing?: boolean;
     playerId?: number;
+    isPublic?: boolean;
   }) {
     return db
       .selectFrom('game')
       .$if(!!props?.gameId, (eb) =>
         eb.where('game.id', '=', props?.gameId ?? 0),
       )
-      .$if(!!props?.ongoing, (eb) =>
-        eb.where('winnerId', 'is', null).where('isPublic', 'is', true),
-      )
+      .$if(!!props?.ongoing, (eb) => eb.where('winnerId', 'is', null))
+      .$if(!!props?.isPublic, (eb) => eb.where('isPublic', 'is', true))
       .$if(!!props?.playerId, (eb) =>
         eb.where((eb) =>
           eb.or([
@@ -98,25 +99,6 @@ export class GamesService {
         'game.createdAt',
         'game.isPublic',
       ]);
-  }
-
-  private selectGamePlayer(eb: ExpressionBuilder<DB, 'game'>, which: 1 | 2) {
-    return jsonObjectFrom(
-      eb
-        .selectFrom('user')
-        .whereRef('user.id', '=', which === 1 ? 'playerOneId' : 'playerTwoId')
-        .select([
-          'rating',
-          'id',
-          'username',
-          'user.avatarUrl',
-          'game.points',
-          which === 1 ? 'playerOneScore as score' : 'playerTwoScore as score',
-          which === 1
-            ? 'playerOneRatingChange as ratingChange'
-            : 'playerTwoRatingChange as ratingChange',
-        ]),
-    ).as(which === 1 ? 'playerOne' : 'playerTwo');
   }
 
   async finishGame(
@@ -191,5 +173,23 @@ export class GamesService {
 
   async delete(gameId: number) {
     await db.deleteFrom('game').where('id', '=', gameId).execute();
+  }
+
+  async getUserCurrentGame(userId: number) {
+    return await this.selectGame({
+      ongoing: true,
+      playerId: userId,
+    })
+      .orderBy('game.createdAt desc')
+      .executeTakeFirst();
+  }
+
+  async getUserGameHistory(userId: number) {
+    const games = await this.selectGame({
+      playerId: userId,
+      isPublic: true,
+      ongoing: false,
+    }).execute();
+    return games;
   }
 }

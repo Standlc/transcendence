@@ -1,4 +1,4 @@
-import { ObjectType } from 'src/types/gameServer/pongGameTypes';
+import { ObjectType } from '../../types/gameServer/pongGameTypes';
 
 export const boundingBoxIntersection = (obj1: ObjectType, obj2: ObjectType) => {
   if (obj1.y + obj1.h < obj2.y || obj1.y > obj2.y + obj2.h) {

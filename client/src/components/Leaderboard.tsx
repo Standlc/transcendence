@@ -9,6 +9,7 @@ import {
   WsLeaderboardPlayerUpdate,
 } from "../../../api/src/types/gameServer/socketPayloadTypes";
 import { PlayerRating } from "../UIKit/PlayerRating";
+import { UserProfileContext } from "../ContextsProviders/UserProfileIdContext";
 
 export default function Leaderboard({ limit }: { limit?: number }) {
   const {
@@ -40,8 +41,8 @@ export default function Leaderboard({ limit }: { limit?: number }) {
     onSuccess: (data) => {
       queryClient.setQueryData(
         ["leaderboard", limit],
-        (prev: LeaderbordPlayer[]) => {
-          if (!prev) return data;
+        (prev: LeaderbordPlayer[] | undefined) => {
+          if (!prev || !prev.length) return data;
           const newLeaderboard = [...prev, ...data];
           newLeaderboard.sort((a, b) => b.rating - a.rating);
           if (limit) return newLeaderboard.splice(0, limit);
@@ -57,8 +58,8 @@ export default function Leaderboard({ limit }: { limit?: number }) {
     ) => {
       queryClient.setQueryData(
         ["leaderboard", limit],
-        (prev: LeaderbordPlayer[]) => {
-          if (!prev) {
+        (prev: LeaderbordPlayer[] | undefined) => {
+          if (!prev || !prev.length) {
             newLeaderboardPlayers.mutate(data.flatMap((u) => u.userId));
             return undefined;
           }
@@ -80,7 +81,7 @@ export default function Leaderboard({ limit }: { limit?: number }) {
           });
 
           usersToFetch = usersToFetch.filter(
-            (u) => u.prevRating + u.ratingChange > prev[prev.length - 1].rating
+            (u) => u.prevRating + u.ratingChange > prev.slice(-1)[0].rating
           );
           if (usersToFetch.length) {
             newLeaderboardPlayers.mutate(usersToFetch.flatMap((u) => u.userId));
@@ -96,7 +97,7 @@ export default function Leaderboard({ limit }: { limit?: number }) {
     return () => {
       gameSocketOff("leaderboardUpdate", handleLeaderboardUpdate);
     };
-  }, [gameSocketOn, gameSocketOff]);
+  }, [gameSocketOn, gameSocketOff, queryClient]);
 
   useEffect(() => {
     addUsersStatusHandler({
@@ -104,8 +105,8 @@ export default function Leaderboard({ limit }: { limit?: number }) {
       statusHandler: (data) => {
         queryClient.setQueryData(
           ["leaderboard", limit],
-          (prev: LeaderbordPlayer[]) => {
-            if (!prev) return undefined;
+          (prev: LeaderbordPlayer[] | undefined) => {
+            if (!prev || !prev.length) return undefined;
 
             const newLeaderboard = prev.map((player) => {
               if (player.id !== data.userId) return player;
@@ -121,7 +122,7 @@ export default function Leaderboard({ limit }: { limit?: number }) {
       },
     });
     return () => removeUsersStatusHandler("leaderboard");
-  }, []);
+  }, [queryClient]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -159,8 +160,13 @@ export function LeaderboardPlayer({
   i: number;
   player: LeaderbordPlayer;
 }) {
+  const { setUserProfileId } = useContext(UserProfileContext);
+
   return (
-    <tr className="relative rounded-lg font-bold cursor-pointer group">
+    <tr
+      onClick={() => setUserProfileId(player.id)}
+      className="relative rounded-lg font-bold cursor-pointer group"
+    >
       <td className="absolute w-full h-full p-0">
         <div className="w-full h-full group-hover:bg-[rgba(255,255,255,0.1)] group-odd:bg-[rgba(255,255,255,0.05)] rounded-md "></div>
       </td>

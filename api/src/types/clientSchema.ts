@@ -3,14 +3,20 @@ import { Selectable } from 'kysely';
 
 export type AppUserDB = Omit<
   Selectable<User>,
-  | 'password'
-  | 'TwoFactorAuthenticationSecret'>;
+  'password' | 'TwoFactorAuthenticationSecret'
+>;
 
 export interface AppUser extends AppUserDB {
   status: number;
 }
 
-export type UserDirectMessage = Selectable<DirectMessage>;
+export type UserProfile = Omit<AppUser, 'isTwoFactorAuthenticationEnabled'> & {
+  isBlocked: boolean;
+  isBlocking: boolean;
+  isFriends: boolean;
+  friendRequestSourceUserId: number | null;
+  conversationId: number | null;
+};
 
 export type ListUsers = Omit<
   Selectable<User>,

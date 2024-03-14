@@ -93,6 +93,7 @@ function throwBall(gameState: GameType) {
 }
 
 function checkIsWinner(game: GameType) {
+  // return game.game.playerOne.score === 2 || game.game.playerTwo.score === 2;
   return (
     game.game.playerOne.score === game.points ||
     game.game.playerTwo.score === game.points
@@ -145,6 +146,7 @@ export function initialize(game: Selectable<Game>): GameType {
   const now = Date.now();
   return {
     startTime: now,
+    endTime: 0,
     isPaused: true,
     gameId: game.id,
     roomId: game.id.toString(),

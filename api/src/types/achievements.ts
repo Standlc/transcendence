@@ -18,7 +18,7 @@ export enum ACHIEVEMENTS {
 }
 
 export const MARATHON_MAN_ACHIEVEMENT_TIME = 1000 * 60 * 5;
-export const QUICK_WITTED_ACHIEVEMENT_TIME = 1000 * 25;
+export const QUICK_WITTED_ACHIEVEMENT_TIME = 1000 * 35;
 
 export const SOCIAL_BUTTERFLY_LEVELS: Record<AchievementLevelType, number> = {
   1: 10,

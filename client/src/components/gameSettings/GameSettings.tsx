@@ -8,16 +8,17 @@ export default function GamePreferences({ hide }: { hide: () => void }) {
   const { gameSettings, upadteGameSetting } = useContext(GameSettingsContext);
 
   return (
-    <div className="flex max-h-full flex-col gap-5 flex-[2] p-5 bg-bg-1 rounded-lg min-w-96 shadow-md">
+    <div className="flex max-h-full flex-col gap-5 flex-[2] p-5 min-w-96">
       <div className="font-[900] text-2xl flex items-center justify-between gap-2">
         <span>Game Settings</span>
         <Tune fontSize="small" />
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 text-left">
         <span className="text-sm opacity-50 font-bold">
           MATCHING PREFERENCES
         </span>
+
         <Setting
           title="Points"
           onClick={() => {
@@ -41,6 +42,7 @@ export default function GamePreferences({ hide }: { hide: () => void }) {
             {gameSettings.powerUps ? "On" : "Off"}
           </div>
         </Setting>
+
         <span className="text-sm opacity-50 font-bold mt-2">STYLE</span>
         <Setting
           title="Board"

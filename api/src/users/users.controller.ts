@@ -1,9 +1,9 @@
-import { Body, Controller, Get, Patch, Param, Post, Query, Request, Res, UploadedFile, UseGuards, UseInterceptors, ParseFilePipeBuilder, HttpStatus, UnprocessableEntityException } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Param, Post, Query, Request, Res, UploadedFile, UseGuards, UseInterceptors, ParseFilePipeBuilder, HttpStatus, UnprocessableEntityException, NotFoundException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { ApiBody, ApiCookieAuth, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags, ApiUnauthorizedResponse, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
 import { CreateUsersDto } from './dto/create-users.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
-import { AppUser, ListUsers } from 'src/types/clientSchema';
+import { AppUser, ListUsers, UserProfile } from 'src/types/clientSchema';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -125,11 +125,13 @@ export class UsersController {
   @ApiUnprocessableEntityResponse({description: "When you try to retrieve a profile of someone who block you"})
   @ApiUnauthorizedResponse({description: "You need to be logged in the access this route"})
   @UseGuards(JwtAuthGuard)
-  @Get(':id/profile')
-  async getUserProfile(@Request() req, @Param('id') userId: number): Promise<AppUser> {
-    if (await this.blockUserService.hasUserBlock(userId, req.user.id))
-      throw new UnprocessableEntityException("This user blocked you");
-    return await this.usersService.getUserById(userId);
+  @Get('/profile/:userId')
+  async getUserProfile(@Request() req, @Param('userId') userId: number): Promise<UserProfile> {
+    const userProfile = await this.usersService.getUserProfile(req.user.id, userId);
+    if (!userProfile) {
+      throw new NotFoundException();
+    }
+    return userProfile;
   }
 
   //#endregion

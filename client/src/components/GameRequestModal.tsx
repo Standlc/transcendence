@@ -1,31 +1,23 @@
 import { useContext, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ErrorContext } from "../ContextsProviders/ErrorContext";
-import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import ModalLayout from "../UIKit/ModalLayout";
 import { UserContext } from "../ContextsProviders/UserContext";
 import { Avatar } from "../UIKit/avatar/Avatar";
 import { PlayerRating } from "../UIKit/PlayerRating";
 import { useGameRequest } from "../utils/useGameRequest";
 import { SocketsContext } from "../ContextsProviders/SocketsContext";
+import { useCancelGameRequest } from "../utils/useCancelGameRequest";
+import { useFetchGame } from "../utils/useFetchGame";
+import { useGameIdParam } from "../utils/useGameIdParam";
 
 export const GameRequestModal = () => {
   const { user } = useContext(UserContext);
   const { gameSocketOn, gameSocketOff } = useContext(SocketsContext);
   const gameRequest = useGameRequest();
-  const { addError } = useContext(ErrorContext);
   const queryClient = useQueryClient();
-
-  const cancel = useMutation({
-    mutationFn: async () => {
-      const res = await axios.delete(`/api/game-requests`);
-      queryClient.setQueryData(["currentGameRequest"], null);
-      return res.data;
-    },
-    onError: () => {
-      addError({ message: "something went wrong" });
-    },
-  });
+  const cancel = useCancelGameRequest();
+  const { gameId } = useGameIdParam();
+  const gameRecord = useFetchGame(gameId);
 
   useEffect(() => {
     if (!gameRequest.data || !gameRequest.data?.targetUser) return;
@@ -38,9 +30,14 @@ export const GameRequestModal = () => {
     return () => {
       gameSocketOff("gameInvitationRefused", handleInvitationRefused);
     };
-  }, [gameSocketOn, gameSocketOff, gameRequest.data]);
+  }, [
+    gameSocketOn,
+    gameSocketOff,
+    gameRequest.data,
+    gameRequest.data?.targetUser,
+  ]);
 
-  if (!gameRequest.data) {
+  if (!gameRequest.data || (gameRecord.data && !gameRecord.data.winnerId)) {
     return null;
   }
 
@@ -97,12 +94,13 @@ export const GameRequestModal = () => {
           </div>
         </div>
 
-        <div
+        <button
+          disabled={cancel.isPending}
           className="self-end opacity-50 hover:opacity-100 hover:text-red-600"
           onClick={() => cancel.mutate()}
         >
           Cancel
-        </div>
+        </button>
       </div>
     </ModalLayout>
   );
@@ -130,7 +128,8 @@ export const PlayerInfos = ({
       <div className="flex gap-3 [flex-direction:inherit] items-center">
         <span
           style={{
-            opacity: player?.username ? 1 : 0.5,
+            opacity: player ? 1 : 0.5,
+            fontWeight: player ? "bold" : "normal",
           }}
           className="text-lg"
         >
