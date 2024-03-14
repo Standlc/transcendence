@@ -9,7 +9,7 @@ import {
   UserPlayingMask,
 } from "./userStatusIndicators";
 
-const COLORS = [
+export const COLORS = [
   "#309d51",
   "#5765f2",
   "#FEE75C",
@@ -19,7 +19,7 @@ const COLORS = [
   "#bb397f",
 ];
 
-const AVATAR_SIZES = {
+export const AVATAR_SIZES = {
   xs: 18,
   sm: 30,
   md: 45,

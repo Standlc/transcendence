@@ -133,3 +133,11 @@ export interface AllConversationsPromise {
     status: number;
   };
 }
+
+export type PublicChannel = {
+  membersCount: number | null;
+  isMember: boolean;
+  id: number;
+  name: string | null;
+  photoUrl: string | null;
+};
