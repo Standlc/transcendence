@@ -73,14 +73,6 @@ const Chat = () => {
         if (dmId) {
             socketRef.current.emit("joinConversation", { conversationId: dmId });
 
-            // socketRef.current.on("getDirectMessages", (newMessages) => {
-            //     console.log("Received new messages:", newMessages);
-            //     setRealTimeMessages((prevMessages) => [
-            //         ...prevMessages,
-            //         ...newMessages,
-            //     ]);
-            // });
-
             socketRef.current.on(
                 "createDirectMessage",
                 (newMessage: UserDirectMessage) => {
@@ -122,7 +114,7 @@ const Chat = () => {
 
             socketRef.current.emit("createDirectMessage", messageData);
 
-            setTextAreaValue(""); // Réinitialiser la valeur du TextArea après envoi
+            setTextAreaValue(""); 
         }
     };
 
@@ -219,7 +211,7 @@ const Chat = () => {
     }
 
     return (
-        <div className="w-full bg-discord-light-grey">
+        <div className="w-full flex flex-col bg-discord-light-grey">
             <div
                 className="bg-discord-greyple topbar-section border-b border-b-almost-black"
                 style={{ borderBottomWidth: "3px" }}
@@ -249,9 +241,9 @@ const Chat = () => {
                     </div>
                 </div>
             </div>
-            <div className="flex justify-center">
-            </div>
-            <div className="text-white text-left h-[750px] w-[1400px] ml-[20px] overflow-auto">
+            
+            
+            <div className="text-white text-left h-[750px] w-auto ml-[20px] overflow-auto">
                 {renderMessages()}
                 {/* {renderRealTimeMessages()} */}
             </div>

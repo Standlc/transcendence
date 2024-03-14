@@ -7,8 +7,6 @@ interface Props {
 }
 
 export const CmdOpen: React.FC<Props> = ({ onClose, chanInfo }) => {
-    // const [confirmAction, setConfirmAction] = useState<boolean>(false);
-
     const doCmd = (cmd: string) => {
         if (cmd === "kick") {
             console.log("Confirmed:", cmd);
@@ -74,11 +72,6 @@ export const CmdOpen: React.FC<Props> = ({ onClose, chanInfo }) => {
                         ))}
                     </ul>
                 </div>
-                {/* {confirmAction && (
-                    <ModalLayout>
-                        <ConfirmPopUp />
-                    </ModalLayout>
-                )} */}
                 <div className="fixed mt-[450px] ml-[220px] ">
                     <button
                         className="mt-4 w-[100px] px-4 py-2 bg-blurple text-white rounded hover:bg-blurple-hover mr-5"

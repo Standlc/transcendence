@@ -18,6 +18,9 @@ export type UserProfile = Omit<AppUser, 'isTwoFactorAuthenticationEnabled'> & {
   conversationId: number | null;
 };
 
+export type UserDirectMessage = Selectable<DirectMessage>;
+
+
 export type ListUsers = Omit<
   Selectable<User>,
   | 'password'

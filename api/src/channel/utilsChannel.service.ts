@@ -276,15 +276,15 @@ export class Utils {
   //
 
   async channelExists(channelId: number): Promise<void> {
-    let channelIdExists: { id: number }[];
     try {
-      channelIdExists = await db
+      const channelIdExists = await db
         .selectFrom('channel')
-        .select('id')
         .where('id', '=', channelId)
-        .execute();
+        .select('id')
+        .executeTakeFirst();
 
-      if (!channelIdExists || channelIdExists.length == 0) {
+        console.log(channelIdExists)
+      if (!channelIdExists) {
         throw new NotFoundException('Channel not found');
       }
     } catch (error) {
