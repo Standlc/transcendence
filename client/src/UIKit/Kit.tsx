@@ -89,7 +89,7 @@ export const Spinner = ({ isLoading }: { isLoading: boolean }) => {
   }
 
   return (
-    <div className="pointer-events-none z-10 flex h-full w-full animate-fadein items-center justify-center bg-transparent transition-all">
+    <div className="relative pointer-events-none z-10 w-full h-full flex animate-fadein items-center justify-center bg-transparent transition-all">
       <div className="absolute z-10 flex h-full w-full animate-pulse bg-secondary opacity-100" />
       <div className="z-10 h-[30px] w-[30px] animate-spin rounded-full border-4 border-transparent [border-left:4px_solid_white]" />
     </div>

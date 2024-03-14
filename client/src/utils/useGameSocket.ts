@@ -77,7 +77,7 @@ export const useGameSocket = (addError: (error: ErrorType) => void) => {
     };
 
     const handleGameStart = (gameId: string) => {
-      navigate(`/play/${gameId}`);
+      navigate(`/play/game/${gameId}`);
       queryClient.setQueryData(["currentGameRequest"], null);
 
       const gameIdToNumber = Number(gameId);
@@ -87,9 +87,8 @@ export const useGameSocket = (addError: (error: ErrorType) => void) => {
     };
 
     const handleDisconnect = () => {
-      // redirect to login page
+      // console.log("disconnected by server");
       setGameSocket(undefined);
-      console.log("disconnected by server");
     };
 
     gameSocket.on("disconnect", handleDisconnect);

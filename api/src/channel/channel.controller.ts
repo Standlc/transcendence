@@ -22,6 +22,7 @@ import {
   UseGuards,
   Request,
   Res,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ChannelService } from './channel.service';
 import {
@@ -29,6 +30,7 @@ import {
   ChannelDataWithoutPassword,
   ChannelUpdate,
   MessageWithSenderInfo,
+  PublicChannel,
 } from 'src/types/channelsSchema';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
@@ -374,47 +376,27 @@ export class UserController {
     return await this.channelService.deleteChannel(channelId, req.user.id);
   }
 
-  //
-  //
-  //
-  @ApiOperation({
-    summary:
-      "Get all available channels the user didn't join. Public or private from the inviteList",
-  })
-  @ApiOkResponse({
-    description: 'Channels found',
-    schema: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          channelOwner: {
-            type: 'number',
-          },
-          createdAt: {
-            type: 'Date',
-          },
-          id: {
-            type: 'number',
-          },
-          isPublic: {
-            type: 'boolean',
-          },
-          name: {
-            type: 'string',
-          },
-          photoUrl: {
-            type: 'string | null',
-          },
-        },
-      },
-    },
-  })
-  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @Get('availableChannels')
-  async getAllChannels(@Request() req): Promise<ChannelDataWithoutPassword[]> {
-    console.log('GET: Recieved all channels');
-    return await this.channelService.getAllAvailableChannels(req.user.id);
+  @Get('/public')
+  async getAllPublicChannels(@Request() req): Promise<PublicChannel[]> {
+    const userId: number = req.user.id;
+    return await this.channelService.getAllPublicChannels(userId);
+  }
+
+  @Post('/join/:channelId')
+  async joinUserToChannel(
+    @Request() req,
+    @Param('channelId') channelId: number,
+  ) {
+    const userId: number = req.user.id;
+    const isAllowed = await this.channelService.checkCanUserJoinChannel(
+      userId,
+      channelId,
+    );
+    if (!isAllowed) {
+      throw new ForbiddenException();
+    }
+
+    return await this.channelService.joinUserToChannel(userId, channelId);
   }
 
     //#region Get Photo

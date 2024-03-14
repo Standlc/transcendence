@@ -1,7 +1,7 @@
 import { useContext, useEffect } from "react";
-import { SocketsContext } from "../ContextsProviders/SocketsContext";
+import { SocketsContext } from "../../ContextsProviders/SocketsContext";
 import { UserGame } from "@api/types/games";
-import { Avatar } from "../UIKit/avatar/Avatar";
+import { Avatar } from "../../UIKit/avatar/Avatar";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -9,9 +9,9 @@ import {
   WsGameIdType,
   WsLiveGameUpdate,
 } from "@api//types/gameServer/socketPayloadTypes";
-import InfiniteSlotMachine from "../UIKit/InfiniteSlotMachine";
+import InfiniteSlotMachine from "../../UIKit/InfiniteSlotMachine";
 import { EmojiEvents } from "@mui/icons-material";
-import { PlayerRating } from "../UIKit/PlayerRating";
+import { PlayerRating } from "../../UIKit/PlayerRating";
 
 export default function LiveGames() {
   const { gameSocketOn, gameSocketOff } = useContext(SocketsContext);
@@ -116,7 +116,7 @@ export const GameInfo = ({ game }: { game: UserGame }) => {
 
   return (
     <div
-      onClick={() => !game.winnerId && navigate(`/play/${game.id}`)}
+      onClick={() => !game.winnerId && navigate(`/play/game/${game.id}`)}
       className={`relative flex items-center justify-center odd:bg-white rounded-md odd:bg-opacity-5 ${
         !game.winnerId && ongoingGameStyle
       }`}
