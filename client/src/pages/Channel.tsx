@@ -1,28 +1,54 @@
 import { useParams } from "react-router-dom";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { ChannelMessages, CreateChannelResponse } from "../types/channel";
 import TextArea from "../UIKit/TextArea";
 import { Avatar } from "../UIKit/avatar/Avatar";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ModalLayout from "../UIKit/ModalLayout";
-import { CmdOpen } from "./Channel/subComponents/CmdPopUp";
+import {KickPopUp } from "./Channel/subComponents/KickPopUp";
 import { SocketsContext } from "../ContextsProviders/SocketsContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { ChannelMessage } from "@api/types/schema";
-import { forEach } from "lodash";
+import { ActionsMenu, MenuActionType } from "../UIKit/ActionsMenu";
 
 export const Channel = () => {
     const { channelId } = useParams();
     const queryClient = useQueryClient();
-
+    const [isKickModalOpen, setIsKickModalOpen] = useState(false);
     const [textAreaValue, setTextAreaValue] = useState("");
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen);
     };
-    const [cmdOpen, setCmdOpen] = useState(false);
+  
     const { chatSocket } = useContext(SocketsContext);
+
+    
+    const whichCmd = (label: string) => {
+        if (label === "Kick")
+            setIsKickModalOpen(true);
+    };
+    
+    const actions: MenuActionType[] = useMemo(() => [
+      {
+        label: "Kick",
+        onClick: () => whichCmd("Kick"), 
+        color: "red", 
+      },
+      {
+        label: "Ban",
+        onClick: () => {
+          console.log("Banning user");
+        },
+        color: "red", 
+      },
+      {
+        label: "Mute",
+        onClick: () => {
+          console.log("Muting user");
+        },
+      },
+    ], []);
 
 
     const allMessagesChan = useQuery<ChannelMessages[]>({
@@ -57,7 +83,6 @@ export const Channel = () => {
                 }
             }
         }
-        console.log("NULLLLLL");
         return null;
     }
     
@@ -220,6 +245,7 @@ export const Channel = () => {
         ));
     };
     
+    console.log(isKickModalOpen, "isKickModalOpen");
 
     return (
         <div
@@ -249,10 +275,13 @@ export const Channel = () => {
                         </div>
                     </div>
                     <div>
-                        {/* <button onClick={toggleMenu}>
-                            <ShowAdminButton />
-                        </button> */}
+                        <ActionsMenu actions={actions} />
                     </div>
+                    {isKickModalOpen && ( 
+                        <ModalLayout>
+                            <KickPopUp onClose={() => setIsKickModalOpen(false)} chanInfo={chanInfo.data}  chatSocket={chatSocket}/>
+                        </ModalLayout>
+                        )}
                 </div>
             </div>
             
@@ -271,3 +300,5 @@ export const Channel = () => {
         </div>
     );
 };
+
+
