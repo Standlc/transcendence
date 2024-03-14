@@ -18,7 +18,7 @@ const MultiModalLayout = memo(
     }, []);
 
     return (
-      <div className="animate-fadein z-40 fixed top-0 left-0 h-full w-full bg-black bg-opacity-80 flex items-center justify-center transition-opacity">
+      <div className="animate-fadein z-40 fixed top-0 left-[75px] h-full w-[calc(100%-75px)] bg-black bg-opacity-80 flex items-center justify-center transition-opacity">
         <div className="animate-scalein flex items-center justify-center">
           {isLoading ? (
             <div

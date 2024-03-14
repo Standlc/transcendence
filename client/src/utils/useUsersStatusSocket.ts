@@ -5,6 +5,9 @@ import {
   UsersStatusEmitsDto,
   WsUserSatus,
 } from "../../../api/src/types/usersStatusTypes";
+import { useQueryClient } from "@tanstack/react-query";
+import { useGetUser } from "./useGetUser";
+import { AppUser } from "@api/types/clientSchema";
 
 export type UsersStatusHandlerType<T extends string> = (
   data: UsersStatusEmitsDto<T>
@@ -24,6 +27,8 @@ export type RemoveUsersStatusHandlerFnType = (key: string) => void;
 export const useUsersStatusSocket = (addError: (error: ErrorType) => void) => {
   const [usersStatusSocket, setUsersStatusSocket] = useState<Socket>();
   const handlers = useRef(new Map<string, UsersStatusHandlerType<"status">>());
+  const queryClient = useQueryClient();
+  const user = useGetUser();
 
   useEffect(() => {
     const connection = io("/status");
@@ -62,6 +67,11 @@ export const useUsersStatusSocket = (addError: (error: ErrorType) => void) => {
     };
 
     const handleUserOnline = (data: WsUserSatus) => {
+      if (data.userId === user.id) {
+        queryClient.setQueryData(["user"], (prev: AppUser) => {
+          return { ...prev, status: data.status };
+        });
+      }
       handlers.current.forEach((handler) => {
         handler(data);
       });

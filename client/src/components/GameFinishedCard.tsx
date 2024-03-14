@@ -138,7 +138,7 @@ const PlayerAvatar = ({
       className="relative border-[5px] overflow-hidden rounded-2xl border-indigo-600"
     >
       <div style={{ margin: isWinner ? "-5px" : "" }} className="relative">
-        <Avatar imgUrl={undefined} size="lg" userId={player.id} />
+        <Avatar imgUrl={undefined} size={"lg"} userId={player.id} />
       </div>
       {isWinner && (
         <div className="absolute -bottom-[5px] -right-[5px] rounded-tl-md bg-indigo-600 text-yellow-400 h-[25px] w-[25px] flex items-center justify-center">

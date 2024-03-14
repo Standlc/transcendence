@@ -77,7 +77,6 @@ export const useGameSocket = (addError: (error: ErrorType) => void) => {
     };
 
     const handleGameStart = (gameId: string) => {
-      console.log("start", `/play/${gameId}`);
       navigate(`/play/${gameId}`);
       queryClient.setQueryData(["currentGameRequest"], null);
 

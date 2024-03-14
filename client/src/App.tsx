@@ -21,6 +21,7 @@ import { AppUser } from "@api/types/clientSchema";
 import { ChannelsLayout } from "./components/ChannelsLayout";
 import Chat from "./pages/Chat/Chat";
 import { Channel } from "./pages/Channel";
+import { ProfileTestPage } from "./pages/ProfileTestPage";
 
 function App() {
   const getUser = useQuery({
@@ -51,6 +52,7 @@ function App() {
                 <Route path="dm/:dmId" element={<Chat />}></Route>
               </Route>
 
+              <Route path="/profile/:userId" element={<ProfileTestPage />} />
               <Route path="/play" element={<PlayPage />} />
               <Route path="/play/:gameId" element={<GamePage />} />
               <Route path="/leaderboard" element={<LeaderboardPage />} />

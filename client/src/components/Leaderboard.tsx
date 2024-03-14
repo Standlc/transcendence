@@ -9,6 +9,7 @@ import {
   WsLeaderboardPlayerUpdate,
 } from "../../../api/src/types/gameServer/socketPayloadTypes";
 import { PlayerRating } from "../UIKit/PlayerRating";
+import { UserProfileContext } from "../ContextsProviders/UserProfileIdContext";
 
 export default function Leaderboard({ limit }: { limit?: number }) {
   const {
@@ -159,8 +160,13 @@ export function LeaderboardPlayer({
   i: number;
   player: LeaderbordPlayer;
 }) {
+  const { setUserProfileId } = useContext(UserProfileContext);
+
   return (
-    <tr className="relative rounded-lg font-bold cursor-pointer group">
+    <tr
+      onClick={() => setUserProfileId(player.id)}
+      className="relative rounded-lg font-bold cursor-pointer group"
+    >
       <td className="absolute w-full h-full p-0">
         <div className="w-full h-full group-hover:bg-[rgba(255,255,255,0.1)] group-odd:bg-[rgba(255,255,255,0.05)] rounded-md "></div>
       </td>
