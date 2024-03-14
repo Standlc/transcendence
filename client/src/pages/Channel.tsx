@@ -40,6 +40,7 @@ export const Channel = () => {
         return () => {
             chatSocket.off("joinChannel");
             chatSocket.off("message");
+
         };
     }, [chatSocket]);
 

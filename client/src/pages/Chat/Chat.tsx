@@ -159,27 +159,6 @@ const Chat = () => {
         return previousMessage.senderId !== currentMessage.senderId;
     };
 
-    // const shouldDisplayAvatarAndTimestampRT = (currentIndex: number): boolean => {
-    //     if (currentIndex === 0) {
-    //         return true;
-    //     }
-
-    //     const previousMessage = realTimeMessages[currentIndex - 1];
-    //     const currentMessage = realTimeMessages[currentIndex];
-
-    //     return previousMessage?.senderId !== currentMessage?.senderId;
-    // };
-
-    // const shouldDisplayUsernameRT = (currentIndex: number): boolean => {
-    //     if (currentIndex === 0) {
-    //         return true;
-    //     }
-
-    //     const previousMessage = realTimeMessages[currentIndex - 1];
-    //     const currentMessage = realTimeMessages[currentIndex];
-
-    //     return previousMessage?.senderId !== currentMessage?.senderId;
-    // };
 
     const renderMessages = () => {
         return allMessages.data?.map((msg, index) => (
@@ -220,43 +199,6 @@ const Chat = () => {
             </div>
         ));
     };
-
-    // const renderRealTimeMessages = () => {
-    //     return realTimeMessages.map((msg, index) => (
-    //         <div className="mt-[20px]" key={index}>
-    //             <div className="flex">
-    //                 {shouldDisplayAvatarAndTimestampRT(index) && (
-    //                     <div className="flex">
-    //                        <Avatar imgUrl={msg.avatarUrl} size="md" userId={msg.senderId} borderRadius={0.5}/>
-    //                         {shouldDisplayUsernameRT(index) && (
-    //                             <div className="font-bold ml-[30px]">
-    //                                 {msg.senderId === user?.id
-    //                                     ? user?.username
-    //                                     : otherUser?.username}
-    //                             </div>
-    //                         )}
-    //                     </div>
-    //                 )}
-
-    //                 {shouldDisplayAvatarAndTimestampRT(index) && (
-    //                     <div className="ml-[10px] mt-[4px] text-[13px]">
-    //                         {new Date(msg.createdAt).toLocaleString(undefined, {
-    //                             year: "numeric",
-    //                             month: "2-digit",
-    //                             day: "2-digit",
-    //                             hour: "2-digit",
-    //                             minute: "2-digit",
-    //                             second: "2-digit",
-    //                         })}
-    //                     </div>
-    //                 )}
-    //             </div>
-    //             <div className="mt-[-15px] block text-md ml-[80px]  ">
-    //                 {msg.content}
-    //             </div>
-    //         </div>
-    //     ));
-    // };
 
     const [isPopupOpen, setIsPopupOpen] = useState(false);
 
@@ -308,11 +250,6 @@ const Chat = () => {
                 </div>
             </div>
             <div className="flex justify-center">
-                {/* {isPopupOpen && otherUser && (
-                    <ModalLayout>
-                        <UserPopup user={otherUser} onClose={closePopup} />
-                    </ModalLayout>
-                )} */}
             </div>
             <div className="text-white text-left h-[750px] w-[1400px] ml-[20px] overflow-auto">
                 {renderMessages()}

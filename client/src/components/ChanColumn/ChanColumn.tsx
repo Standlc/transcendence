@@ -50,6 +50,14 @@ export const ChanColumn = () => {
         },
     });
 
+    // const queryClient = useQueryClient();
+
+    // const onClick = () => {
+    //     queryClient.invalidateQueries({
+    //         "queryKey": ["allChannels"]
+    //     });
+    // }
+
     const allChannels = useQuery({
         queryKey: ["allChannels"],
         queryFn: async () => {
