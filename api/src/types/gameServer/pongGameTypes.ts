@@ -11,6 +11,7 @@ export interface GameType {
   isPaused: boolean;
   nextUpdateTime: number;
   startTime: number;
+  endTime: number;
 }
 
 export interface GameStateType {

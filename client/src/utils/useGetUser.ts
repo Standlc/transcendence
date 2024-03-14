@@ -3,5 +3,5 @@ import { useQueryClient } from "@tanstack/react-query"
 
 export const useGetUser = () => {
 	const queryClient = useQueryClient();
-	return (queryClient.getQueryData<AppUser>(["user"]));
+	return (queryClient.getQueryData<AppUser>(["user"])) as AppUser;
 }

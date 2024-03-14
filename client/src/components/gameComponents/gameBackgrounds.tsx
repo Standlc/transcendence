@@ -158,20 +158,20 @@ const DashedLine = () => {
     );
 };
 
-const Ball = () => {
-  return (
-    <div className="absolute h-[18px] flex rounded-full items-center justify-center aspect-square bg-zinc-800 overflow-hidden shadow-[inset_0_-2px_0_rgba(0,0,0,0.3)]">
-      <div className="absolute h-[20%] w-[20%] top-[3px] rounded-full bg-white blur-[2px]"></div>
-      <div className="h-[9px] mb-[2px] aspect-square bg-white flex items-center justify-center rounded-full text-[8px] text-black">
-        8
-      </div>
-      <div className="absolute left-0 translate-x-[-80%] h-[150%] aspect-square border-[1px] border-white rounded-full"></div>
-      <div className="absolute right-0 translate-x-[80%] h-[150%] aspect-square border-[1px] border-white rounded-full"></div>
-      <div className="absolute h-full w-[1px] bg-black"></div>
-      <div className="absolute h-[1px] w-full bg-black"></div>
-    </div>
-  );
-};
+// const Ball = () => {
+//   return (
+//     <div className="absolute h-[18px] flex rounded-full items-center justify-center aspect-square bg-zinc-800 overflow-hidden shadow-[inset_0_-2px_0_rgba(0,0,0,0.3)]">
+//       <div className="absolute h-[20%] w-[20%] top-[3px] rounded-full bg-white blur-[2px]"></div>
+//       <div className="h-[9px] mb-[2px] aspect-square bg-white flex items-center justify-center rounded-full text-[8px] text-black">
+//         8
+//       </div>
+//       <div className="absolute left-0 translate-x-[-80%] h-[150%] aspect-square border-[1px] border-white rounded-full"></div>
+//       <div className="absolute right-0 translate-x-[80%] h-[150%] aspect-square border-[1px] border-white rounded-full"></div>
+//       <div className="absolute h-full w-[1px] bg-black"></div>
+//       <div className="absolute h-[1px] w-full bg-black"></div>
+//     </div>
+//   );
+// };
 
 export const GAME_STYLES = {
   Classic: {

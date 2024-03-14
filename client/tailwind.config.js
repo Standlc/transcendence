@@ -84,10 +84,7 @@ export default {
         },
         showUpAndLeave: {
           "0%": {
-            transform: "translate(0%, 200%)",
-          },
-          "10%": {
-            transform: "translateY(200%)",
+            transform: "translateY(400%)",
           },
           "30%": {
             transform: "translateY(0%)",
@@ -106,7 +103,7 @@ export default {
         "slow-spin": "spin 6s linear infinite",
         "move-left-right":
           "move-left-right 3s cubic-bezier(0.7, 0, 0, 1) infinite",
-        showUpAndLeave: "showUpAndLeave 4s cubic-bezier(0.7, 0, 0, 1) infinite",
+        showUpAndLeave: "showUpAndLeave 4s cubic-bezier(0.7, 0, 0, 1.1) infinite",
       },
     },
   },

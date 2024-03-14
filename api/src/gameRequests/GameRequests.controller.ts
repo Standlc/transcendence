@@ -34,9 +34,7 @@ export class GameRequestsController {
     @Body() body: PublicGameRequestDto,
     @Request() req: Request & { user: { id: number } },
   ): Promise<UserGameRequest | undefined> {
-    if (body.points > 42 || body.points < 10) {
-      throw new BadRequestException();
-    }
+    this.gameRequests.verifyGamePointsOrThrow(body.points);
     const userId: number = req.user.id;
     await this.gameRequests.delete(userId);
     return await this.gameRequests.handleFindMatch(body, userId);
@@ -47,9 +45,7 @@ export class GameRequestsController {
     @Body() body: PrivateGameRequestDto,
     @Request() req: Request & { user: { id: number } },
   ): Promise<UserGameInvitation> {
-    if (body.points > 42 || body.points < 10) {
-      throw new BadRequestException();
-    }
+    this.gameRequests.verifyGamePointsOrThrow(body.points);
 
     const userId: number = req.user.id;
     if (userId === body.targetId) {
@@ -57,8 +53,6 @@ export class GameRequestsController {
     }
 
     await this.gameRequests.delete(userId);
-
-    // Check users are not blocked!!!
 
     const areUsersFriends = await this.friendsService.isFriend(
       userId,

@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
 import { UsersStatusGateway } from './UsersStatus.gateway';
 import { WsAuthGuard } from 'src/auth/ws-auth.guard';
+import { UsersStatusService } from './UsersStatusService';
 
 @Module({
-  providers: [UsersStatusGateway, WsAuthGuard],
-  exports: [UsersStatusGateway],
+  imports: [],
+  providers: [UsersStatusService, UsersStatusGateway, WsAuthGuard],
+  exports: [UsersStatusGateway, UsersStatusService],
 })
 export class UsersStatusModule {}

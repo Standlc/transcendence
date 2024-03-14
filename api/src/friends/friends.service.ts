@@ -339,4 +339,7 @@ export class FriendsService {
 
   //#endregion
 
+  async cancelFriendRequest(sourceId: number, targetId: number) {
+    await db.deleteFrom("friendRequest").where("sourceId", "=", sourceId).where("targetId", "=", targetId).execute();
+  }
 }

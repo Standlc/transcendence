@@ -7,7 +7,7 @@ import { formatDate } from "../../utils/timeFormating";
 
 const ACHIEVEMENTS_LEVELS_COLORS = {
   1: "#ff924b",
-  2: "#c8c8c8",
+  2: "#d5d5d5",
   3: "#ffdd00",
 };
 
@@ -35,7 +35,7 @@ export const Achievement = ({
         }
         className="h-[50px] text-indigo-400 aspect-square bg-black bg-opacity-30 flex items-center justify-center rounded-full"
       >
-        <EmojiEvents style={{ fontSize: 35 }} />
+        <EmojiEvents style={{ fontSize: 30 }} />
       </div>
 
       <div className="flex flex-col">
@@ -46,13 +46,13 @@ export const Achievement = ({
           </span>
         </div>
 
-        <span className="font-extrabold text-xl flex items-center gap-2">
+        <span className="font-extrabold text-lg flex items-center gap-2 leading-6">
           {achievementMeta.title}
           {achievement.level ? (
             <span className="opacity-50">({achievement.level}/3)</span>
           ) : null}
         </span>
-        <span className="text-sm opacity-50">
+        <span className="text-sm opacity-50 leading-none">
           {achievementMeta.description(achievement.level)}
         </span>
       </div>
@@ -70,7 +70,7 @@ export const LockedAchievement = ({
   return (
     <div className="p-3 rounded-md bg-white bg-opacity-5 flex gap-3 items-center">
       <div className="h-[50px] aspect-square bg-black bg-opacity-30 flex items-center justify-center rounded-full">
-        <EmojiEvents style={{ fontSize: 35, opacity: 0.5 }} />
+        <EmojiEvents style={{ fontSize: 30, opacity: 0.5 }} />
       </div>
 
       <div className="flex flex-col">
@@ -79,13 +79,13 @@ export const LockedAchievement = ({
           <span className="text-xs leading-none font-bold">Locked</span>
         </div>
 
-        <span className="font-extrabold text-xl flex items-center gap-2 opacity-50">
+        <span className="font-extrabold text-lg flex items-center gap-2 opacity-50 leading-6">
           {achievement.title}
           {currentLevel !== undefined ? (
             <span>({currentLevel + 1}/3)</span>
           ) : null}
         </span>
-        <span className="text-sm opacity-50">
+        <span className="text-sm opacity-50 text-left leading-none">
           {achievement.lockedDescription(currentLevel ? currentLevel + 1 : 1)}
         </span>
       </div>

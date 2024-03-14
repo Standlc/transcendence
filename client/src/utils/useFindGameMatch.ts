@@ -22,8 +22,10 @@ export const useFindGameMatch = (preferences: PublicGameRequestDto) => {
         "/api/game-requests",
         payload
       );
-      queryClient.setQueryData(["currentGameRequest"], res.data);
       return res.data;
+    },
+    onSuccess: (gameRequest) => {
+      queryClient.setQueryData(["currentGameRequest"], gameRequest);
     },
     onError: () => {
       addError({ message: "Error while making game request" });

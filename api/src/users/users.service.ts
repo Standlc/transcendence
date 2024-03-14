@@ -403,4 +403,123 @@ export class UsersService {
     }
   }
 
+  async getUserProfile(currentUserId: number, userId: number) {
+    const user = await db
+      .selectFrom('user')
+      .where('user.id', '=', userId)
+      .select([
+        'avatarUrl',
+        'bio',
+        'user.createdAt',
+        'email',
+        'firstname',
+        'user.id',
+        'lastname',
+        'username',
+        'rating',
+      ])
+
+      // Select if user is blocking the current user
+      .leftJoin('blockedUser as isBlocking', (join) =>
+        join.on((eb) =>
+          eb.and([
+            eb('isBlocking.blockedById', '=', userId),
+            eb('isBlocking.blockedId', '=', currentUserId),
+          ]),
+        ),
+      )
+      .select((eb) =>
+        eb
+          .case()
+          .when('isBlocking.blockedId', 'is', null)
+          .then(false)
+          .else(true)
+          .end()
+          .as('isBlocking'),
+      )
+
+      // Select if current user is blocking the user
+      .leftJoin('blockedUser as isBlocked', (join) =>
+        join.on((eb) =>
+          eb.and([
+            eb('isBlocked.blockedById', '=', currentUserId),
+            eb('isBlocked.blockedId', '=', userId),
+          ]),
+        ),
+      )
+      .select((eb) =>
+        eb
+          .case()
+          .when('isBlocked.blockedId', 'is', null)
+          .then(false)
+          .else(true)
+          .end()
+          .as('isBlocked'),
+      )
+
+      // Select if they are friends
+      .leftJoin('friend', (join) =>
+        join.on((eb) =>
+          eb
+            .and([
+              eb('friend.user1_id', '=', userId),
+              eb('friend.user2_id', '=', currentUserId),
+            ])
+            .or(
+              eb.and([
+                eb('friend.user1_id', '=', currentUserId),
+                eb('friend.user2_id', '=', userId),
+              ]),
+            ),
+        ),
+      )
+      .select((eb) =>
+        eb
+          .case()
+          .when('friend.user1_id', 'is', null)
+          .then(false)
+          .else(true)
+          .end()
+          .as('isFriends'),
+      )
+
+      // Select the (potential) friend request source id
+      .leftJoin('friendRequest', (join) =>
+        join.on((eb) =>
+          eb.or([
+            eb.and([
+              eb('friendRequest.sourceId', '=', currentUserId),
+              eb('friendRequest.targetId', '=', userId),
+            ]),
+            eb.and([
+              eb('friendRequest.sourceId', '=', userId),
+              eb('friendRequest.targetId', '=', currentUserId),
+            ]),
+          ]),
+        ),
+      )
+      .select("friendRequest.sourceId as friendRequestSourceUserId")
+
+      // Select the (potential) conversation id
+      .leftJoin("conversation", (join) => join.on(eb => eb.or([
+        eb.and([
+          eb('conversation.user1_id', '=', currentUserId),
+          eb('conversation.user2_id', '=', userId),
+        ]),
+        eb.and([
+          eb('conversation.user1_id', '=', userId),
+          eb('conversation.user2_id', '=', currentUserId),
+        ]),
+      ])))
+      .select("conversation.id as conversationId")
+      .executeTakeFirst();
+
+    if (user) {
+      return {
+        ...user,
+        status: this.usersStatusGateway.getUserStatus(user.id),
+      };
+    }
+    return user;
+  }
 }

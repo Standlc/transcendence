@@ -61,7 +61,7 @@ export class DmController {
   async createConveration(
     @Body() userId: UserId,
     @Request() req,
-  ): Promise<string> {
+  ): Promise<number> {
     return await this.dmService.createConversation(userId.userId, req.user.id);
   }
 
