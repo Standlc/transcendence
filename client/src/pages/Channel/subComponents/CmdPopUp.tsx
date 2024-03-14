@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Avatar } from "../../../UIKit/avatar/Avatar";
 import { CreateChannelResponse, ChannelUser } from "../../../types/channel";
 
@@ -38,7 +37,7 @@ export const CmdOpen: React.FC<Props> = ({ onClose, chanInfo }) => {
                                     <div className="flex items-center">
                                         <div className="ml-4 mt-2">
                                             <Avatar
-                                                src={user.avatarUrl}
+                                                imgUrl={user.avatarUrl}
                                                 size="md"
                                                 userId={user.userId}
                                                 status={user.status}

@@ -2,27 +2,46 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Settings } from "@mui/icons-material";
 import { Collapsible } from "./Collapsible";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useGetUser } from "../../utils/useGetUser";
 import { Avatar } from "../../UIKit/avatar/Avatar";
 import { AllUserDm } from "../../types/allUserDm";
 import { Timestamp } from "@api/types/schema";
-import CachedIcon from '@mui/icons-material/Cached';
+import ModalLayout from "../../UIKit/ModalLayout";
+import { ChanPopUp } from "../ChanPopUp";
 
 interface AllChannels {
-    channelOwner : number,
-    createdAt : Timestamp;
-    id : number;
+    channelOwner: number;
+    createdAt: Timestamp;
+    id: number;
     isPublic: boolean;
-    name : string ;
-    photoUrl : string | null;
+    name: string;
+    photoUrl: string | null;
 }
 
 export const ChanColumn = () => {
     const navigate = useNavigate();
     const [activeButton, setActiveButton] = useState<number | null>(null);
+    const [showChanPopUp, setShowChanPopUp] = useState(false);
+    const [showConvPopUp, setShowConvPopUp] = useState(false);
     const user = useGetUser();
+
+    const closePopup = () => {
+        setShowChanPopUp(false);
+    };
+
+    const handleClick = (buttonText: string) => {
+        switch (buttonText) {
+            case "channel":
+                setShowChanPopUp(true);
+                break;
+            case "conversation":
+                setShowConvPopUp(true);
+                break;
+        }
+    };
+
     const allDms = useQuery({
         queryKey: ["dms"],
         queryFn: async () => {
@@ -30,14 +49,6 @@ export const ChanColumn = () => {
             return res.data;
         },
     });
-
-    // const queryClient = useQueryClient();
-
-    // const onClick = () => {
-    //     queryClient.invalidateQueries({
-    //         "queryKey": ["allChannels"]
-    //     });
-    // }
 
     const allChannels = useQuery({
         queryKey: ["allChannels"],
@@ -73,10 +84,8 @@ export const ChanColumn = () => {
         }
     };
 
-
     return (
         <div className="bg-not-quite-black chan-column">
-
             <div className="w-full item-center justify-center">
                 <div
                     onClick={() => handleButtonClick(-1)}
@@ -109,10 +118,21 @@ export const ChanColumn = () => {
                     </div>
                 </div>
             </div>
-            <div className="cell-chan font-bold text-greyple hover:text-white hover:rounded-md text-sm text-left flex items-center justify-between">
-                <div className="flex "> PRIVATE MESSAGES</div>
+            <div
+                onClick={() => handleClick("conversation")}
+                className="cell-chan font-bold text-greyple hover:text-white hover:rounded-md text-sm text-left flex items-center justify-between"
+                style={{ cursor: "pointer" }}
+            >
+                <button className="flex "> Create DM</button>
 
                 <span className="bloc text-right">+</span>
+            </div>
+            <div className="">
+                {showChanPopUp && (
+                    <ModalLayout>
+                        <ChanPopUp onClose={closePopup} />
+                    </ModalLayout>
+                )}
             </div>
             <div className="ml-5 text-left h-[300px] overflow-y-auto ">
                 <Collapsible title="Conversation">
@@ -137,6 +157,22 @@ export const ChanColumn = () => {
                         </Link>
                     ))}
                 </Collapsible>
+            </div>
+            <div
+                onClick={() => handleClick("channel")}
+                className="cell-chan font-bold text-greyple hover:text-white hover:rounded-md text-sm text-left flex items-center justify-between"
+                style={{ cursor: "pointer" }}
+            >
+                <button className="flex ">Create Channel</button>
+
+                <span className="bloc text-right">+</span>
+            </div>
+            <div className="">
+                {showChanPopUp && (
+                    <ModalLayout>
+                        <ChanPopUp onClose={closePopup} />
+                    </ModalLayout>
+                )}
             </div>
             <div className="ml-5 mt-2 text-left h-[370px] overflow-y-auto">
                 <Collapsible title="Channels">

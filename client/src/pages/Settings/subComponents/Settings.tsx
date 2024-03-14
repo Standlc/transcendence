@@ -102,7 +102,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
     };
 
     return (
-        <div className="flex w-full">
+        <div className="flex w-full  ">
             {/* Section des champs d'entrée à gauche */}
             <div className="ml-[400px] mt-20 w-[400px] mr-[100px]">
                 <div className="text-xl font-bold text-left ml-10 mb-20">Profil</div>
@@ -212,7 +212,6 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
                             </svg>
                         </button>
                     </div>
-
                 </div>
             </div>
             <div>

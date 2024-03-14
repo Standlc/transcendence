@@ -8,7 +8,6 @@ import { ChanPopUp } from "../ChanPopUp";
 export const NavBar = () => {
     const navigate = useNavigate();
     const [activeButton, setActiveButton] = useState<string | null>(null);
-    const [showChanPopUp, setShowChanPopUp] = useState(false);
 
     const handleClick = (buttonText: string) => {
         setActiveButton((prevButton) =>
@@ -29,16 +28,9 @@ export const NavBar = () => {
             case "Chat":
                 navigate("/home");
                 break;
-            case "+":
-                setShowChanPopUp(true);
-                break;
             default:
                 break;
         }
-    };
-
-    const closePopup = () => {
-        setShowChanPopUp(false);
     };
 
     return (
@@ -161,13 +153,6 @@ export const NavBar = () => {
                 ) : null}
                 <SportsEsportsRounded />
             </button>
-            <div className="">
-                {showChanPopUp && (
-                    <ModalLayout>
-                        <ChanPopUp onClose={closePopup} />
-                    </ModalLayout>
-                )}
-            </div>
         </div>
     );
 };

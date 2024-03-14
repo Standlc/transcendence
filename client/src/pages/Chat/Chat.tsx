@@ -5,8 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useGetUser } from "../../utils/useGetUser";
 import axios from "axios";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { NotificationBox } from "../../components/NotificationBox";
-import { UserConversation } from "@api/types/channelsSchema"
+import { UserConversation } from "@api/types/channelsSchema";
 import { MessageDm } from "../../types/messageDm";
 import TextArea from "../../UIKit/TextArea";
 import { UserDirectMessage } from "@api/types/clientSchema";
@@ -30,7 +29,7 @@ const Chat = () => {
 
     useEffect(() => {
         console.log(conversation.data);
-    }, [conversation.data])
+    }, [conversation.data]);
 
     const otherUser = conversation.data
         ? conversation.data.user1.userId === user?.id
@@ -38,155 +37,162 @@ const Chat = () => {
             : conversation.data.user1
         : null;
 
+    const allMessages = useQuery<MessageDm[]>({
+        queryKey: ["allMessages", dmId],
+        queryFn: async (): Promise<MessageDm[]> => {
+            if (!dmId) {
+                return [];
+            }
+            const response = await axios.get<MessageDm[]>(`/api/dm/${dmId}/messages`);
+            return response.data;
+        },
+        enabled: !!dmId,
+    });
 
-        const allMessages = useQuery<MessageDm[]>({
-            queryKey: ["allMessages", dmId],
-            queryFn: async (): Promise<MessageDm[]> => {
-                if (!dmId) {
-                    return [];
-                }
-                const response = await axios.get<MessageDm[]>(`/api/dm/${dmId}/messages`);
-                return response.data;
-            },
-            enabled: !!dmId,
-        });
+    useEffect(() => {
+        const socket = io("/dm");
+        socketRef.current = socket;
+        return () => {
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+            }
+        };
+    }, []);
 
-        useEffect(() => {
-            const socket = io("/dm");
-            socketRef.current = socket;
-            return () => {
-                if (socketRef.current) {
-                    socketRef.current.disconnect();
-                }
-            };
-        }, [])
+    useEffect(() => {
+        if (!socketRef.current) return;
 
+        socketRef.current.on("connect", () => console.log("Connected to server"));
+        socketRef.current.on("connect_error", (error) =>
+            console.error("Connection error:", error)
+        );
+        socketRef.current.on("connect_timeout", (timeout) =>
+            console.error("Connection timeout:", timeout)
+        );
 
+        if (dmId) {
+            socketRef.current.emit("joinConversation", { conversationId: dmId });
 
-        useEffect(() => {
-            if (!socketRef.current) return;
+            // socketRef.current.on("getDirectMessages", (newMessages) => {
+            //     console.log("Received new messages:", newMessages);
+            //     setRealTimeMessages((prevMessages) => [
+            //         ...prevMessages,
+            //         ...newMessages,
+            //     ]);
+            // });
 
-            socketRef.current.on("connect", () => console.log("Connected to server"));
-            socketRef.current.on("connect_error", (error) =>
-                console.error("Connection error:", error)
-            );
-            socketRef.current.on("connect_timeout", (timeout) =>
-                console.error("Connection timeout:", timeout)
-            );
-
-            if (dmId) {
-                socketRef.current.emit("joinConversation", { conversationId: dmId });
-
-                // socketRef.current.on("getDirectMessages", (newMessages) => {
-                //     console.log("Received new messages:", newMessages);
-                //     setRealTimeMessages((prevMessages) => [
-                //         ...prevMessages,
-                //         ...newMessages,
-                //     ]);
-                // });
-
-                socketRef.current.on("createDirectMessage", (newMessage: UserDirectMessage) => {
+            socketRef.current.on(
+                "createDirectMessage",
+                (newMessage: UserDirectMessage) => {
                     if (!conversation.data) return;
-                    const messageUser = conversation.data.user1.userId === newMessage.senderId ? conversation.data.user1 : conversation.data.user2;
+                    const messageUser =
+                        conversation.data.user1.userId === newMessage.senderId
+                            ? conversation.data.user1
+                            : conversation.data.user2;
                     const pushedMessage: MessageDm = {
-                            "avatarUrl": messageUser.avatarUrl,
-                            "conversationId": newMessage.conversationId,
-                            "messageId": newMessage.id,
-                            "username": messageUser.username,
-                            "senderIsBlocked": conversation.data.isBlocked,
-                            "senderId": newMessage.senderId,
-                            "createdAt": newMessage.createdAt,
-                            "content": newMessage.content
-                    }
+                        avatarUrl: messageUser.avatarUrl,
+                        conversationId: newMessage.conversationId,
+                        messageId: newMessage.id,
+                        username: messageUser.username,
+                        senderIsBlocked: conversation.data.isBlocked,
+                        senderId: newMessage.senderId,
+                        createdAt: newMessage.createdAt,
+                        content: newMessage.content,
+                    };
 
-                    queryClient.setQueryData<MessageDm[]>(["allMessages", dmId], (prev) => {
-                        if (!prev) return [pushedMessage];
-                        return [
-                            ...prev,
-                            pushedMessage
-                        ]
-                    });
-                });
-            }
-        }, [dmId, conversation.data]);
+                    queryClient.setQueryData<MessageDm[]>(
+                        ["allMessages", dmId],
+                        (prev) => {
+                            if (!prev) return [pushedMessage];
+                            return [...prev, pushedMessage];
+                        }
+                    );
+                }
+            );
+        }
+    }, [dmId, conversation.data]);
 
-        const sendMessage = () => {
-            if (textAreaValue.trim() && dmId && socketRef.current) {
-                const messageData = {
-                    content: textAreaValue,
-                    conversationId: dmId,
-                    senderId: user?.id,
-                };
+    const sendMessage = () => {
+        if (textAreaValue.trim() && dmId && socketRef.current) {
+            const messageData = {
+                content: textAreaValue,
+                conversationId: dmId,
+                senderId: user?.id,
+            };
 
-                socketRef.current.emit("createDirectMessage", messageData);
+            socketRef.current.emit("createDirectMessage", messageData);
 
-                setTextAreaValue(""); // Réinitialiser la valeur du TextArea après envoi
-            }
-        };
+            setTextAreaValue(""); // Réinitialiser la valeur du TextArea après envoi
+        }
+    };
 
-        const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        };
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    };
 
-        const handleTextAreaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-            setTextAreaValue(e.target.value);
-        };
+    const handleTextAreaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setTextAreaValue(e.target.value);
+    };
 
-        const shouldDisplayAvatarAndTimestamp = (currentIndex: number): boolean => {
-            if (currentIndex === 0 || !allMessages.data) {
-                return true;
-            }
+    const shouldDisplayAvatarAndTimestamp = (currentIndex: number): boolean => {
+        if (currentIndex === 0 || !allMessages.data) {
+            return true;
+        }
 
-            const previousMessage = allMessages.data[currentIndex - 1];
-            const currentMessage = allMessages.data[currentIndex];
+        const previousMessage = allMessages.data[currentIndex - 1];
+        const currentMessage = allMessages.data[currentIndex];
 
-            return previousMessage.senderId !== currentMessage.senderId;
-        };
+        return previousMessage.senderId !== currentMessage.senderId;
+    };
 
-        const shouldDisplayUsername = (currentIndex: number): boolean => {
-            if (currentIndex === 0 || !allMessages.data) {
-                return true;
-            }
+    const shouldDisplayUsername = (currentIndex: number): boolean => {
+        if (currentIndex === 0 || !allMessages.data) {
+            return true;
+        }
 
-            const previousMessage = allMessages.data[currentIndex - 1];
-            const currentMessage = allMessages.data[currentIndex];
+        const previousMessage = allMessages.data[currentIndex - 1];
+        const currentMessage = allMessages.data[currentIndex];
 
-            return previousMessage.senderId !== currentMessage.senderId;
-        };
+        return previousMessage.senderId !== currentMessage.senderId;
+    };
 
-        // const shouldDisplayAvatarAndTimestampRT = (currentIndex: number): boolean => {
-        //     if (currentIndex === 0) {
-        //         return true;
-        //     }
+    // const shouldDisplayAvatarAndTimestampRT = (currentIndex: number): boolean => {
+    //     if (currentIndex === 0) {
+    //         return true;
+    //     }
 
-        //     const previousMessage = realTimeMessages[currentIndex - 1];
-        //     const currentMessage = realTimeMessages[currentIndex];
+    //     const previousMessage = realTimeMessages[currentIndex - 1];
+    //     const currentMessage = realTimeMessages[currentIndex];
 
-        //     return previousMessage?.senderId !== currentMessage?.senderId;
-        // };
+    //     return previousMessage?.senderId !== currentMessage?.senderId;
+    // };
 
-        // const shouldDisplayUsernameRT = (currentIndex: number): boolean => {
-        //     if (currentIndex === 0) {
-        //         return true;
-        //     }
+    // const shouldDisplayUsernameRT = (currentIndex: number): boolean => {
+    //     if (currentIndex === 0) {
+    //         return true;
+    //     }
 
-        //     const previousMessage = realTimeMessages[currentIndex - 1];
-        //     const currentMessage = realTimeMessages[currentIndex];
+    //     const previousMessage = realTimeMessages[currentIndex - 1];
+    //     const currentMessage = realTimeMessages[currentIndex];
 
-        //     return previousMessage?.senderId !== currentMessage?.senderId;
-        // };
+    //     return previousMessage?.senderId !== currentMessage?.senderId;
+    // };
 
-        const renderMessages = () => {
-            return allMessages.data?.map((msg, index) => (
-                <div className="mt-[20px]" key={index}>
+    const renderMessages = () => {
+        return allMessages.data?.map((msg, index) => (
+            <div className="mt-[20px]" key={index}>
                 <div className="flex">
                     {shouldDisplayAvatarAndTimestamp(index) && (
                         <div className="flex">
-
-                            <Avatar imgUrl={msg.avatarUrl} userId={msg.senderId} size="md" borderRadius={0.5} />
+                            <Avatar
+                                imgUrl={msg.avatarUrl}
+                                userId={msg.senderId}
+                                size="md"
+                                borderRadius={0.5}
+                            />
                             {shouldDisplayUsername(index) && (
                                 <div className="font-bold ml-[30px]">
                                     {msg.username}
@@ -275,7 +281,7 @@ const Chat = () => {
             <div
                 className="bg-discord-greyple topbar-section border-b border-b-almost-black"
                 style={{ borderBottomWidth: "3px" }}
-                >
+            >
                 <div className="w-full flex justify-between items-center">
                     <div className="w-full flex">
                         <div className="flex item-center mt-[10px] ml-[20px]">
@@ -298,9 +304,6 @@ const Chat = () => {
                                 Play
                             </button>
                         </div>
-                    </div>
-                    <div>
-                        <NotificationBox />
                     </div>
                 </div>
             </div>

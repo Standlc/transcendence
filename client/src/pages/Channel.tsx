@@ -1,5 +1,4 @@
 import { useParams } from "react-router-dom";
-import { NotificationBox } from "../components/NotificationBox";
 import { useContext, useEffect, useState } from "react";
 import { CreateChannelResponse } from "../types/channel";
 import TextArea from "../UIKit/TextArea";
@@ -33,20 +32,16 @@ export const Channel = () => {
     const [cmdOpen, setCmdOpen] = useState(false);
     const { chatSocket } = useContext(SocketsContext);
 
-
-
     useEffect(() => {
-        if (!chatSocket)
-            return;
-        chatSocket.on('joinChannel', () => console.log('joinChannel'));
-        chatSocket.on('message', (data) => console.log('messeage' + data));
-        console.log("ici", chatSocket);
+        if (!chatSocket) return;
+        chatSocket.on("joinChannel", () => console.log("joinChannel"));
+        chatSocket.on("message", (data) => console.log("messeage" + data));
 
         return () => {
-            chatSocket.off('joinChannel');
-            chatSocket.off('message');
-        }
-    }, [chatSocket])
+            chatSocket.off("joinChannel");
+            chatSocket.off("message");
+        };
+    }, [chatSocket]);
 
     const handleTextAreaChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         setTextAreaValue(event.target.value);
@@ -109,7 +104,6 @@ export const Channel = () => {
     }, [channelId]);
 
     const sendMessage = () => {
-
         setTextAreaValue("");
     };
 
@@ -144,9 +138,6 @@ export const Channel = () => {
                         <button onClick={toggleMenu}>
                             <ShowAdminButton />
                         </button>
-                    </div>
-                    <div>
-                        <NotificationBox />
                     </div>
                 </div>
             </div>
