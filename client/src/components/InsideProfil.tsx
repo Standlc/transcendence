@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Leaderboard from "./Leaderboard";
+import Leaderboard from "./playPage/Leaderboard";
 
 export const InsideProfil: React.FC = () => {
     const [activeTab, setActiveTab] = useState("Achievements");

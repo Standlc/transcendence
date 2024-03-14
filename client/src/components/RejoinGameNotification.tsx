@@ -67,13 +67,11 @@ export const RejoinGameNotification = () => {
               size="md"
               userId={playerLeft.id}
             />
-            {/* <span className="font-bold">{playerLeft.username}</span> */}
           </div>
 
           <span className="font-gameFont text-sm flex items-center">VS</span>
 
           <div className="flex opacity-30 gap-2 items-center">
-            {/* <span className="font-bold">{playerLeft.username}</span> */}
             <div className="">
               <Avatar
                 imgUrl={playerRight.avatarUrl}
@@ -86,7 +84,7 @@ export const RejoinGameNotification = () => {
           <div className="h-[30px] w-[1px] bg-white opacity-15"></div>
 
           <Link
-            to={`/play/${currentGame.data.id}`}
+            to={`/play/game/${currentGame.data.id}`}
             // onClick={() => }
             className="font-extrabold text-lg bg-indigo-500 py-2 px-5 rounded-lg hover:translate-y-[-1px] active:translate-y-[1px]"
           >

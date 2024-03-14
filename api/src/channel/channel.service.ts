@@ -13,6 +13,7 @@ import {
   ChannelUpdate,
   ChannelWithoutPsw,
   MessageWithSenderInfo,
+  PublicChannel,
 } from 'src/types/channelsSchema';
 import * as bcrypt from 'bcrypt';
 import { Utils } from './utilsChannel.service';
@@ -481,54 +482,77 @@ export class ChannelService {
     }
   }
 
-  //
-  //
-  //
-  // channels the user did not join yet that are either public
-  //                 or private and user is in the invite list
-  async getAllAvailableChannels(
-    userId: number,
-  ): Promise<ChannelDataWithoutPassword[]> {
-    try {
-      const channels = await db
-        .selectFrom('channel')
-        .leftJoin('channelMember', 'channel.id', 'channelMember.channelId')
-        .where('channel.isPublic', '=', true)
-        .where('channelMember.userId', 'is', null)
-        .select([
-          'channel.channelOwner',
-          'channel.createdAt',
-          'channel.id',
-          'channel.isPublic',
-          'channel.name',
-          'channel.photoUrl',
-        ])
-        .union(
-          db
-            .selectFrom('channel')
-            .where('channel.isPublic', '=', false)
-            .leftJoin(
-              'channelInviteList',
-              'channel.id',
-              'channelInviteList.channelId',
-            )
-            .where('channelInviteList.invitedUserId', '=', userId)
-            .leftJoin('channelMember', 'channel.id', 'channelMember.channelId')
-            .where('channelMember.userId', 'is', null)
-            .select([
-              'channel.channelOwner',
-              'channel.createdAt',
-              'channel.id',
-              'channel.isPublic',
-              'channel.name',
-              'channel.photoUrl',
-            ]),
-        )
-        .orderBy('createdAt', 'asc')
-        .execute();
-      return channels as ChannelDataWithoutPassword[];
-    } catch (error) {
-      throw new InternalServerErrorException();
-    }
+  async getAllPublicChannels(userId: number): Promise<PublicChannel[]> {
+    return await db
+      .selectFrom('channel')
+      .where('channel.isPublic', 'is', true)
+      .leftJoin('bannedUser', (join) =>
+        join.on((eb) =>
+          eb.and([
+            eb('bannedUser.channelId', '=', eb.ref('channel.id')),
+            eb('bannedUser.bannedId', '=', userId),
+          ]),
+        ),
+      )
+      .where('bannedId', 'is', null)
+      .select((eb) =>
+        eb
+          .selectFrom('channelMember')
+          .select(eb.fn.countAll<number>().as('membersCount'))
+          .whereRef('channelMember.channelId', '=', 'channel.id')
+          .as('membersCount'),
+      )
+      .leftJoin('channelMember as user', (join) =>
+        join
+          .on('user.userId', '=', userId)
+          .onRef('user.channelId', '=', 'channel.id'),
+      )
+      .select((eb) =>
+        eb
+          .case()
+          .when('user.userId', 'is', null)
+          .then(false)
+          .else(true)
+          .end()
+          .as('isMember'),
+      )
+      .select(['channel.id', 'channel.name', 'channel.photoUrl'])
+      .orderBy('channel.createdAt desc')
+      .execute();
+  }
+
+  async checkCanUserJoinChannel(userId: number, channelId: number) {
+    const channel = await db
+      .selectFrom('channel')
+      .where('channel.id', '=', channelId)
+      .where("channel.isPublic", "is", true)
+      .leftJoin('bannedUser', (join) =>
+        join.on((eb) =>
+          eb.and([
+            eb('bannedUser.channelId', '=', eb.ref('channel.id')),
+            eb('bannedUser.bannedId', '=', userId),
+          ]),
+        ),
+      )
+      .where('bannedId', 'is', null)
+      .leftJoin('channelMember', (join) =>
+        join.on((eb) =>
+          eb.and([
+            eb('channelMember.userId', '=', userId),
+            eb('channelMember.channelId', '=', channelId),
+          ]),
+        ),
+      )
+      .where('channelMember.userId', 'is', null)
+      .select("channel.id")
+      .executeTakeFirst();
+    return channel?.id ? true : false;
+  }
+
+  async joinUserToChannel(userId: number, channelId: number) {
+    await db
+      .insertInto('channelMember')
+      .values({ channelId, userId })
+      .executeTakeFirstOrThrow();
   }
 }
