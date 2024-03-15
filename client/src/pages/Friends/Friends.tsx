@@ -13,16 +13,12 @@ const fetchFriends = async (userId: number) => {
     return response.data;
 };
 
-
-
 export const Friends: React.FC = () => {
     const [adding, setAdding] = useState(false);
     const [friends, setFriends] = useState<FriendsList>([]);
     const [friendsPending, setFriendsPending] = useState(false);
     const [allFriends, setAllFriends] = useState(true);
     const user = useGetUser();
-    
- 
 
     // const { data: friends, isLoading, isError } = useQuery<Friend[]>({
     //     queryKey: ["allFriends", userId],
@@ -35,9 +31,6 @@ export const Friends: React.FC = () => {
     //         }
     //     },
     // });
-
-    
-
 
     useEffect(() => {
         const fetchFriends = async () => {
@@ -98,7 +91,7 @@ export const Friends: React.FC = () => {
             ) : (
                 <div className="">
                     <div
-                        className="bg-discord-greyple topbar-section border-b border-b-almost-black"
+                        className="bg-discord-greyple h-[60px] width-full flex border-b border-b-almost-black"
                         style={{ borderBottomWidth: "3px" }}
                     >
                         <svg

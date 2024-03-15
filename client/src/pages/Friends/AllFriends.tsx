@@ -44,7 +44,7 @@ export const AllFriends: React.FC<Props> = ({
     // useEffect(() => {
     //     setLocalFriends(friends);
     // }, [friends]);
-// TODO: ONline check and offline
+    // TODO: ONline check and offline
     // const checkOnline = () => {
 
     // }
@@ -114,10 +114,7 @@ export const AllFriends: React.FC<Props> = ({
                 newConversation(friendId);
             } else {
                 // Gérer d'autres réponses inattendues
-                console.error(
-                    "Error while retrieving conversation:",
-                    response.status
-                );
+                console.error("Error while retrieving conversation:", response.status);
             }
         } catch (error) {
             console.error("Error while retrieving conversation:", error);
@@ -164,7 +161,7 @@ export const AllFriends: React.FC<Props> = ({
             ) : (
                 <div>
                     <div
-                        className="bg-discord-greyple topbar-section border-b border-b-almost-black"
+                        className="bg-discord-greyple h-[60px] width-full flex border-b border-b-almost-black"
                         style={{ borderBottomWidth: "3px" }}
                     >
                         <svg

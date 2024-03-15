@@ -134,20 +134,6 @@ input:focus {
     width: 100%;
 }
 
-.avatar {
-    height: 30px;
-    width: 30px;
-    border-radius: 100%;
-    margin: 10px;
-}
-
-.topbar-section {
-    height: 60px;
-    position: sticky;
-    width: 100%;
-    display: flex;
-}
-
 .cell-chan {
     display: flex;
     margin-top: 10px;

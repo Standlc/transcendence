@@ -55,6 +55,11 @@ const Chat = () => {
         socketRef.current = socket;
         return () => {
             if (socketRef.current) {
+                socketRef.current.off("connect");
+                socketRef.current.off("connect_error");
+                socketRef.current.off("connect_timeout");
+                socketRef.current.off("connect");
+
                 socketRef.current.disconnect();
             }
         };
@@ -223,7 +228,7 @@ const Chat = () => {
     return (
         <div className="w-full flex flex-col bg-discord-light-grey">
             <div
-                className="bg-discord-greyple topbar-section border-b border-b-almost-black"
+                className="bg-discord-greyple h-[60px] width-full flexborder-b border-b-almost-black"
                 style={{ borderBottomWidth: "3px" }}
             >
                 <div className="w-full flex justify-between items-center">
@@ -254,7 +259,6 @@ const Chat = () => {
 
             <div className="text-white text-left h-[750px] w-auto ml-[20px] overflow-auto">
                 {renderMessages()}
-                {/* {renderRealTimeMessages()} */}
             </div>
 
             <div className="bg-discord-dark-grey mt-auto p-2 rounded-lg ml-5 mr-5 mb-5">

@@ -4,8 +4,6 @@ import { ConfirmAvatarPopUp } from "./ConfirmAvatarPopUp";
 import { AppUser } from "@api/types/clientSchema";
 import { useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { InsideProfil } from "../../../components/InsideProfil";
-import { Avatar } from "../../../UIKit/avatar/Avatar";
 import { TwoFactorAuthentificationSetupModal } from "../../../components/TwoFactorAuthentificationSetupModal";
 
 interface Props {
@@ -108,7 +106,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
             {/* Section des champs d'entrée à gauche */}
             {show2FASetupModal && (
                 <TwoFactorAuthentificationSetupModal
-                hide={() => setShow2FASetupModal(false)}
+                    hide={() => setShow2FASetupModal(false)}
                 />
             )}
             <div className="ml-[400px] mt-20 w-[400px] mr-[100px]">
@@ -190,10 +188,10 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
 
                 {!user.isTwoFactorAuthenticationEnabled ? (
                     <button
-                    onClick={() => setShow2FASetupModal(true)}
-                    className="bg-white bg-opacity-10 rounded-md p-2 px-3"
+                        onClick={() => setShow2FASetupModal(true)}
+                        className="bg-white bg-opacity-10 rounded-md p-2 px-3"
                     >
-                    Set up 2FA
+                        Set up 2FA
                     </button>
                 ) : (
                     <span className="text-green-500">2FA is set up</span>

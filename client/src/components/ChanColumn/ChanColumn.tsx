@@ -2,7 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Settings } from "@mui/icons-material";
 import { Collapsible } from "./Collapsible";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { useGetUser } from "../../utils/useGetUser";
 import { Avatar } from "../../UIKit/avatar/Avatar";
@@ -28,6 +28,7 @@ export const ChanColumn = () => {
     const [showChanPopUp, setShowChanPopUp] = useState(false);
     const [showConvPopUp, setShowConvPopUp] = useState(false);
     const user = useGetUser();
+    const queryClient = useQueryClient();
 
     const closePopup = () => {
         setShowChanPopUp(false);
@@ -52,14 +53,6 @@ export const ChanColumn = () => {
         },
     });
 
-    // const queryClient = useQueryClient();
-
-    // const onClick = () => {
-    //     queryClient.invalidateQueries({
-    //         "queryKey": ["allChannels"]
-    //     });
-    // }
-
     const allChannels = useQuery({
         queryKey: ["allChannels"],
         queryFn: async () => {
@@ -67,6 +60,8 @@ export const ChanColumn = () => {
             return res.data;
         },
     });
+
+    // queryClient.invalidateQueries({ "allChannels"});
 
     const handleButtonClick = (index: number) => {
         if (index === -1) {

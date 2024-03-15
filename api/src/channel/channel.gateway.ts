@@ -78,7 +78,9 @@ export class ChannelGateway
   ): Promise<void> {
     const userId = socket.data.id;
 
-    console.log(`Client socket ${socket.id}, joining channel: ${payload.channelId}`);
+    console.log(
+      `Client socket ${socket.id}, joining channel: ${payload.channelId}`,
+    );
     try {
       await this.utilsChannelService.channelExists(payload.channelId);
     } catch (error) {
@@ -156,7 +158,7 @@ export class ChannelGateway
     @MessageBody() payload: ChannelMessageContent,
   ): Promise<void> {
     try {
-      console.log('createChannelMessage -------------->', payload)
+      console.log('createChannelMessage -------------->', payload);
       this.connectedUsersService.verifyConnection(socket);
     } catch (error) {
       console.error(error);
@@ -414,12 +416,12 @@ export class ChannelGateway
     @ConnectedSocket() socket: Socket,
     @MessageBody() payload: ActionOnUser,
   ) {
-    try {
-      this.connectedUsersService.verifyConnection(socket);
-    } catch (error) {
-      console.error(error);
-      throw new WsException('User did not join channel room');
-    }
+    // try {
+    //   this.connectedUsersService.verifyConnection(socket);
+    // } catch (error) {
+    //   console.error(error);
+    //   throw new WsException('User did not join channel room');
+    // }
 
     const userId = socket.data.id;
 
@@ -454,6 +456,11 @@ export class ChannelGateway
           kickedSocketId.id as string,
         );
       }
+
+      await this.channelService.removeMember(
+        payload.targetUserId,
+        payload.channelId,
+      );
     } catch (error) {
       console.error(error);
       throw new WsException('Could not leave channel');

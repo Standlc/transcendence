@@ -1,61 +1,29 @@
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ChannelMessages, CreateChannelResponse } from "../../types/channel";
 import TextArea from "../../UIKit/TextArea";
 import { Avatar } from "../../UIKit/avatar/Avatar";
 import ModalLayout from "../../UIKit/ModalLayout";
-import { KickPopUp } from "./subComponents/KickPopUp";
 import { SocketsContext } from "../../ContextsProviders/SocketsContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { ChannelMessage } from "@api/types/schema";
-import { ActionsMenu, MenuActionType } from "../../UIKit/ActionsMenu";
-import { MutePopUp } from "./subComponents/MutePopUp";
-import { BanPopUp } from "./subComponents/BanPopUp";
 import { useGetUser } from "../../utils/useGetUser";
-
-interface UserManagementResponse {
-    type: "kickUser" | "banUser" | "muteUser";
-    message: string;
-}
-
-interface Props {
-    type: "leaveChannel";
-    message: string;
-}
+import { PopUpCmd } from "./subComponents/PopUpCmd";
+import PersonIcon from "@mui/icons-material/Person";
+import LogoutIcon from "@mui/icons-material/Logout";
 
 export const Channel = () => {
     const { channelId } = useParams();
     const queryClient = useQueryClient();
-    const [isKickModalOpen, setIsKickModalOpen] = useState(false);
-    const [isBanModalOpen, setIsBanModalOpen] = useState(false);
-    const [isMuteModalOpen, setIsMuteModalOpen] = useState(false);
     const [textAreaValue, setTextAreaValue] = useState("");
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
-
+    const navigate = useNavigate();
+    const [isMuted, setIsMuted] = useState(false);
+    const [isCmdOpen, setIsCmdOpen] = useState(false);
     const user = useGetUser();
-
     const { chatSocket } = useContext(SocketsContext);
 
-    const whichCmd = (label: string) => {
-        switch (label) {
-            case "Kick":
-                setIsKickModalOpen(true);
-                break;
-            case "Ban":
-                setIsBanModalOpen(true);
-                break;
-            case "Mute":
-                setIsMuteModalOpen(true);
-                break;
-            case "Leave":
-                const password = null;
-                leaveChan(password);
-                break;
-            default:
-                console.log("Command not recognized:", label);
-        }
-    };
     const leaveChan = (password = null) => {
         if (channelId) {
             console.log("Attempting to leave channelId:", channelId);
@@ -64,6 +32,16 @@ export const Channel = () => {
                 password: password,
             };
             chatSocket.emit("leaveChannel", body);
+        }
+    };
+
+    const quitChannel = () => {
+        if (channelId) {
+            console.log("Attempting to quit channelId:", channelId);
+            const body = {
+                channelId: channelId,
+            };
+            chatSocket.emit("quitChannel", body);
         }
     };
 
@@ -88,32 +66,10 @@ export const Channel = () => {
         },
     });
 
-    const actions: MenuActionType[] = useMemo(() => {
-        let conditionalActions: MenuActionType[] = [];
-
-        if (chanInfo.data?.channelOwner === user.id) {
-            conditionalActions = [
-                { label: "Kick", onClick: () => whichCmd("Kick"), color: "red" },
-                { label: "Ban", onClick: () => whichCmd("Ban"), color: "red" },
-                { label: "Mute", onClick: () => whichCmd("Mute"), color: "red" },
-            ];
-        }
-
-        conditionalActions.push({
-            label: "Leave",
-            onClick: () => whichCmd("Leave"),
-            color: "base",
-        });
-
-        return conditionalActions;
-    }, [user.id, chanInfo.data?.channelOwner]);
-
     const findUserById = (newMessage: ChannelMessage) => {
-        console.log("newMESSAGE", newMessage.content);
         if (chanInfo.data?.users) {
             for (const user of chanInfo.data.users) {
                 if (user.userId === newMessage.senderId) {
-                    console.log("USER", user);
                     return user;
                 }
             }
@@ -134,17 +90,55 @@ export const Channel = () => {
     useEffect(() => {
         if (!channelId) return;
 
-        const handleMessageResponse = (response: Props) => {
-            const message = `Type: ${response.type}, Message: ${response.message}`;
-            console.log(message);
+        const handleQuitManagement = (respone: string) => {
+            const regex = /User (\d+) quit the channel/;
+            const matches = respone.match(regex);
+            if (matches) {
+                const userId = parseInt(matches[1], 10);
+                console.log("userId", userId);
+                if (user.id === userId) {
+                    navigate("/home");
+                }
+                queryClient.invalidateQueries({
+                    queryKey: ["chanInfo", channelId],
+                });
+            }
         };
 
-        // const handleUserManagement = (response: string) => {
-        //     const message = response;
-        //     console.log("COMMANDE", message);
-        // alert(message);
-        // };
+        const handleUserManagement = (response: string) => {
+            const regex = /User (\d+) has been (\w+)/;
+            const matches = response.match(regex);
 
+            if (matches) {
+                const userId = parseInt(matches[1], 10);
+                const action = matches[2];
+                if (user.id === userId) {
+                    let actionMessage = "";
+                    switch (action) {
+                        case "kicked":
+                        case "banned":
+                            actionMessage = `You have been ${action}`;
+                            alert(actionMessage);
+                            navigate("/home");
+                            break;
+                        case "muted":
+                            actionMessage = "You have been muted";
+                            setIsMuted(true);
+                            break;
+                    }
+                }
+            }
+            queryClient.invalidateQueries({
+                queryKey: ["chanInfo", channelId],
+            });
+            console.log("UPDATED", chanInfo.data);
+        };
+
+        chatSocket.on("leaveChannel", (data) => {
+            console.log("leaveChannel", data);
+        });
+
+        chatSocket.on("message", handleQuitManagement);
         chatSocket.emit("joinChannel", { channelId });
 
         chatSocket.on("message", (data) => {
@@ -155,10 +149,9 @@ export const Channel = () => {
             console.log("Connected to Channel");
         });
 
-        chatSocket.on("leaveChannel", handleMessageResponse);
-        // chatSocket.on("message", handleUserManagement);
+        chatSocket.on("message", handleUserManagement);
         const handleMessageCreation = (newMessage: ChannelMessage) => {
-            console.log("newMessage", newMessage);
+            // console.log("newMessage", newMessage);
             if (!chanInfo.data) return;
 
             const messageUser = findUserById(newMessage);
@@ -242,7 +235,6 @@ export const Channel = () => {
 
         return allMessagesChan.data.map((msg, index) => (
             <div
-                className="mt-[20px]"
                 key={index}
                 ref={index === allMessagesChan.data.length - 1 ? messagesEndRef : null}
             >
@@ -291,7 +283,7 @@ export const Channel = () => {
             style={{ height: "100vh" }}
         >
             <div
-                className="bg-discord-greyple topbar-section border-b border-b-almost-black"
+                className="bg-discord-greyple h-[60px] width-full flex  border-b border-b-almost-black"
                 style={{ borderBottomWidth: "3px" }}
             >
                 <div className="w-full flex justify-between items-center ">
@@ -312,47 +304,42 @@ export const Channel = () => {
                             <div>USERS</div>
                         </div>
                     </div>
-                    <div>
-                        <ActionsMenu actions={actions} />
+                    <div className="flex">
+                        <button
+                            className="mr-5 hover:bg-black hover:bg-opacity-30 rounded-full py-2 px-2 justify-center"
+                            onClick={() => setIsCmdOpen(true)}
+                        >
+                            <PersonIcon />
+                        </button>
+                        <button
+                            className="mr-5 hover:bg-black hover:bg-opacity-30 rounded-full py-2 px-2 justify-center"
+                            onClick={() => quitChannel()}
+                        >
+                            <LogoutIcon />
+                        </button>
+                        {isCmdOpen && (
+                            <ModalLayout>
+                                <PopUpCmd
+                                    onClose={() => setIsCmdOpen(false)}
+                                    chanInfo={chanInfo.data}
+                                    chatSocket={chatSocket}
+                                    currentUser={user}
+                                />
+                            </ModalLayout>
+                        )}
                     </div>
                 </div>
             </div>
 
-            <div className="text-white text-left h-[750px] w-auto ml-[20px] overflow-auto">
+            <div className="text-white text-left h-full w-auto ml-[20px] overflow-auto">
                 {renderMessages()}
             </div>
-            {isKickModalOpen && (
-                <ModalLayout>
-                    <KickPopUp
-                        onClose={() => setIsKickModalOpen(false)}
-                        chanInfo={chanInfo.data}
-                        chatSocket={chatSocket}
-                    />
-                </ModalLayout>
-            )}
-            {isMuteModalOpen && (
-                <ModalLayout>
-                    <MutePopUp
-                        onClose={() => setIsMuteModalOpen(false)}
-                        chanInfo={chanInfo.data}
-                        chatSocket={chatSocket}
-                    />
-                </ModalLayout>
-            )}
-            {isBanModalOpen && (
-                <ModalLayout>
-                    <BanPopUp
-                        onClose={() => setIsBanModalOpen(false)}
-                        chanInfo={chanInfo.data}
-                        chatSocket={chatSocket}
-                    />
-                </ModalLayout>
-            )}
             <div className="bg-discord-dark-grey mt-auto p-2 rounded-lg ml-5 mr-5 mb-5">
                 <TextArea
                     value={textAreaValue}
                     onChange={handleTextAreaChange}
                     onKeyDown={handleKeyDown}
+                    disabled={isMuted}
                     placeholder="Type something..."
                     autoFocus={true}
                 />

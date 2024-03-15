@@ -607,7 +607,7 @@ export class ChannelService {
     const channel = await db
       .selectFrom('channel')
       .where('channel.id', '=', channelId)
-      .where("channel.isPublic", "is", true)
+      .where('channel.isPublic', 'is', true)
       .leftJoin('bannedUser', (join) =>
         join.on((eb) =>
           eb.and([
@@ -626,7 +626,7 @@ export class ChannelService {
         ),
       )
       .where('channelMember.userId', 'is', null)
-      .select("channel.id")
+      .select('channel.id')
       .executeTakeFirst();
     return channel?.id ? true : false;
   }
@@ -636,5 +636,13 @@ export class ChannelService {
       .insertInto('channelMember')
       .values({ channelId, userId })
       .executeTakeFirstOrThrow();
+  }
+
+  async removeMember(memberId: number, channelId: number) {
+    await db
+      .deleteFrom('channelMember')
+      .where('channelMember.userId', '=', memberId)
+      .where('channelMember.channelId', '=', channelId)
+      .execute();
   }
 }
