@@ -102,8 +102,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
     };
 
     return (
-        <div className="flex w-full  ">
-            {/* Section des champs d'entrée à gauche */}
+        <div className="flex w-full h-full  ">
             {show2FASetupModal && (
                 <TwoFactorAuthentificationSetupModal
                     hide={() => setShow2FASetupModal(false)}

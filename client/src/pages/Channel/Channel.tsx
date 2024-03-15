@@ -110,21 +110,20 @@ export const Channel = () => {
                 const userId = parseInt(userIdStr, 10);
                 if (userId === user?.id) {
                     let actionMessage = `You have been ${action}.`;
-                    switch (action) {
-                        case "kicked":
-                        case "banned":
-                            alert(actionMessage);
-                            navigate("/home");
-                            break;
-                        case "muted":
-                            alert(actionMessage);
-                            setIsMuted(true);
-                            actionMessage = "You have been muted.";
-                            break;
+                    if (action === "kicked") {
+                        alert(actionMessage);
+                        navigate("/home");
+                    } else if (action === "banned") {
+                        alert(actionMessage);
+                        navigate("/home");
+                    } else if (action === "muted") {
+                        alert(actionMessage);
+                        setIsMuted(true);
+                        actionMessage = "You have been muted.";
                     }
-         
                     queryClient.invalidateQueries({queryKey : ["chanInfo", channelId]});
                     queryClient.invalidateQueries({queryKey  : ["allMessagesChan", channelId]});
+                    queryClient.invalidateQueries({queryKey : ["channels"]});
                 }
             }
         };
