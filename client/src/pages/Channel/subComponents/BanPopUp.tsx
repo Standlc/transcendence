@@ -9,31 +9,32 @@ interface Props {
     chatSocket: Socket;
 }
 
-export const KickPopUp: React.FC<Props> = ({ onClose, chanInfo, chatSocket }) => {
+export const BanPopUp: React.FC<Props> = ({ onClose, chanInfo, chatSocket }) => {
     const [serverMessage, setServerMessage] = useState<string>("");
 
     useEffect(() => {
-        const handleKickResponse = (response) => {
+        const handleMuteRespone = (response) => {
             const message = `Type: ${response.type}, Message: ${response.message}`;
             console.log(message);
         };
 
-        chatSocket.on("kickUser", handleKickResponse);
+        chatSocket.on("banUser", handleMuteRespone); //
         return () => {
-            chatSocket.off("kickUser", handleKickResponse);
+            chatSocket.off("banUser", handleMuteRespone);
         };
     }, [chatSocket]);
 
-    const kickUser = (userId: number) => {
+    const banUser = (userId: number) => {
         if (chanInfo?.id) {
-            console.log("Attempting to kick userId:", userId);
+            console.log("Attempting to ban userId:", userId);
             const body = {
                 targetUserId: userId,
                 channelId: chanInfo.id,
             };
-            chatSocket.emit("kickUser", body);
+            chatSocket.emit("banUser", body);
         }
     };
+
     return (
         <div className="top-0 left-0 w-full h-full flex justify-center items-center bg-discord-light-grey bg-opacity-30 z-10">
             <div className="bg-discord-light-grey w-[500px] h-[550px] rounded-md shadow-lg flex flex-col">
@@ -61,10 +62,10 @@ export const KickPopUp: React.FC<Props> = ({ onClose, chanInfo, chatSocket }) =>
 
                                     <div className="mr-[5px]">
                                         <button
-                                            onClick={() => kickUser(user.userId)}
+                                            onClick={() => banUser(user.userId)}
                                             className="px-4 py-2 bg-red-500 text-black rounded hover:bg-red-700 mr-5"
                                         >
-                                            Kick
+                                            Ban
                                         </button>
                                     </div>
                                 </div>
