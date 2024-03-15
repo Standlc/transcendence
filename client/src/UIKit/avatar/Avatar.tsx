@@ -21,8 +21,8 @@ export const COLORS = [
 
 export const AVATAR_SIZES = {
   xs: 18,
-  sm: 30,
-  md: 45,
+  sm: 33,
+  md: 42,
   lg: 65,
   xl: 85,
   "2xl": 140,
@@ -75,63 +75,65 @@ export const Avatar = ({
   }, [userId]);
 
   return (
-    <div
-      style={{
-        height: `${dim}px`,
-        width: `${dim}px`,
-      }}
-      className="relative flex select-none items-center justify-center bg-inherit"
-    >
-      <svg className="relative" width={`${dim}px`} height={`${dim}px`}>
-        {status !== undefined && (
-          <mask id={`${randomMaskId}`} x="0" y="0" width={dim} height={dim}>
-            <rect x="0" y="0" width={dim} height={dim} fill="white"></rect>
-            {UserStatusIndicators[status].mask({
-              size: dim,
-              heightRatio: STAUTUS_INDICATORS_HEIGHT_RATIOS[size],
-            })}
-          </mask>
-        )}
+    <div className="">
+      <div
+        style={{
+          height: `${dim}px`,
+          width: `${dim}px`,
+        }}
+        className="relative flex select-none items-center justify-center bg-inherit"
+      >
+        <svg className="relative" width={`${dim}px`} height={`${dim}px`}>
+          {status !== undefined && (
+            <mask id={`${randomMaskId}`} x="0" y="0" width={dim} height={dim}>
+              <rect x="0" y="0" width={dim} height={dim} fill="white"></rect>
+              {UserStatusIndicators[status].mask({
+                size: dim,
+                heightRatio: STAUTUS_INDICATORS_HEIGHT_RATIOS[size],
+              })}
+            </mask>
+          )}
 
-        <foreignObject
-          x="0"
-          y="0"
-          width={dim}
-          height={dim}
-          mask={`url(#${randomMaskId})`}
-        >
-          <div
-            style={{
-              borderRadius: `${dim * (borderRadius ?? 0.25)}px`,
-            }}
-            className="h-full w-full overflow-hidden"
+          <foreignObject
+            x="0"
+            y="0"
+            width={dim}
+            height={dim}
+            mask={`url(#${randomMaskId})`}
           >
-            {imgUrl ? (
-              <img src={imgUrl} className="h-full w-full object-cover" />
-            ) : (
-              <div
-                style={{
-                  backgroundColor: avatarColor,
-                }}
-                className="w-full h-full flex items-center justify-center"
-              >
-                <Person sx={{ fontSize: `${dim * 0.8}px` }} />
-              </div>
-            )}
-          </div>
-        </foreignObject>
-      </svg>
-
-      {status !== undefined &&
-        UserStatusIndicators[status].indicator({
-          size: dim,
-          heightRatio: STAUTUS_INDICATORS_HEIGHT_RATIOS[size],
-          status: (
-            <div className="z-[2] absolute -top-1 translate-y-[-100%] bg-zinc-950 text-xs font-[500] rounded-md px-2 py-1 group-hover/indicator:[visibility:visible] group-hover/indicator:scale-100 group-hover/indicator:opacity-100 opacity-0 [visibility:hidden] origin-bottom scale-90 transition-all [transition-timing-function:cubic-bezier(0.7,0,0,1.4)]">
-              {UserStatusIndicators[status].status}
+            <div
+              style={{
+                borderRadius: `${dim * (borderRadius ?? 0.25)}px`,
+              }}
+              className="h-full w-full overflow-hidden"
+            >
+              {imgUrl ? (
+                <img src={imgUrl} className="h-full w-full object-cover" />
+              ) : (
+                <div
+                  style={{
+                    backgroundColor: avatarColor,
+                  }}
+                  className="w-full h-full flex items-center justify-center"
+                >
+                  <Person sx={{ fontSize: `${dim * 0.8}px` }} />
+                </div>
+              )}
             </div>
-          ),
-        })}
+          </foreignObject>
+        </svg>
+
+        {status !== undefined &&
+          UserStatusIndicators[status].indicator({
+            size: dim,
+            heightRatio: STAUTUS_INDICATORS_HEIGHT_RATIOS[size],
+            status: (
+              <div className="z-[2] absolute -top-1 translate-y-[-100%] bg-zinc-950 text-xs font-[500] rounded-md px-2 py-1 group-hover/indicator:[visibility:visible] group-hover/indicator:scale-100 group-hover/indicator:opacity-100 opacity-0 [visibility:hidden] origin-bottom scale-90 transition-all [transition-timing-function:cubic-bezier(0.7,0,0,1.4)]">
+                {UserStatusIndicators[status].status}
+              </div>
+            ),
+          })}
+      </div>
     </div>
   );
 };

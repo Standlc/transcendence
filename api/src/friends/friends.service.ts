@@ -258,6 +258,7 @@ export class FriendsService {
       )
       .select(['user.avatarUrl', 'user.id', 'user.username', 'user.rating', 'user.bio', 'user.createdAt', 'user.email', 'user.firstname', 'user.lastname', 'user.isTwoFactorAuthenticationEnabled'])
       .execute();
+      console.log(friends);
       return friends.map(u => ({
         ...u,
         status: this.usersStatusGateway.getUserStatus(u?.id)
@@ -293,13 +294,21 @@ export class FriendsService {
       ]))
       .execute();
 
+      await db.deleteFrom("conversation").where((eb) => eb.or([
+        eb.and([
+          eb("conversation.user1_id", "=", selfId),
+          eb("conversation.user2_id", "=", friendId),
+        ]),
+        eb.and([
+          eb("conversation.user2_id", "=", selfId),
+          eb("conversation.user1_id", "=", friendId),
+        ])
+      ])).execute();
+
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException();
     }
-
-    if (!result || result && result[0].numDeletedRows <= 0n)
-      throw new UnprocessableEntityException(friendId, "You are not friend with this user");
     return 'Friend deleted';
   }
 
@@ -341,5 +350,53 @@ export class FriendsService {
 
   async cancelFriendRequest(sourceId: number, targetId: number) {
     await db.deleteFrom("friendRequest").where("sourceId", "=", sourceId).where("targetId", "=", targetId).execute();
+  }
+
+  async getUserFriendsWithConversationId(userId: number, userToFindFriendOfId: number) {
+    const friends = await db.selectFrom("friend").where((eb) => eb.or([
+        eb("friend.user1_id", "=", userToFindFriendOfId),
+        eb("friend.user2_id", "=", userToFindFriendOfId),
+    ]))
+    .innerJoin("user", (join) => join.on((eb) => eb.or([
+        eb("user.id", "=", eb.ref("friend.user1_id")),
+        eb("user.id", "=", eb.ref("friend.user2_id")),
+    ]).and("user.id", "!=", userToFindFriendOfId)))
+    .leftJoin("conversation", (join) => join.on((eb) => eb.or([
+      eb.and([
+        eb("conversation.user1_id", "=", eb.ref("user.id")),
+        eb("conversation.user2_id", "=", userId),
+      ]),
+      eb.and([
+        eb("conversation.user2_id", "=", eb.ref("user.id")),
+        eb("conversation.user1_id", "=", userId),
+      ])
+    ])))
+    .select("conversation.id as conversationId")
+    .select(['user.avatarUrl', 'user.id', 'user.username', 'user.rating'])
+    .orderBy("friend.createdAt desc")
+    .execute();
+
+    const friendsWithStatus = friends?.map((friend) => {
+      return {
+        ...friend,
+        status: this.usersStatusGateway.getUserStatus(friend.id)
+      }
+    })
+    return friendsWithStatus;
+  }
+
+  async getUserFriendRequests(userId: number) {
+    const users = await db.selectFrom("friendRequest")
+    .where("friendRequest.targetId", "=", userId)
+    .innerJoin("user", "user.id", "friendRequest.sourceId")
+    .select(["user.id", "user.username", "user.avatarUrl", "user.rating"])
+    .execute();
+    const requestsWithUserStatus = users.map((request) => {
+      return {
+        ...request,
+        status: this.usersStatusGateway.getUserStatus(request.id)
+      }
+    })
+    return requestsWithUserStatus;
   }
 }

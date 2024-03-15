@@ -1,4 +1,4 @@
-import { Achievement, DirectMessage, User } from './schema';
+import { DirectMessage, User } from './schema';
 import { Selectable } from 'kysely';
 
 export type AppUserDB = Omit<
@@ -20,6 +20,39 @@ export type UserProfile = Omit<AppUser, 'isTwoFactorAuthenticationEnabled'> & {
 
 export type UserDirectMessage = Selectable<DirectMessage>;
 
+export type UserFriend = {
+  username: string;
+  avatarUrl: string | null;
+  id: number;
+  conversationId: number | null;
+  status: number;
+  rating: number;
+};
+
+export type BlockedUser = {
+  username: string;
+  avatarUrl: string | null;
+  id: number;
+};
+
+export type FriendRequestUser = {
+  username: string;
+  avatarUrl: string | null;
+  id: number;
+  rating: number;
+  status: number;
+};
+
+export type UserSearchResult = {
+  username: string;
+  avatarUrl: string | null;
+  id: number;
+  rating: number;
+  status: number;
+  isFriends: boolean;
+  friendRequestSourceUserId: number | null;
+  conversationId: number | null;
+};
 
 export type ListUsers = Omit<
   Selectable<User>,

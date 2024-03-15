@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 export type MenuActionType = {
   label: string;
   onClick: () => any | void;
-  color?: "red" | "base";
+  color?: "red" | "base" | "green" | "gray";
   icon?: any;
 };
 
@@ -16,6 +16,8 @@ export const ActionsMenu = ({ actions }: { actions: MenuActionType[] }) => {
   const colorVariants = {
     base: "hover:bg-indigo-500",
     red: "hover:bg-red-500 text-red-500 hover:text-white",
+    green: "hover:bg-green-600",
+    gray: "hover:bg-white hover:bg-opacity-5",
   };
 
   useEffect(() => {
@@ -45,10 +47,11 @@ export const ActionsMenu = ({ actions }: { actions: MenuActionType[] }) => {
     <div className="relative">
       <div
         ref={menuButtonRef}
-        onClick={() => {
+        onClick={(e) => {
+          e.stopPropagation();
           setShow(!show);
         }}
-        className="cursor-pointer opacity-75 hover:opacity-100"
+        className="cursor-pointer opacity-70 hover:bg-opacity-40 bg-opacity-30 hover:opacity-100 w-[40px] aspect-square rounded-full bg-black flex items-center justify-center"
       >
         <MoreVert />
       </div>
@@ -63,7 +66,8 @@ export const ActionsMenu = ({ actions }: { actions: MenuActionType[] }) => {
               return (
                 <div
                   key={i}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setShow(false);
                     action.onClick();
                   }}

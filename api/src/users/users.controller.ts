@@ -1,9 +1,9 @@
-import { Body, Controller, Get, Patch, Param, Post, Query, Request, Res, UploadedFile, UseGuards, UseInterceptors, ParseFilePipeBuilder, HttpStatus, UnprocessableEntityException, NotFoundException } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Param, Post, Query, Request, Res, UploadedFile, UseGuards, UseInterceptors, ParseFilePipeBuilder, HttpStatus, UnprocessableEntityException, NotFoundException, Req } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { ApiBody, ApiCookieAuth, ApiCreatedResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags, ApiUnauthorizedResponse, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
 import { CreateUsersDto } from './dto/create-users.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
-import { AppUser, ListUsers, UserProfile } from 'src/types/clientSchema';
+import { AppUser, ListUsers, UserProfile, UserSearchResult } from 'src/types/clientSchema';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -92,8 +92,9 @@ export class UsersController {
   @ApiUnauthorizedResponse({description: "You need to be logged in the access this route"})
   @UseGuards(JwtAuthGuard)
   @Get('find')
-  async getUsers(@Query('name') name: string): Promise<AppUser[]> {
-    return await this.usersService.findUsersByName(name);
+  async getUsers(@Query('name') name: string, @Req() req): Promise<UserSearchResult[]> {
+    const userId: number = req.user.id;
+    return await this.usersService.findUsersByName(userId, name);
   }
 
   //#endregion

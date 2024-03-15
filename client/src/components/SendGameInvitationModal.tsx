@@ -40,7 +40,7 @@ export const SendGameInvitationModal = ({
 
   return (
     <ModalLayout>
-      <div className="relative p-5 flex flex-col gap-7 max-w-80">
+      <div className="relative p-5 flex flex-col gap-7 max-w-80 text-left">
         <div className="flex flex-col items-center">
           <span className="font-extrabold text-2xl">Game invitation</span>
           <span className="opacity-50 text-center">

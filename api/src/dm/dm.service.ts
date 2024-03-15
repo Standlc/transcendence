@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { db } from 'src/database';
 import {
-  AllConversationsPromise,
+  UserConversationType,
   DirectMessageContent,
   DmWithSenderInfo,
   UserConversation,
@@ -107,53 +107,46 @@ export class DmService {
     // return `Conversation of user ${userId} and user ${user2} created`;
   }
 
-  //
-  //
-  //
   async getAllConversationsOfTheUser(
     userId: number,
-  ): Promise<AllConversationsPromise[]> {
+  ): Promise<UserConversationType[]> {
     try {
-      const allConv = await db
+      const conversations = await db
         .selectFrom('conversation')
-        .selectAll()
         .where((eb) =>
           eb.or([eb('user1_id', '=', userId), eb('user2_id', '=', userId)]),
         )
-        .leftJoin('user', 'conversation.user1_id', 'user.id')
-        .leftJoin('user as user2', 'conversation.user2_id', 'user2.id')
-        .select([
-          'conversation.id',
-          'conversation.createdAt',
-          'user.id as user1Id',
-          'user.avatarUrl as user1AvatarUrl',
-          'user.username as user1Username',
-          'user.rating as user1Rating',
-          'user2.id as user2Id',
-          'user2.avatarUrl as user2AvatarUrl',
-          'user2.username as user2Username',
-          'user2.rating as user2Rating',
-        ])
+        // select conversation other user
+        .innerJoin('user', (join) =>
+          join
+            .on((eb) =>
+              eb.or([
+                eb('conversation.user1_id', '=', eb.ref('user.id')),
+                eb('conversation.user2_id', '=', eb.ref('user.id')),
+              ]),
+            )
+            .on('user.id', '!=', userId),
+        )
+        .select((eb) =>
+          jsonBuildObject({
+            id: eb.ref('user.id'),
+            avatarUrl: eb.ref('user.avatarUrl'),
+            username: eb.ref('user.username'),
+            rating: eb.ref('user.rating'),
+          }).as('user'),
+        )
+        .select(['conversation.id', 'conversation.createdAt'])
         .execute();
 
-      return allConv.map((conv) => ({
-        id: conv.id,
-        createdAt: conv.createdAt,
-        user1: {
-          userId: conv.user1Id,
-          avatarUrl: conv.user1AvatarUrl,
-          username: conv.user1Username,
-          rating: conv.user1Rating,
-          status: this.usersStatusGateway.getUserStatus(conv.user1Id as number),
-        },
-        user2: {
-          userId: conv.user2Id,
-          avatarUrl: conv.user2AvatarUrl,
-          username: conv.user2Username,
-          rating: conv.user2Rating,
-          status: this.usersStatusGateway.getUserStatus(conv.user2Id as number),
-        },
-      })) as AllConversationsPromise[];
+      return conversations.map((conv) => {
+        return {
+          ...conv,
+          user: {
+            ...conv.user,
+            status: this.usersStatusGateway.getUserStatus(conv.user.id),
+          },
+        };
+      });
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException();
@@ -322,25 +315,18 @@ export class DmService {
   async deleteConversation(
     conversationId: number,
     userId: number,
-  ): Promise<string> {
+  ): Promise<void> {
     try {
-      const deletedResult = await db
+      await db
         .deleteFrom('conversation')
         .where('id', '=', conversationId)
         .where((eb) =>
           eb.or([eb('user1_id', '=', userId), eb('user2_id', '=', userId)]),
         )
-        .executeTakeFirst();
-
-      const numDeletedRows = deletedResult.numDeletedRows;
-      if (numDeletedRows == 0n) {
-        throw new NotFoundException('Conversation not found');
-      }
+        .execute();
     } catch (error) {
-      if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException();
     }
-    return `Conversation ${conversationId} deleted`;
   }
 
   //
@@ -433,5 +419,21 @@ export class DmService {
       if (error instanceof UnauthorizedException) throw error;
       throw new InternalServerErrorException();
     }
+  }
+
+  async getConversationById(conversationId: number) {
+    const conversation = await db
+      .selectFrom('conversation')
+      .where('id', '=', conversationId)
+      .selectAll()
+      .executeTakeFirst();
+    return conversation;
+  }
+
+  async delete(conversationId: number) {
+    await db
+      .deleteFrom('conversation')
+      .where('id', '=', conversationId)
+      .execute();
   }
 }

@@ -2,11 +2,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { useContext } from "react";
 import { ErrorContext } from "../../ContextsProviders/ErrorContext";
-import { UserProfile } from "@api/types/clientSchema";
+import { FriendRequestUser, UserProfile } from "@api/types/clientSchema";
+import { useGetUser } from "../useGetUser";
 
 export const useAcceptFriend = () => {
   const { addError } = useContext(ErrorContext);
   const queryClient = useQueryClient();
+  const user = useGetUser();
 
   const updateUserProfile = (friendId: number) => {
     queryClient.setQueryData<UserProfile>(["userProfile", friendId], (prev) => {
@@ -18,14 +20,31 @@ export const useAcceptFriend = () => {
     });
   };
 
+  const updateFriendRequestsList = (friendId: number) => {
+    queryClient.setQueryData<FriendRequestUser[]>(
+      ["friendRequests"],
+      (prev) => {
+        return prev?.filter((user) => user.id !== friendId);
+      }
+    );
+  };
+
+  const updateFriendList = () => {
+    queryClient.invalidateQueries({
+      queryKey: ["friends", user.id],
+    });
+  };
+
   const acceptFriend = useMutation({
     mutationFn: async (userId: number) => {
       await axios.post(`/api/friends/accept?id=${userId}`);
       return userId;
     },
     onSuccess: (friendId: number) => {
-      // to do: add friend to other states
+      updateFriendList();
+      updateFriendRequestsList(friendId);
       updateUserProfile(friendId);
+      queryClient.invalidateQueries({ queryKey: ["userSearch"] });
       addError({ message: "Friend request was accepted", isSuccess: true });
     },
     onError: () => {
