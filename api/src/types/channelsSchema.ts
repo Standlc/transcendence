@@ -5,7 +5,7 @@ export interface ChannelCreationData {
   isPublic: boolean;
   name: string;
   password: string | null;
-  photoUrl: string | null;
+  memberIds: number[];
 }
 
 export type ChannelWithoutPsw = Omit<Selectable<Channel>, 'password'>;
@@ -32,14 +32,7 @@ export interface ChannelDataWithUsersWithoutPassword {
   users: UserInfo[];
 }
 
-export interface ChannelDataWithoutPassword {
-  channelOwner: number;
-  createdAt: Date;
-  id: number;
-  isPublic: boolean;
-  name: string;
-  photoUrl: string | null;
-}
+export type UserChannel = Selectable<Channel>;
 
 export interface UserInfo {
   userId: number;
@@ -92,19 +85,12 @@ export interface MuteUser {
   muteEnd: Date | null;
 }
 
-export interface AllConversationsPromise {
+export interface UserConversationType {
   id: number;
   createdAt: Date;
-  user1: {
-    userId: number;
-    avatarUrl: string;
-    username: string;
-    rating: number;
-    status: number;
-  };
-  user2: {
-    userId: number;
-    avatarUrl: string;
+  user: {
+    id: number;
+    avatarUrl: string | null;
     username: string;
     rating: number;
     status: number;
@@ -127,7 +113,7 @@ export type ConversationUser = {
 
 export interface ChannelUpdate {
   isPublic: boolean;
-  name: string | null;
+  name: string;
   password: string | null;
 }
 
@@ -137,4 +123,10 @@ export type PublicChannel = {
   id: number;
   name: string | null;
   photoUrl: string | null;
+  isProtected: boolean;
+};
+
+export type ChannelJoinDto = {
+  channelId: number;
+  password?: string;
 };

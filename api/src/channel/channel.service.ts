@@ -1,4 +1,6 @@
 import {
+  BadRequestException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -9,11 +11,12 @@ import { db } from 'src/database';
 import {
   ChannelCreationData,
   ChannelDataWithUsersWithoutPassword,
-  ChannelDataWithoutPassword,
+  ChannelJoinDto,
   ChannelUpdate,
   ChannelWithoutPsw,
   MessageWithSenderInfo,
   PublicChannel,
+  UserChannel,
 } from 'src/types/channelsSchema';
 import * as bcrypt from 'bcrypt';
 import { Utils } from './utilsChannel.service';
@@ -184,115 +187,86 @@ export class ChannelService {
   //
   //
   async createChannel(
-    channel: ChannelCreationData,
+    payload: ChannelCreationData,
     userId: number,
-  ): Promise<ChannelDataWithoutPassword> {
-    try {
-      this.utilsChannelService.verifyLength(channel.name);
-    } catch (error) {
-      throw new UnprocessableEntityException(
-        'Invalid channel name length (1-49)',
-      );
-    }
+  ): Promise<number> {
+    // const existingChannel = await db.selectFrom("channel").where("channel.name", "=", payload.name).executeTakeFirst();
+    // if (!!existingChannel) {
+    //   throw new ConflictException();
+    // }
 
-    try {
-      this.utilsChannelService.canSetPassword(
-        channel.isPublic,
-        channel.password,
-      );
-    } catch (error) {
-      throw error;
-    }
+    if (payload.memberIds.length) {
+      const checkFriends = await db
+        .selectFrom('friend')
+        .where((eb) =>
+          eb.or([
+            eb.and([
+              eb('friend.user1_id', '=', userId),
+              eb('friend.user2_id', 'in', payload.memberIds),
+            ]),
+            eb.and([
+              eb('friend.user2_id', '=', userId),
+              eb('friend.user1_id', 'in', payload.memberIds),
+            ]),
+          ]),
+        )
+        .execute();
 
-    try {
-      await this.utilsChannelService.channelNameIsTaken(channel.name, 0);
-    } catch (error) {
-      throw error;
-    }
-
-    if (channel.password) {
-      try {
-        await this.utilsChannelService.passwordSecurityVerification(
-          channel.password,
-        );
-      } catch (error) {
-        throw error;
+      if (checkFriends.length !== payload.memberIds.length) {
+        throw new ForbiddenException();
       }
     }
 
-    const hashedPassword = channel.password
-      ? await bcrypt.hash(channel.password, 10)
-      : null;
-
-    try {
-      const newChannel = await db
-        .insertInto('channel')
-        .values({
-          channelOwner: userId,
-          isPublic: channel.isPublic,
-          name: channel.name,
-          password: hashedPassword,
-          photoUrl: channel.photoUrl,
-        })
-        .execute();
-      console.log('newChannel:', newChannel);
-    } catch (error) {
-      throw new InternalServerErrorException();
+    let hashedPassword: string | undefined = undefined;
+    if (payload.password) {
+      if (payload.password.length === 0) {
+        throw new BadRequestException();
+      }
+      hashedPassword = await bcrypt.hash(payload.password, 10);
     }
 
-    let newChannelId: number;
-    try {
-      newChannelId = await this.utilsChannelService.getChannelId(
+    const newChannel = await db
+      .insertInto('channel')
+      .values({
+        channelOwner: userId,
+        isPublic: hashedPassword ? true : payload.isPublic,
+        name: payload.name,
+        password: hashedPassword ?? null,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    await db
+      .insertInto('channelMember')
+      .values({
+        channelId: newChannel.id,
         userId,
-        channel,
-      );
-    } catch (error) {
-      throw error;
-    }
+      })
+      .execute();
 
-    try {
-      await db
-        .insertInto('channelAdmin')
-        .values({
-          channelId: newChannelId,
-          userId: userId,
-        })
-        .execute();
-    } catch (error) {
-      throw new InternalServerErrorException();
-    }
+    await db
+      .insertInto('channelAdmin')
+      .values({
+        channelId: newChannel.id,
+        userId,
+      })
+      .execute();
 
-    try {
+    if (payload.memberIds.length) {
       await db
         .insertInto('channelMember')
-        .values({
-          channelId: newChannelId,
-          userId: userId,
-        })
+        .values(
+          payload.memberIds.map((id) => {
+            return {
+              channelId: newChannel.id,
+              userId: id,
+            };
+          }),
+        )
         .execute();
-    } catch (error) {
-      throw new InternalServerErrorException();
     }
 
-    try {
-      const newChannel = await db
-        .selectFrom('channel')
-        .select([
-          'id',
-          'channelOwner',
-          'createdAt',
-          'isPublic',
-          'name',
-          'photoUrl',
-        ])
-        .where('channelOwner', '=', userId)
-        .where('name', '=', channel.name)
-        .executeTakeFirst();
-      console.log('newChannel:', newChannel);
-      return newChannel as ChannelDataWithoutPassword;
-    } catch (error) {
-      throw new InternalServerErrorException();
-    }
+    return newChannel.id;
   }
 
   //
@@ -490,78 +464,14 @@ export class ChannelService {
     }
   }
 
-  //
-  //
-  //
-  // Channels where user is member and not banned
-  async getAllChannelsOfTheUser(
-    userId: number,
-  ): Promise<ChannelDataWithUsersWithoutPassword[]> {
-    try {
-      const channelsInfo = await db
-        .selectFrom('channel')
-        .leftJoin('channelMember', 'channel.id', 'channelMember.channelId')
-        .leftJoin('user', 'channelMember.userId', 'user.id')
-        .leftJoin('bannedUser', (join) =>
-          join
-            .onRef('channel.id', '=', 'bannedUser.channelId')
-            .on('bannedUser.bannedId', '=', userId),
-        )
-        .select([
-          'channel.channelOwner',
-          'channel.createdAt',
-          'channel.id',
-          'channel.isPublic',
-          'channel.name',
-          'channel.photoUrl',
-          'channelMember.userId',
-          'user.username',
-          'user.avatarUrl',
-          'bannedUser.bannedId',
-        ])
-        .where('channelMember.userId', '=', userId)
-        .where('bannedUser.bannedId', 'is', null)
-        .execute();
-
-      const channelsWithUsers: ChannelDataWithUsersWithoutPassword[] = [];
-
-      for (const channelInfo of channelsInfo) {
-        const usersInfo = await db
-          .selectFrom('channelMember')
-          .leftJoin('user', 'channelMember.userId', 'user.id')
-          .select([
-            'channelMember.userId',
-            'user.username',
-            'user.avatarUrl',
-            'user.rating',
-          ])
-          .where('channelMember.channelId', '=', channelInfo.id)
-          .execute();
-
-        const channelWithUsers: ChannelDataWithUsersWithoutPassword = {
-          channelOwner: channelInfo.channelOwner,
-          createdAt: channelInfo.createdAt,
-          id: channelInfo.id,
-          isPublic: channelInfo.isPublic,
-          name: channelInfo.name as string,
-          photoUrl: channelInfo.photoUrl,
-          users: usersInfo.map((userInfo) => ({
-            userId: userInfo.userId,
-            username: userInfo.username as string,
-            avatarUrl: userInfo.avatarUrl as string,
-            rating: userInfo.rating as number,
-            status: this.usersStatusGateway.getUserStatus(
-              userInfo.userId as number,
-            ),
-          })),
-        };
-        channelsWithUsers.push(channelWithUsers);
-      }
-
-      return channelsWithUsers;
-    } catch (error) {
-      throw new InternalServerErrorException();
-    }
+  async getAllChannelsOfTheUser(userId: number): Promise<UserChannel[]> {
+    const channels = await db
+      .selectFrom('channelMember')
+      .where('userId', '=', userId)
+      .innerJoin('channel', 'channel.id', 'channelMember.channelId')
+      .selectAll('channel')
+      .execute();
+    return channels;
   }
 
   async getAllPublicChannels(userId: number): Promise<PublicChannel[]> {
@@ -598,15 +508,24 @@ export class ChannelService {
           .end()
           .as('isMember'),
       )
+      .select((eb) =>
+        eb
+          .case()
+          .when('channel.password', 'is not', null)
+          .then(true)
+          .else(false)
+          .end()
+          .as('isProtected'),
+      )
       .select(['channel.id', 'channel.name', 'channel.photoUrl'])
       .orderBy('channel.createdAt desc')
       .execute();
   }
 
-  async checkCanUserJoinChannel(userId: number, channelId: number) {
+  async checkCanUserJoinChannel(userId: number, payload: ChannelJoinDto) {
     const channel = await db
       .selectFrom('channel')
-      .where('channel.id', '=', channelId)
+      .where('channel.id', '=', payload.channelId)
       .where('channel.isPublic', 'is', true)
       .leftJoin('bannedUser', (join) =>
         join.on((eb) =>
@@ -621,13 +540,21 @@ export class ChannelService {
         join.on((eb) =>
           eb.and([
             eb('channelMember.userId', '=', userId),
-            eb('channelMember.channelId', '=', channelId),
+            eb('channelMember.channelId', '=', payload.channelId),
           ]),
         ),
       )
       .where('channelMember.userId', 'is', null)
-      .select('channel.id')
+      .select(['channel.id', 'channel.password'])
       .executeTakeFirst();
+
+    if (channel?.password) {
+      const isMatch = await bcrypt.compare(
+        payload.password ?? '',
+        channel.password,
+      );
+      return isMatch;
+    }
     return channel?.id ? true : false;
   }
 

@@ -1,236 +1,209 @@
-import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { Settings } from "@mui/icons-material";
-import { Collapsible } from "./Collapsible";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
+import { Link, NavLink, useLocation } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Add, Close, People, Settings } from "@mui/icons-material";
 import { useGetUser } from "../../utils/useGetUser";
 import { Avatar } from "../../UIKit/avatar/Avatar";
-import { AllUserDm } from "../../types/allUserDm";
-import { Timestamp } from "@api/types/schema";
 import ModalLayout from "../../UIKit/ModalLayout";
-import { ChanPopUp } from "../ChanPopUp";
-
-interface AllChannels {
-    channelOwner: number;
-    createdAt: Timestamp;
-    id: number;
-    isPublic: boolean;
-    name: string;
-    photoUrl: string | null;
-}
-import { AllChannels } from "../../types/channel";
 import { USER_STATUS } from "@api/types/usersStatusTypes";
+import { CreateConversationCard } from "./CreateConversationCard";
+import { CreateChannelCard } from "./CreateChannelCard";
+import { ReloadButton } from "../../UIKit/ReloadButton";
+import { ChannelAvatar } from "../../UIKit/avatar/ChannelAvatar";
+import { useDeleteConversation } from "../../utils/conversations/useDeleteConversation";
+import { UserConversationType } from "@api/types/channelsSchema";
+import { useGetChannels } from "../../utils/channels/useGetChannels";
+import { useGetConversations } from "../../utils/conversations/useGetConversations";
 
 export const ChanColumn = () => {
-    const navigate = useNavigate();
-    const [activeButton, setActiveButton] = useState<number | null>(null);
-    const [showChanPopUp, setShowChanPopUp] = useState(false);
-    const [showConvPopUp, setShowConvPopUp] = useState(false);
-    const user = useGetUser();
-    const queryClient = useQueryClient();
+  const [showCreateConversation, setShowCreateConversation] = useState(false);
+  const [showCreateChannel, setShowCreateChannel] = useState(false);
+  const user = useGetUser();
+  const conversations = useGetConversations();
+  const channels = useGetChannels();
 
-    const closePopup = () => {
-        setShowChanPopUp(false);
-    };
-
-    const handleClick = (buttonText: string) => {
-        switch (buttonText) {
-            case "channel":
-                setShowChanPopUp(true);
-                break;
-            case "conversation":
-                setShowConvPopUp(true);
-                break;
-        }
-    };
-
-    const allDms = useQuery({
-        queryKey: ["dms"],
-        queryFn: async () => {
-            const res = await axios.get<AllUserDm[]>("/api/dm");
-            return res.data;
-        },
-    });
-
-    const allChannels = useQuery({
-        queryKey: ["allChannels"],
-        queryFn: async () => {
-            const res = await axios.get<AllChannels[]>("/api/channels");
-            return res.data;
-        },
-    });
-
-    // queryClient.invalidateQueries({ "allChannels"});
-
-    const handleButtonClick = (index: number) => {
-        if (index === -1) {
-            handleFriendsClick();
-            setActiveButton(index);
-        } else {
-            setActiveButton(index);
-        }
-    };
-
-    const handleFriendsClick = () => {
-        navigate("friends");
-        setActiveButton(-1);
-    };
-
-    const handleSettingClick = () => {
-        navigate("/settings");
-    };
-
-    const otherhUser = (conv: AllUserDm) => {
-        if (conv.user1.userId === user?.id) {
-            return conv.user2;
-        } else {
-            return conv.user1;
-        }
-    };
-
-    return (
-        <div className="bg-not-quite-black chan-column">
-            <div className="w-full item-center justify-center">
-                <div
-                    onClick={() => handleButtonClick(-1)}
-                    className={`cell-chan text-xl align-center hover:bg-discord-light-grey hover:rounded-lg rounded-lg ml-6 mt-1${
-                        activeButton === -1
-                            ? " bg-discord-light-grey"
-                            : " bg-not-quite-black"
-                    }`}
-                    style={{ cursor: "pointer" }}
-                >
-                    <svg
-                        aria-hidden="true"
-                        role="img"
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="35"
-                        height="35"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            fill="currentColor"
-                            d="M3 5v-.75C3 3.56 3.56 3 4.25 3s1.24.56 1.33 1.25C6.12 8.65 9.46 12 13 12h1a8 8 0 0 1 8 8 2 2 0 0 1-2 2 .21.21 0 0 1-.2-.15 7.65 7.65 0 0 0-1.32-2.3c-.15-.2-.42-.06-.39.17l.25 2c.02.15-.1.28-.25.28H9a2 2 0 0 1-2-2v-2.22c0-1.57-.67-3.05-1.53-4.37A15.85 15.85 0 0 1 3 5Z"
-                        ></path>
-                        <path
-                            fill="currentColor"
-                            d="M13 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"
-                        ></path>
-                    </svg>
-                    <div onClick={handleFriendsClick} className="ml-6 mt-1 ">
-                        <button>Friends</button>
-                    </div>
-                </div>
-            </div>
-            <div
-                onClick={() => handleClick("conversation")}
-                className="cell-chan font-bold text-greyple hover:text-white hover:rounded-md text-sm text-left flex items-center justify-between"
-                style={{ cursor: "pointer" }}
-            >
-                <button className="flex "> Create DM</button>
-
-                <span className="bloc text-right">+</span>
-            </div>
-            <div className="">
-                {showChanPopUp && (
-                    <ModalLayout>
-                        <ChanPopUp onClose={closePopup} />
-                    </ModalLayout>
-                )}
-            </div>
-            <div className="ml-5 text-left h-[300px] overflow-y-auto ">
-                <Collapsible title="Conversation">
-                    {allDms.data?.map((conv, index) => (
-                        <Link
-                            key={index}
-                            className={`mb-2 flex hover:bg-discord-light-grey py-2 rounded-lg w-[280px] ${
-                                activeButton == index
-                                    ? "bg-discord-light-grey"
-                                    : "bg-not-quite-black"
-                            }`}
-                            to={`dm/${conv.id}`}
-                        >
-                            <Avatar
-                                imgUrl={otherhUser(conv).avatarUrl}
-                                size="md"
-                                userId={otherhUser(conv).userId}
-                                status={otherhUser(conv).status}
-                                borderRadius={0.5}
-                            />
-                            <div className="ml-5">{otherhUser(conv).username}</div>
-                        </Link>
-                    ))}
-                </Collapsible>
-            </div>
-            <div
-                onClick={() => handleClick("channel")}
-                className="cell-chan font-bold text-greyple hover:text-white hover:rounded-md text-sm text-left flex items-center justify-between"
-                style={{ cursor: "pointer" }}
-            >
-                <button className="flex ">Create Channel</button>
-
-                <span className="bloc text-right">+</span>
-            </div>
-            <div className="">
-                {showChanPopUp && (
-                    <ModalLayout>
-                        <ChanPopUp onClose={closePopup} />
-                    </ModalLayout>
-                )}
-            </div>
-            <div className="ml-5 mt-2 text-left h-[370px] overflow-y-auto">
-                <Collapsible title="Channels">
-                    {allChannels.data?.map((channel, index) => (
-                        <Link
-                            key={index}
-                            className={`mb-2 flex hover:bg-discord-light-grey py-2 rounded-lg w-[280px] ${
-                                activeButton === index
-                                    ? "bg-discord-light-grey"
-                                    : "bg-not-quite-black"
-                            }`}
-                            to={`channels/${channel.id}`}
-                        >
-                            <Avatar
-                                imgUrl={channel.photoUrl}
-                                size="md"
-                                userId={channel.id}
-                                borderRadius={0.5}
-                            />
-                            <div className="ml-5">{channel.name}</div>
-                        </Link>
-                    ))}
-                </Collapsible>
-            </div>
-            <div className="flex bg-almost-black text-m user-chancolumn items-center justify-between">
-                <div className="flex items-center">
-                    <Avatar
-                        imgUrl={user?.avatarUrl}
-                        size="md"
-                        userId={user?.id ?? 0}
-                        status={user.status}
-                        borderRadius={0.5}
-                    />
-                    <div className="ml-[10px]">
-                        <div className="font-bold text-left ">{user?.username}</div>
-                        <div className="text-green text-left">
-                            {user.status === USER_STATUS.ONLINE
-                                ? "Online"
-                                : user.status === USER_STATUS.PLAYING
-                                ? "Playing"
-                                : "Offline"}
-                        </div>
-                    </div>
-                </div>
-                <div className="flex justify-end">
-                    <button
-                        className="text-right mr-[10px] px-2"
-                        onClick={handleSettingClick}
-                    >
-                        <Settings />
-                    </button>
-                </div>
-            </div>
+  return (
+    <div className="bg-bg-1 relative min-w-64 border-r border-r-[rgba(0,0,0,0.2)] max-h-[100vh] min-h-[100vh] flex flex-col justify-between overflow-y-auto">
+      <div className="">
+        <div className="p-2">
+          <NavLink
+            to={"friends"}
+            className={({ isActive }) =>
+              `w-full flex item-center gap-3 py-3 px-4 bg-white font-bold rounded-md ${
+                isActive ? "bg-opacity-10" : "bg-opacity-0 hover:bg-opacity-5"
+              }`
+            }
+          >
+            <People />
+            <span>Friends</span>
+          </NavLink>
         </div>
-    );
+
+        <div className="p-2 flex flex-col gap-5">
+          <div className="flex flex-col gap-2">
+            <Header
+              onClick={() => setShowCreateConversation(!showCreateConversation)}
+              title="DIRECT MESSAGES"
+              refetch={conversations.refetch}
+            />
+
+            {showCreateConversation && (
+              <ModalLayout
+                onClickOutside={() => setShowCreateConversation(false)}
+              >
+                <CreateConversationCard
+                  hide={() => setShowCreateConversation(false)}
+                />
+              </ModalLayout>
+            )}
+
+            <div className="text-left flex flex-col gap-[2px]">
+              {conversations.data?.map((conv, i) => (
+                <Conversation key={i} conversation={conv} />
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Header
+              onClick={() => setShowCreateChannel(!showCreateConversation)}
+              title="CHANNELS"
+              refetch={channels.refetch}
+            />
+
+            {showCreateChannel && (
+              <ModalLayout onClickOutside={() => setShowCreateChannel(false)}>
+                <CreateChannelCard hide={() => setShowCreateChannel(false)} />
+              </ModalLayout>
+            )}
+
+            <div className="flex flex-col gap-[2px]">
+              {channels.data?.map((channel, index) => (
+                <NavLink
+                  key={index}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-2 bg-white py-2 rounded-md ${
+                      isActive
+                        ? "bg-opacity-10"
+                        : "bg-opacity-0 hover:bg-opacity-5"
+                    }`
+                  }
+                  to={`channels/${channel.id}`}
+                >
+                  <ChannelAvatar
+                    imgUrl={channel.photoUrl}
+                    size="sm"
+                    id={channel.id}
+                    borderRadius={0.5}
+                  />
+                  <div className="font-bold">{channel.name}</div>
+                </NavLink>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex sticky w-full bottom-0 bg-almost-black p-2 items-center justify-between">
+        <div className="flex items-center">
+          <Avatar
+            imgUrl={user?.avatarUrl}
+            size="sm"
+            userId={user?.id ?? 0}
+            status={user.status}
+            borderRadius={0.5}
+          />
+          <div className="ml-3 flex flex-col gap-1">
+            <div className="font-bold text-left leading-4">
+              {user?.username}
+            </div>
+            <span className="text-left text-xs leading-4 opacity-75">
+              {user.status === USER_STATUS.ONLINE
+                ? "Online"
+                : user.status === USER_STATUS.PLAYING
+                ? "Playing"
+                : "Offline"}
+            </span>
+          </div>
+        </div>
+
+        <Link to={"/settings"} className="flex justify-end">
+          <Settings />
+        </Link>
+      </div>
+    </div>
+  );
+};
+
+const Header = ({
+  onClick,
+  title,
+  refetch,
+}: {
+  onClick: () => void | any;
+  refetch: () => void | any;
+  title: string;
+}) => {
+  return (
+    <div
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className="sticky top-0 z-10 -mx-2 px-5 py-2 bg-bg-1 border-b border-b-[rgba(0,0,0,0.2)] flex cursor-pointer items-center justify-between text-white text-opacity-50 hover:text-opacity-100"
+    >
+      <span className="text-sm font-[600]">{title}</span>
+
+      <div className="flex items-center gap-1">
+        <ReloadButton onClick={refetch} />
+        <div className="h-[25px] aspect-square rounded-full bg-black opacity-75 hover:opacity-100 bg-opacity-30 flex items-center justify-center active:scale-90 transition-transform">
+          <Add fontSize="small" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const Conversation = ({
+  conversation,
+}: {
+  conversation: UserConversationType;
+}) => {
+  const location = useLocation();
+  const deleteConversation = useDeleteConversation();
+
+  const isActive = useMemo(
+    () => location.pathname.match(`dm/${conversation.id}`)?.length,
+    [location.pathname, conversation.id]
+  );
+
+  return (
+    <div
+      className={`relative flex items-center w-full group/conversation bg-white rounded-md bg-opacity-0 ${
+        isActive ? "bg-opacity-10" : "bg-opacity-0 hover:bg-opacity-5"
+      }`}
+    >
+      <NavLink
+        className={`flex items-center gap-3 px-2 w-full py-2 rounded-md `}
+        to={`dm/${conversation.id}`}
+      >
+        <Avatar
+          imgUrl={conversation.user.avatarUrl}
+          size="sm"
+          userId={conversation.user.id}
+          status={conversation.user.status}
+          borderRadius={0.5}
+        />
+        <div className="font-bold">{conversation.user.username}</div>
+      </NavLink>
+
+      <button
+        onClick={() => {
+          deleteConversation.mutate(conversation.id);
+        }}
+        className="absolute group-hover/conversation:flex opacity-50 hover:opacity-100 hidden aspect-square items-center justify-center right-2"
+      >
+        <Close fontSize="small" />
+      </button>
+    </div>
+  );
 };

@@ -62,7 +62,7 @@ export class Utils {
   //
 
   async updateChannelAsAdmin(
-    name: string | null,
+    name: string,
     channelId: number,
   ): Promise<string> {
     try {

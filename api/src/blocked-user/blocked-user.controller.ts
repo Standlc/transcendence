@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { BlockedUserService } from './blocked-user.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
-import { ListUsers } from 'src/types/clientSchema';
+import { BlockedUser } from 'src/types/clientSchema';
 
 @Controller('blocked-user')
 export class BlockedUserController {
@@ -23,7 +23,7 @@ export class BlockedUserController {
 
     @UseGuards(JwtAuthGuard)
     @Get('list')
-    async listBlockedUser(@Request() req): Promise<ListUsers[]> {
+    async listBlockedUser(@Request() req): Promise<BlockedUser[]> {
       return await this.blockedUserService.listBlockedUser(req.user.id);
     }
 

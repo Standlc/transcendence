@@ -32,7 +32,7 @@ export interface Channel {
   createdAt: Generated<Timestamp>;
   id: Generated<number>;
   isPublic: Generated<boolean>;
-  name: string | null;
+  name: string;
   password: string | null;
   photoUrl: string | null;
 }

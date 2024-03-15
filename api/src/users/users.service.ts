@@ -2,7 +2,7 @@ import { Injectable, InternalServerErrorException, NotFoundException, Unauthoriz
 import { db } from 'src/database';
 import { CreateUsersDto } from './dto/create-users.dto';
 import * as bcrypt from 'bcrypt';
-import { AppUser, AppUserDB, ListUsers } from 'src/types/clientSchema';
+import { AppUser, AppUserDB, ListUsers, UserSearchResult } from 'src/types/clientSchema';
 import { userFromIntra } from 'src/auth/oauth.strategy';
 import { randomBytes } from 'crypto';
 import { User } from 'src/types/schema';
@@ -144,31 +144,73 @@ export class UsersService {
     };
   }
 
-  /**
-   * Looking for any user with a substring of there username that match the substring parameter.
-   * @param substring
-   * @returns An array of User that match the substring
-   * @throws InternalServerError
-   * @throws NotFound
-   */
-  async findUsersByName(substring: string): Promise<AppUser[]> {
-    //? Fetch the database and search for any user containing a substring in the username field.
-    //? Create an array of AppUser containing every field except password of any user that matches the substring.
-    let users: AppUserDB[]
+  async findUsersByName(userId: number, substring: string): Promise<UserSearchResult[]> {
     try {
-      users = await db
+      const users = await db
       .selectFrom('user')
-      .select(['username', 'bio', 'avatarUrl', 'firstname', 'lastname', 'createdAt', 'email', 'id', 'rating', 'isTwoFactorAuthenticationEnabled'])
+      .where("user.id", "!=", userId)
       .where('username', 'like', '%' + substring + '%')
+      // don't select blocked users
+      .leftJoin("blockedUser", (join) => join.on((eb) => eb.or([
+        eb.and([
+          eb("blockedById", "=", userId),
+          eb("blockedId", "=", eb.ref("user.id")),
+        ]),
+        eb.and([
+          eb("blockedId", "=", userId),
+          eb("blockedById", "=", eb.ref("user.id")),
+        ]),
+      ])))
+      .where("blockedId", "is", null)
+
+      // select isFriends
+      .leftJoin("friend", (join) => join.on((eb) => eb.or([
+        eb.and([
+          eb("friend.user1_id", "=", userId),
+          eb("friend.user2_id", "=", eb.ref("user.id")),
+        ]),
+        eb.and([
+          eb("friend.user2_id", "=", userId),
+          eb("friend.user1_id", "=", eb.ref("user.id")),
+        ]),
+      ])))
+      .select((eb) => eb.case().when("friend.user1_id", "is", null).then(false).else(true).end().as("isFriends"))
+
+      .leftJoin("friendRequest", (join) => join.on((eb) => eb.or([
+        eb.and([
+          eb("friendRequest.sourceId", "=", userId),
+          eb("friendRequest.targetId", "=", eb.ref("user.id")),
+        ]),
+        eb.and([
+          eb("friendRequest.targetId", "=", userId),
+          eb("friendRequest.sourceId", "=", eb.ref("user.id")),
+        ]),
+      ])))
+      .select("friendRequest.sourceId as friendRequestSourceUserId")
+
+      // select conversation id
+      .leftJoin("conversation", (join) => join.on((eb) => eb.or([
+          eb.and([
+            eb("conversation.user1_id", "=", userId),
+            eb("conversation.user2_id", "=", eb.ref("user.id")),
+          ]),
+          eb.and([
+            eb("conversation.user2_id", "=", userId),
+            eb("conversation.user1_id", "=", eb.ref("user.id")),
+          ]),
+        ])
+      ))
+      .select("conversation.id as conversationId")
+
+      .select(['username', 'user.avatarUrl', 'user.id', 'rating'])
       .execute();
+
+      return users.map((u) => ({...u, status: this.usersStatusGateway.getUserStatus(u.id)}))
     }
     catch(error) {
       console.log(error);
       throw new InternalServerErrorException();
     }
-    if (!users)
-      throw new NotFoundException();
-    return users.map((u) => ({...u, status: this.usersStatusGateway.getUserStatus(u?.id)}))
   }
 
   /**

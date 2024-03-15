@@ -1,7 +1,7 @@
 import { Inject, Injectable, InternalServerErrorException, UnprocessableEntityException, forwardRef } from '@nestjs/common';
 import { db } from 'src/database';
 import { FriendsService } from 'src/friends/friends.service';
-import { ListUsers } from 'src/types/clientSchema';
+import { BlockedUser, ListUsers } from 'src/types/clientSchema';
 
 @Injectable()
 export class BlockedUserService {
@@ -104,25 +104,15 @@ export class BlockedUserService {
     }
   }
 
-  async listBlockedUser(blockedById: number): Promise<ListUsers[]> {
+  async listBlockedUser(blockedById: number): Promise<BlockedUser[]> {
     try {
-      const blockedIdList = await db
+      const blockedUsers = await db
       .selectFrom('blockedUser')
-      .select('blockedId')
       .where('blockedById', '=', blockedById)
+      .innerJoin("user", "user.id", "blockedId")
+      .select(["user.username", "user.id", "user.avatarUrl"])
       .execute();
-      if (blockedIdList.length <= 0)
-        return [];
-      let arrayBlockedId: number[] = [];
-      blockedIdList.forEach(element => {
-        arrayBlockedId.push(element.blockedId);
-      });
-      const blockedUserList = await db
-      .selectFrom('user')
-      .select(['id', 'username', 'avatarUrl'])
-      .where('id', 'in', arrayBlockedId)
-      .execute();
-      return blockedUserList;
+      return blockedUsers;
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException();

@@ -23,15 +23,17 @@ import {
   Request,
   Res,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { ChannelService } from './channel.service';
 import {
   ChannelCreationData,
   ChannelDataWithUsersWithoutPassword,
-  ChannelDataWithoutPassword,
+  ChannelJoinDto,
   ChannelUpdate,
   MessageWithSenderInfo,
   PublicChannel,
+  UserChannel,
 } from 'src/types/channelsSchema';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
@@ -115,70 +117,8 @@ export class UserController {
     return await this.channelService.getChannelMessages(req.user.id, channelId);
   }
 
-  //
-  //
-  //
-  @ApiOperation({
-    summary: 'Get all channels where the user in member and not banned',
-  })
-  @ApiOkResponse({
-    description: 'Channels found',
-    schema: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          channelOwner: {
-            type: 'number',
-          },
-          createdAt: {
-            type: 'Date',
-          },
-          id: {
-            type: 'number',
-          },
-          isPublic: {
-            type: 'boolean',
-          },
-          name: {
-            type: 'string',
-          },
-          photoUrl: {
-            type: 'string | null',
-          },
-          users: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                userId: {
-                  type: 'number',
-                },
-                username: {
-                  type: 'string',
-                },
-                avatarUrl: {
-                  type: 'string',
-                },
-                rating: {
-                  type: 'number',
-                },
-                status: {
-                  type: 'number',
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  })
-  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @Get()
-  async getAllChannelsOfTheUser(
-    @Request() req,
-  ): Promise<ChannelDataWithoutPassword[]> {
-    console.log('GET: Recieved all channels of the user: ', req.user.id);
+  async getAllChannelsOfTheUser(@Request() req): Promise<UserChannel[]> {
     return await this.channelService.getAllChannelsOfTheUser(req.user.id);
   }
 
@@ -248,8 +188,14 @@ export class UserController {
   async createChannel(
     @Body() channel: ChannelCreationData,
     @Request() req,
-  ): Promise<ChannelDataWithoutPassword> {
-    console.log('POST: Recieved name:', channel.name);
+  ): Promise<number> {
+    const isWhitespaceString = (str: string) => !str.replace(/\s/g, '').length;
+    if (
+      isWhitespaceString(channel.name) ||
+      (channel.password && isWhitespaceString(channel.password))
+    ) {
+      throw new BadRequestException();
+    }
     return await this.channelService.createChannel(channel, req.user.id);
   }
 
@@ -410,21 +356,21 @@ export class UserController {
     return await this.channelService.getAllPublicChannels(userId);
   }
 
-  @Post('/join/:channelId')
-  async joinUserToChannel(
-    @Request() req,
-    @Param('channelId') channelId: number,
-  ) {
+  @Post('/join')
+  async joinUserToChannel(@Request() req, @Body() payload: ChannelJoinDto) {
     const userId: number = req.user.id;
     const isAllowed = await this.channelService.checkCanUserJoinChannel(
       userId,
-      channelId,
+      payload,
     );
     if (!isAllowed) {
       throw new ForbiddenException();
     }
 
-    return await this.channelService.joinUserToChannel(userId, channelId);
+    return await this.channelService.joinUserToChannel(
+      userId,
+      payload.channelId,
+    );
   }
 
   //#region Get Photo

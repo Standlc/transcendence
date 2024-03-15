@@ -18,8 +18,7 @@ export const useStartConversation = () => {
     },
     onSuccess: (conversationId: number) => {
       navigate(`/home/dm/${conversationId}`);
-      // to do: invalidate conversation query
-      // queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
     },
     onError: () => {
       addError({ message: "Error while starting conversation" });

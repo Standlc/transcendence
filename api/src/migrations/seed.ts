@@ -62,6 +62,49 @@ const seedUsers = async () => {
     .execute();
 };
 
+const seedFriends = async () => {
+  const friends = await db.selectFrom('friend').execute();
+  if (friends.length) {
+    return;
+  }
+
+  await db
+    .insertInto('friend')
+    .values([
+      // user 1 friends
+      {
+        user1_id: 1,
+        user2_id: 2,
+      },
+      {
+        user1_id: 1,
+        user2_id: 3,
+      },
+      {
+        user1_id: 1,
+        user2_id: 4,
+      },
+      {
+        user1_id: 1,
+        user2_id: 5,
+      },
+      {
+        user1_id: 1,
+        user2_id: 6,
+      },
+      // user 2 friends
+      {
+        user1_id: 2,
+        user2_id: 3,
+      },
+      {
+        user1_id: 2,
+        user2_id: 4,
+      },
+    ])
+    .execute();
+};
+
 async function seedChannels() {
   const channels = await db.selectFrom('channel').execute();
   if (channels.length) {
@@ -311,6 +354,7 @@ const seedGames = async () => {
 async function seed() {
   try {
     await seedUsers();
+    await seedFriends();
     await seedChannels();
     await seedChannelMembers();
     await seedChannelAdmins();

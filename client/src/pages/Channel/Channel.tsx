@@ -35,6 +35,8 @@ export const Channel = () => {
         }
     };
 
+
+
     const quitChannel = () => {
         if (channelId) {
             console.log("Attempting to quit channelId:", channelId);
@@ -102,6 +104,7 @@ export const Channel = () => {
                 queryClient.invalidateQueries({
                     queryKey: ["chanInfo", channelId],
                 });
+                queryClient.invalidateQueries({ queryKey : ["channels"]});
             }
         };
 

@@ -1,5 +1,5 @@
 import {
-  AllConversationsPromise,
+  UserConversationType,
   DmWithSenderInfo,
   UserConversation,
   UserId,
@@ -13,6 +13,8 @@ import {
   Delete,
   UseGuards,
   Request,
+  NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { DmService } from './dm.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
@@ -131,7 +133,7 @@ export class DmController {
   @Get()
   async getAllConversationsOfTheUser(
     @Request() req,
-  ): Promise<AllConversationsPromise[]> {
+  ): Promise<UserConversationType[]> {
     return await this.dmService.getAllConversationsOfTheUser(req.user.id);
   }
 
@@ -281,11 +283,19 @@ export class DmController {
   @ApiParam({ name: 'id', type: 'number' })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @ApiNotFoundResponse({ description: 'Conversation not found' })
-  @Delete(':id')
+  @Delete(':conversationId')
   async deleteConversation(
-    @Param('id') id: string,
+    @Param('conversationId') conversationId: number,
     @Request() req,
-  ): Promise<string> {
-    return await this.dmService.deleteConversation(Number(id), req.user.id);
+  ): Promise<void> {
+    const conversation = await this.dmService.getConversationById(conversationId);
+    if (!conversation) {
+      throw new NotFoundException();
+    }
+    const userId: number = req.user.id;
+    if (conversation.user1_id !== userId && conversation.user2_id !== userId) {
+      throw new ForbiddenException();
+    }
+    await this.dmService.delete(conversationId);
   }
 }
