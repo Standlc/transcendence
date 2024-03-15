@@ -2,7 +2,7 @@ import { UserGame } from "@api/types/games";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { Spinner } from "../../UIKit/Kit";
-import { GameInfo } from "../LiveGames";
+import { GameInfo } from "../playPage/LiveGames";
 
 export const ProfileGames = ({ userId }: { userId: number }) => {
   const games = useQuery({
