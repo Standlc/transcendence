@@ -3,7 +3,6 @@ import { FriendsAdd } from "./FriendsAdd";
 import { FriendsInvitation } from "./FriendsInvitation";
 import { AllFriends } from "./AllFriends";
 import axios from "axios";
-import { useQueryClient } from "@tanstack/react-query";
 import { useGetUser } from "../../utils/useGetUser";
 import { Friend } from "../../types/friend";
 
@@ -14,14 +13,31 @@ const fetchFriends = async (userId: number) => {
     return response.data;
 };
 
+
+
 export const Friends: React.FC = () => {
     const [adding, setAdding] = useState(false);
     const [friends, setFriends] = useState<FriendsList>([]);
     const [friendsPending, setFriendsPending] = useState(false);
     const [allFriends, setAllFriends] = useState(true);
     const user = useGetUser();
+    
+ 
 
-    if (!user) return null;
+    // const { data: friends, isLoading, isError } = useQuery<Friend[]>({
+    //     queryKey: ["allFriends", userId],
+    //     queryFn: async () => {
+    //         try {
+    //             const response = await axios.get(`/api/friends?id=${userId}`);
+    //             return response.data;
+    //         } catch (error) {
+    //             throw new Error("Failed to fetch friend list");
+    //         }
+    //     },
+    // });
+
+    
+
 
     useEffect(() => {
         const fetchFriends = async () => {
@@ -52,6 +68,7 @@ export const Friends: React.FC = () => {
             fetchFriends();
         }
     }, [user?.id]);
+    if (!user) return null;
 
     return (
         <div className="w-full">
@@ -103,7 +120,7 @@ export const Friends: React.FC = () => {
                             ></path>
                         </svg>
                         <div className="ml-2 mt-4 font-bold text-xl ">
-                            Amis <span className="ml-[20px] text-greyple">|</span>
+                            Friends <span className="ml-[20px] text-greyple">|</span>
                         </div>
 
                         <div className="flex ml-[20px]  mt-[10px] mb-[10px]">
@@ -111,19 +128,19 @@ export const Friends: React.FC = () => {
                                 onClick={() => setAllFriends(true)}
                                 className="mr-[20px] text-white p-[10px] hover:bg-discord-light-grey rounded-lg text-s  py-1 text-center"
                             >
-                                Tous
+                                All
                             </button>
                             <button
                                 onClick={() => setFriendsPending(true)}
                                 className="mr-[20px] text-white p-[10px] hover:bg-discord-light-grey rounded-lg text-s  py-1 text-center"
                             >
-                                En attente
+                                Pending
                             </button>
                             <button
                                 onClick={() => setAdding(true)}
                                 className="text-white bg-green p-[10px]  rounded-lg text-s py-2 text-center"
                             >
-                                Ajouter
+                                ADD
                             </button>
                         </div>
                     </div>

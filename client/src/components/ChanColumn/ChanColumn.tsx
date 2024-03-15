@@ -7,14 +7,43 @@ import axios from "axios";
 import { useGetUser } from "../../utils/useGetUser";
 import { Avatar } from "../../UIKit/avatar/Avatar";
 import { AllUserDm } from "../../types/allUserDm";
+import { Timestamp } from "@api/types/schema";
+import ModalLayout from "../../UIKit/ModalLayout";
+import { ChanPopUp } from "../ChanPopUp";
+
+interface AllChannels {
+    channelOwner: number;
+    createdAt: Timestamp;
+    id: number;
+    isPublic: boolean;
+    name: string;
+    photoUrl: string | null;
+}
 import { AllChannels } from "../../types/channel";
 import { USER_STATUS } from "@api/types/usersStatusTypes";
 
 export const ChanColumn = () => {
     const navigate = useNavigate();
-    // const [allConversation, setallConversation] = useState<Conversation[]>([]);
     const [activeButton, setActiveButton] = useState<number | null>(null);
+    const [showChanPopUp, setShowChanPopUp] = useState(false);
+    const [showConvPopUp, setShowConvPopUp] = useState(false);
     const user = useGetUser();
+
+    const closePopup = () => {
+        setShowChanPopUp(false);
+    };
+
+    const handleClick = (buttonText: string) => {
+        switch (buttonText) {
+            case "channel":
+                setShowChanPopUp(true);
+                break;
+            case "conversation":
+                setShowConvPopUp(true);
+                break;
+        }
+    };
+
     const allDms = useQuery({
         queryKey: ["dms"],
         queryFn: async () => {
@@ -22,6 +51,14 @@ export const ChanColumn = () => {
             return res.data;
         },
     });
+
+    // const queryClient = useQueryClient();
+
+    // const onClick = () => {
+    //     queryClient.invalidateQueries({
+    //         "queryKey": ["allChannels"]
+    //     });
+    // }
 
     const allChannels = useQuery({
         queryKey: ["allChannels"],
@@ -59,10 +96,6 @@ export const ChanColumn = () => {
 
     return (
         <div className="bg-not-quite-black chan-column">
-            <div
-                className="bg-not-quite-black topbar-section border-b border-b-almost-black "
-                style={{ borderBottomWidth: "3px" }}
-            ></div>
             <div className="w-full item-center justify-center">
                 <div
                     onClick={() => handleButtonClick(-1)}
@@ -95,10 +128,21 @@ export const ChanColumn = () => {
                     </div>
                 </div>
             </div>
-            <div className="cell-chan font-bold text-greyple hover:text-white hover:rounded-md text-sm text-left flex items-center justify-between">
-                <div className="flex "> PRIVATE MESSAGES</div>
+            <div
+                onClick={() => handleClick("conversation")}
+                className="cell-chan font-bold text-greyple hover:text-white hover:rounded-md text-sm text-left flex items-center justify-between"
+                style={{ cursor: "pointer" }}
+            >
+                <button className="flex "> Create DM</button>
 
                 <span className="bloc text-right">+</span>
+            </div>
+            <div className="">
+                {showChanPopUp && (
+                    <ModalLayout>
+                        <ChanPopUp onClose={closePopup} />
+                    </ModalLayout>
+                )}
             </div>
             <div className="ml-5 text-left h-[300px] overflow-y-auto ">
                 <Collapsible title="Conversation">
@@ -123,6 +167,22 @@ export const ChanColumn = () => {
                         </Link>
                     ))}
                 </Collapsible>
+            </div>
+            <div
+                onClick={() => handleClick("channel")}
+                className="cell-chan font-bold text-greyple hover:text-white hover:rounded-md text-sm text-left flex items-center justify-between"
+                style={{ cursor: "pointer" }}
+            >
+                <button className="flex ">Create Channel</button>
+
+                <span className="bloc text-right">+</span>
+            </div>
+            <div className="">
+                {showChanPopUp && (
+                    <ModalLayout>
+                        <ChanPopUp onClose={closePopup} />
+                    </ModalLayout>
+                )}
             </div>
             <div className="ml-5 mt-2 text-left h-[370px] overflow-y-auto">
                 <Collapsible title="Channels">
@@ -158,9 +218,13 @@ export const ChanColumn = () => {
                     />
                     <div className="ml-[10px]">
                         <div className="font-bold text-left ">{user?.username}</div>
-                        <div className="text-green text-left">{user.status === USER_STATUS.ONLINE ? "Online"
-                                                                : user.status === USER_STATUS.PLAYING ? "Playing"
-                                                                : "Offline"}</div>
+                        <div className="text-green text-left">
+                            {user.status === USER_STATUS.ONLINE
+                                ? "Online"
+                                : user.status === USER_STATUS.PLAYING
+                                ? "Playing"
+                                : "Offline"}
+                        </div>
                     </div>
                 </div>
                 <div className="flex justify-end">

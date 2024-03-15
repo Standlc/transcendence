@@ -27,6 +27,7 @@ import {
 import { ChannelService } from './channel.service';
 import {
   ChannelCreationData,
+  ChannelDataWithUsersWithoutPassword,
   ChannelDataWithoutPassword,
   ChannelUpdate,
   MessageWithSenderInfo,
@@ -159,6 +160,12 @@ export class UserController {
                 avatarUrl: {
                   type: 'string',
                 },
+                rating: {
+                  type: 'number',
+                },
+                status: {
+                  type: 'number',
+                },
               },
             },
           },
@@ -278,6 +285,26 @@ export class UserController {
         photoUrl: {
           type: 'string | null',
         },
+        schema: {
+          type: 'object',
+          properties: {
+            userId: {
+              type: 'number',
+            },
+            username: {
+              type: 'string',
+            },
+            avatarUrl: {
+              type: 'string',
+            },
+            rating: {
+              type: 'number',
+            },
+            status: {
+              type: 'number',
+            },
+          },
+        },
       },
     },
   })
@@ -286,7 +313,7 @@ export class UserController {
   @Get(':channelId/channel')
   async getChannel(
     @Param('channelId') channelId: number,
-  ): Promise<ChannelDataWithoutPassword> {
+  ): Promise<ChannelDataWithUsersWithoutPassword> {
     console.log('GET: Recieved channelId:', channelId);
     return await this.channelService.getChannel(channelId);
   }
@@ -379,6 +406,7 @@ export class UserController {
   @Get('/public')
   async getAllPublicChannels(@Request() req): Promise<PublicChannel[]> {
     const userId: number = req.user.id;
+    console.log('public');
     return await this.channelService.getAllPublicChannels(userId);
   }
 
@@ -399,18 +427,18 @@ export class UserController {
     return await this.channelService.joinUserToChannel(userId, channelId);
   }
 
-    //#region Get Photo
+  //#region Get Photo
 
-    @ApiOperation({summary: "Get the photoUrl using fileId"})
-    @ApiCookieAuth()
-    @ApiParam({name: 'fileId', description: 'Should start with /api/channels'})
-    @ApiOkResponse({description: "Image file"})
-    @ApiNotFoundResponse({description: "No such file exist"})
-    @UseGuards(JwtAuthGuard)
-    @Get('photo/:fileId')
-    async getPhoto(@Param('fileId') fileId, @Res() res) {
-      res.sendFile(fileId, { root: './public/channels' });
-    }
+  @ApiOperation({ summary: 'Get the photoUrl using fileId' })
+  @ApiCookieAuth()
+  @ApiParam({ name: 'fileId', description: 'Should start with /api/channels' })
+  @ApiOkResponse({ description: 'Image file' })
+  @ApiNotFoundResponse({ description: 'No such file exist' })
+  @UseGuards(JwtAuthGuard)
+  @Get('photo/:fileId')
+  async getPhoto(@Param('fileId') fileId, @Res() res) {
+    res.sendFile(fileId, { root: './public/channels' });
+  }
 
-    //#endregion
+  //#endregion
 }

@@ -1,45 +1,45 @@
 import { useState, useEffect, useRef } from "react";
-import io from "socket.io-client";
+import io, { Socket } from "socket.io-client";
 import { Avatar } from "../../UIKit/avatar/Avatar";
 import { useNavigate, useParams } from "react-router-dom";
-import ModalLayout from "../../UIKit/ModalLayout";
-import { UserPopup } from "../../components/ProfilPopUp";
 import { useGetUser } from "../../utils/useGetUser";
 import axios from "axios";
-import { useQuery } from "@tanstack/react-query";
-import { NotificationBox } from "../../components/NotificationBox";
-import { AllUserDm } from "../../types/allUserDm";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { UserConversation } from "@api/types/channelsSchema";
 import { MessageDm } from "../../types/messageDm";
 import TextArea from "../../UIKit/TextArea";
+import { UserDirectMessage } from "@api/types/clientSchema";
 
 const Chat = () => {
     const { dmId } = useParams();
     const user = useGetUser();
     const navigate = useNavigate();
-    const socketRef = useRef<any>(null);
-    const [realTimeMessages, setRealTimeMessages] = useState<MessageDm[]>([]);
+    const socketRef = useRef<Socket>();
+    // const [realTimeMessages, setRealTimeMessages] = useState<MessageDm[]>([]);
     const [textAreaValue, setTextAreaValue] = useState("");
+    const queryClient = useQueryClient();
+    const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-    const allUsers = useQuery({
+    const conversation = useQuery({
         queryKey: ["conversationAllUser"],
         queryFn: async () => {
-            const res = await axios.get<AllUserDm>(`/api/dm/${dmId}`);
+            const res = await axios.get<UserConversation>(`/api/dm/${dmId}`);
             return res.data;
         },
     });
 
-    const otherUser = allUsers.data
-        ? allUsers.data.user1.userId === user?.id
-            ? allUsers.data.user2
-            : allUsers.data.user1
+    useEffect(() => {
+        console.log(conversation.data);
+    }, [conversation.data]);
+
+    const otherUser = conversation.data
+        ? conversation.data.user1.userId === user?.id
+            ? conversation.data.user2
+            : conversation.data.user1
         : null;
 
-    if (!allUsers.data) {
-        return <div>Loading...</div>;
-    }
-
     const allMessages = useQuery<MessageDm[]>({
-        queryKey: ["allMessages"],
+        queryKey: ["allMessages", dmId],
         queryFn: async (): Promise<MessageDm[]> => {
             if (!dmId) {
                 return [];
@@ -50,55 +50,66 @@ const Chat = () => {
         enabled: !!dmId,
     });
 
-    if (allMessages.isLoading || !allMessages.data) {
-        return <div>Loading...</div>;
-    }
-
     useEffect(() => {
         const socket = io("/dm");
         socketRef.current = socket;
-
-        socket.on("connect", () => console.log("Connected to server"));
-        socket.on("connect_error", (error) =>
-            console.error("Connection error:", error)
-        );
-        socket.on("connect_timeout", (timeout) =>
-            console.error("Connection timeout:", timeout)
-        );
-
-        if (dmId) {
-            socket.emit("joinConversation", { conversationId: dmId });
-
-            socket.on("getDirectMessages", (newMessages) => {
-                console.log("Received new messages:", newMessages);
-                setRealTimeMessages((prevMessages) => [
-                    ...prevMessages,
-                    ...newMessages,
-                ]);
-            });
-
-            socket.on("createDirectMessage", (newMessage) => {
-                console.log("Received new message:", newMessage);
-                const newTimestamp = new Date().toISOString();
-                const updatedMessage = { ...newMessage, createdAt: newTimestamp };
-                setRealTimeMessages((prevMessages) => [
-                    ...prevMessages,
-                    updatedMessage,
-                ]);
-                socketRef.current = socket;
-            });
-        }
-
         return () => {
             if (socketRef.current) {
                 socketRef.current.disconnect();
             }
         };
-    }, [dmId]);
+    }, []);
 
     useEffect(() => {
-        console.log("realTimeMessages updated:", realTimeMessages);
-    }, [realTimeMessages]);
+        if (!socketRef.current) return;
+
+        socketRef.current.on("connect", () => console.log("Connected to server"));
+        socketRef.current.on("connect_error", (error) =>
+            console.error("Connection error:", error)
+        );
+        socketRef.current.on("connect_timeout", (timeout) =>
+            console.error("Connection timeout:", timeout)
+        );
+
+        if (dmId) {
+            socketRef.current.emit("joinConversation", { conversationId: dmId });
+
+            socketRef.current.on(
+                "createDirectMessage",
+                (newMessage: UserDirectMessage) => {
+                    if (!conversation.data) return;
+                    const messageUser =
+                        conversation.data.user1.userId === newMessage.senderId
+                            ? conversation.data.user1
+                            : conversation.data.user2;
+                    const pushedMessage: MessageDm = {
+                        avatarUrl: messageUser.avatarUrl,
+                        conversationId: newMessage.conversationId,
+                        messageId: newMessage.id,
+                        username: messageUser.username,
+                        senderIsBlocked: conversation.data.isBlocked,
+                        senderId: newMessage.senderId,
+                        createdAt: newMessage.createdAt,
+                        content: newMessage.content,
+                    };
+
+                    queryClient.setQueryData<MessageDm[]>(
+                        ["allMessages", dmId],
+                        (prev) => {
+                            if (!prev) return [pushedMessage];
+                            return [...prev, pushedMessage];
+                        }
+                    );
+                }
+            );
+        }
+    }, [dmId, conversation.data]);
+
+    useEffect(() => {
+        if (messagesEndRef.current && allMessages.data && allMessages.data.length > 0) {
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [allMessages.data]);
 
     const sendMessage = () => {
         if (textAreaValue.trim() && dmId && socketRef.current) {
@@ -110,7 +121,7 @@ const Chat = () => {
 
             socketRef.current.emit("createDirectMessage", messageData);
 
-            setTextAreaValue(""); // Réinitialiser la valeur du TextArea après envoi
+            setTextAreaValue("");
         }
     };
 
@@ -126,7 +137,7 @@ const Chat = () => {
     };
 
     const shouldDisplayAvatarAndTimestamp = (currentIndex: number): boolean => {
-        if (currentIndex === 0) {
+        if (currentIndex === 0 || !allMessages.data) {
             return true;
         }
 
@@ -137,7 +148,7 @@ const Chat = () => {
     };
 
     const shouldDisplayUsername = (currentIndex: number): boolean => {
-        if (currentIndex === 0) {
+        if (currentIndex === 0 || !allMessages.data) {
             return true;
         }
 
@@ -147,50 +158,25 @@ const Chat = () => {
         return previousMessage.senderId !== currentMessage.senderId;
     };
 
-    const shouldDisplayAvatarAndTimestampRT = (currentIndex: number): boolean => {
-        if (currentIndex === 0) {
-            return true;
-        }
-
-        const previousMessage = realTimeMessages[currentIndex - 1];
-        const currentMessage = realTimeMessages[currentIndex];
-
-        return previousMessage?.senderId !== currentMessage?.senderId;
-    };
-
-    const shouldDisplayUsernameRT = (currentIndex: number): boolean => {
-        if (currentIndex === 0) {
-            return true;
-        }
-
-        const previousMessage = realTimeMessages[currentIndex - 1];
-        const currentMessage = realTimeMessages[currentIndex];
-
-        return previousMessage?.senderId !== currentMessage?.senderId;
-    };
-
     const renderMessages = () => {
-        return (allMessages.data ?? []).map((msg, index) => (
-            <div className="mt-[20px]" key={index}>
+        return allMessages.data?.map((msg, index) => (
+            <div
+                className="mt-[20px]"
+                key={index}
+                ref={index === allMessages.data.length - 1 ? messagesEndRef : null}
+            >
                 <div className="flex">
                     {shouldDisplayAvatarAndTimestamp(index) && (
                         <div className="flex">
-                            {msg.avatarUrl ? (
-                                <img
-                                    src={msg.avatarUrl}
-                                    className="h-[50px] w-[50px] rounded-full"
-                                />
-                            ) : (
-                                <img
-                                    src={"/default-avatar.png"}
-                                    className="h-[50px] w-[50px] rounded-full"
-                                />
-                            )}
+                            <Avatar
+                                imgUrl={msg.avatarUrl}
+                                userId={msg.senderId}
+                                size="md"
+                                borderRadius={0.5}
+                            />
                             {shouldDisplayUsername(index) && (
                                 <div className="font-bold ml-[30px]">
-                                    {msg.senderId === user?.id
-                                        ? user?.username
-                                        : otherUser?.username}
+                                    {msg.username}
                                 </div>
                             )}
                         </div>
@@ -216,61 +202,10 @@ const Chat = () => {
         ));
     };
 
-    const renderRealTimeMessages = () => {
-        return realTimeMessages.map((msg, index) => (
-            <div className="mt-[20px]" key={index}>
-                <div className="flex">
-                    {shouldDisplayAvatarAndTimestampRT(index) && (
-                        <div className="flex">
-                            {msg.avatarUrl ? (
-                                <img
-                                    src={msg.avatarUrl}
-                                    className="h-[50px] w-[50px] rounded-full"
-                                />
-                            ) : (
-                                <img
-                                    src={"/default-avatar.png"}
-                                    className="h-[50px] w-[50px] rounded-full"
-                                />
-                            )}
-                            {shouldDisplayUsernameRT(index) && (
-                                <div className="font-bold ml-[30px]">
-                                    {msg.senderId === user?.id
-                                        ? user?.username
-                                        : otherUser?.username}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {shouldDisplayAvatarAndTimestampRT(index) && (
-                        <div className="ml-[10px] mt-[4px] text-[13px]">
-                            {new Date(msg.createdAt).toLocaleString(undefined, {
-                                year: "numeric",
-                                month: "2-digit",
-                                day: "2-digit",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                second: "2-digit",
-                            })}
-                        </div>
-                    )}
-                </div>
-                <div className="mt-[-15px] block text-md ml-[80px]  ">
-                    {msg.content}
-                </div>
-            </div>
-        ));
-    };
-
     const [isPopupOpen, setIsPopupOpen] = useState(false);
 
     const openPopup = () => {
         setIsPopupOpen(true);
-    };
-
-    const closePopup = () => {
-        setIsPopupOpen(false);
     };
 
     const handleClickPlay = () => {
@@ -281,9 +216,12 @@ const Chat = () => {
         return <div>Please select a conversation to start chatting.</div>;
     }
 
-    console.log("realTimeMessages", realTimeMessages);
+    if (!conversation.data) {
+        return <div>Loading...</div>;
+    }
+
     return (
-        <div className="w-full bg-discord-light-grey">
+        <div className="w-full flex flex-col bg-discord-light-grey">
             <div
                 className="bg-discord-greyple topbar-section border-b border-b-almost-black"
                 style={{ borderBottomWidth: "3px" }}
@@ -295,6 +233,7 @@ const Chat = () => {
                                 imgUrl={otherUser?.avatarUrl}
                                 size="md"
                                 userId={otherUser?.userId ?? 0}
+                                borderRadius={0.5}
                             />
                         </div>
                         <div className="ml-2 mt-4 font-bold text-xl">
@@ -310,21 +249,12 @@ const Chat = () => {
                             </button>
                         </div>
                     </div>
-                    <div>
-                        <NotificationBox />
-                    </div>
                 </div>
             </div>
-            <div className="flex justify-center">
-                {isPopupOpen && otherUser && (
-                    <ModalLayout>
-                        <UserPopup user={otherUser} onClose={closePopup} />
-                    </ModalLayout>
-                )}
-            </div>
-            <div className="text-white text-left h-[800px] w-[1400px] ml-[20px] overflow-auto">
+
+            <div className="text-white text-left h-[750px] w-auto ml-[20px] overflow-auto">
                 {renderMessages()}
-                {renderRealTimeMessages()}
+                {/* {renderRealTimeMessages()} */}
             </div>
 
             <div className="bg-discord-dark-grey mt-auto p-2 rounded-lg ml-5 mr-5 mb-5">

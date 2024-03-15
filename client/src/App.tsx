@@ -1,9 +1,9 @@
 import {
-  Route,
-  RouterProvider,
-  createBrowserRouter,
-  createRoutesFromElements,
-  Navigate,
+    Route,
+    RouterProvider,
+    createBrowserRouter,
+    createRoutesFromElements,
+    Navigate,
 } from "react-router-dom";
 import PrivateLayout from "./components/PrivateLayout";
 import PublicLayout from "./components/PublicLayout";
@@ -20,67 +20,73 @@ import { Settings } from "./pages/Settings/subComponents/Settings";
 import { AppUser } from "@api/types/clientSchema";
 import { ChannelsLayout } from "./components/ChannelsLayout";
 import Chat from "./pages/Chat/Chat";
-import { Channel } from "./pages/Channel";
 import { ExplorePage } from "./pages/ExplorePage";
 import { PlayPageLayout } from "./components/playPage/PlayPageLayout";
+import { Channel } from "./pages/Channel/Channel";
 
 function App() {
-  const getUser = useQuery({
-    queryKey: ["user"],
-    retry: false,
-    queryFn: async () => {
-      const res = await axios.get<AppUser>("/api/auth/token");
-      return res.data;
-    },
-  });
+    const getUser = useQuery({
+        queryKey: ["user"],
+        retry: false,
+        queryFn: async () => {
+            const res = await axios.get<AppUser>("/api/auth/token");
+            return res.data;
+        },
+    });
 
-  if (getUser.isLoading) {
-    return <div className="">Loading...</div>;
-  }
+    if (getUser.isLoading) {
+        return <div className="">Loading...</div>;
+    }
 
-  return (
-    <RouterProvider
-      router={createBrowserRouter(
-        createRoutesFromElements(
-          <>
-            <Route
-              element={<PrivateLayout user={getUser.data} />}
-              errorElement={<Navigate to="/home" />}
-            >
-              <Route path="/home" element={<ChannelsLayout />}>
-                <Route path="friends" element={<Friends />} />
-                <Route path="channels/:channelId" element={<Channel />}></Route>
-                <Route path="dm/:dmId" element={<Chat />}></Route>
-              </Route>
+    return (
+        <RouterProvider
+            router={createBrowserRouter(
+                createRoutesFromElements(
+                    <>
+                        <Route
+                            element={<PrivateLayout user={getUser.data} />}
+                            errorElement={<Navigate to="/home" />}
+                        >
+                            <Route path="/home" element={<ChannelsLayout />}>
+                                <Route path="friends" element={<Friends />} />
+                                <Route
+                                    path="channels/:channelId"
+                                    element={<Channel />}
+                                ></Route>
+                                <Route path="dm/:dmId" element={<Chat />}></Route>
+                            </Route>
 
-              <Route path="/play/game/:gameId" element={<GamePage />} />
-              <Route path="/play" element={<PlayPageLayout />}>
-                <Route index element={<Navigate to="game" />}></Route>
-                <Route path="game" element={<PlayPage />} />
-                <Route path="leaderboard" element={<LeaderboardPage />} />
-                <Route path="live" element={<LiveGamesPage />} />
-              </Route>
+                            <Route path="/play/game/:gameId" element={<GamePage />} />
+                            <Route path="/play" element={<PlayPageLayout />}>
+                                <Route index element={<Navigate to="game" />}></Route>
+                                <Route path="game" element={<PlayPage />} />
+                                <Route
+                                    path="leaderboard"
+                                    element={<LeaderboardPage />}
+                                />
+                                <Route path="live" element={<LiveGamesPage />} />
+                            </Route>
 
-              <Route path="/explore" element={<ExplorePage />} />
+                            <Route path="/explore" element={<ExplorePage />} />
 
-              <Route
-                path="/settings"
-                element={<Settings user={getUser.data} />}
-              />
-            </Route>
+                            <Route
+                                path="/settings"
+                                element={<Settings user={getUser.data} />}
+                            />
+                        </Route>
 
-            <Route
-              element={<PublicLayout />}
-              errorElement={<Navigate to="/login" />}
-            >
-              <Route path="/login" element={<Login />} />
-              <Route path="/create-account" element={<Register />} />
-            </Route>
-          </>
-        )
-      )}
-    />
-  );
+                        <Route
+                            element={<PublicLayout />}
+                            errorElement={<Navigate to="/login" />}
+                        >
+                            <Route path="/login" element={<Login />} />
+                            <Route path="/create-account" element={<Register />} />
+                        </Route>
+                    </>
+                )
+            )}
+        />
+    );
 }
 
 export default App;

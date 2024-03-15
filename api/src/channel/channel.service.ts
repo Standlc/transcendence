@@ -18,27 +18,46 @@ import {
 import * as bcrypt from 'bcrypt';
 import { Utils } from './utilsChannel.service';
 import { unlink } from 'fs/promises';
+import { UsersStatusGateway } from 'src/usersStatusGateway/UsersStatus.gateway';
 
 @Injectable()
 export class ChannelService {
-  constructor(private readonly utilsChannelService: Utils) {}
+  constructor(
+    private readonly utilsChannelService: Utils,
+    private readonly usersStatusGateway: UsersStatusGateway,
+  ) {}
 
-  async setPhoto(userId: number, channelId: number, path: string): Promise<ChannelWithoutPsw> {
+  async setPhoto(
+    userId: number,
+    channelId: number,
+    path: string,
+  ): Promise<ChannelWithoutPsw> {
     // ? Check if user is Admin Owner
-    if (!await this.utilsChannelService.userIsAdmin(userId, channelId) && !await this.utilsChannelService.userIsOwner(userId, channelId)) {
+    if (
+      !(await this.utilsChannelService.userIsAdmin(userId, channelId)) &&
+      !(await this.utilsChannelService.userIsOwner(userId, channelId))
+    ) {
       await unlink(path.replace('/api/channels/', ''));
-      throw new UnprocessableEntityException("user is not channel admin nor owner");
+      throw new UnprocessableEntityException(
+        'user is not channel admin nor owner',
+      );
     }
 
     try {
       const result = await db
-      .selectFrom('channel')
-      .select('photoUrl')
-      .where('id', '=', channelId)
-      .executeTakeFirst();
+        .selectFrom('channel')
+        .select('photoUrl')
+        .where('id', '=', channelId)
+        .executeTakeFirst();
       try {
-        if (result != undefined && result.photoUrl != null && result.photoUrl.includes(`/api/channels`, 0)) {
-          await unlink(result.photoUrl.replace(`/api/channels/photo`, 'public/channels/'));
+        if (
+          result != undefined &&
+          result.photoUrl != null &&
+          result.photoUrl.includes(`/api/channels`, 0)
+        ) {
+          await unlink(
+            result.photoUrl.replace(`/api/channels/photo`, 'public/channels/'),
+          );
         }
       } catch (error) {
         console.log(error);
@@ -49,16 +68,16 @@ export class ChannelService {
 
     try {
       const result = await db
-      .updateTable('channel')
-      .set('photoUrl', path.replace('public/channels/', 'photo/'))
-      .where('channel.id', '=', channelId)
-      .executeTakeFirst();
+        .updateTable('channel')
+        .set('photoUrl', path.replace('public/channels/', 'photo/'))
+        .where('channel.id', '=', channelId)
+        .executeTakeFirst();
       const channel = await db
-      .selectFrom('channel')
-      .selectAll()
-      .where('id', '=', channelId)
-      .executeTakeFirstOrThrow();
-      const {password, ...channelWithoutPsw} = channel;
+        .selectFrom('channel')
+        .selectAll()
+        .where('id', '=', channelId)
+        .executeTakeFirstOrThrow();
+      const { password, ...channelWithoutPsw } = channel;
       return channelWithoutPsw;
     } catch (error) {
       console.log(error);
@@ -279,7 +298,6 @@ export class ChannelService {
   //
   //
   //
-  
   async deleteChannel(channelId: number, userId: number): Promise<string> {
     try {
       await this.utilsChannelService.channelExists(channelId);
@@ -305,6 +323,18 @@ export class ChannelService {
           .execute();
         await trx.deleteFrom('channel').where('id', '=', channelId).execute();
       });
+
+      // Delete photo
+      const photoUrl = await db
+        .selectFrom('channel')
+        .select('photoUrl')
+        .where('id', '=', channelId)
+        .executeTakeFirst(); //Recupere photoUrl
+      if (photoUrl && photoUrl.photoUrl) {
+        await unlink(
+          photoUrl.photoUrl.replace(`/api/channels/photo`, 'public/channels/'),
+        ); //Unlink permet de faire comme la commande `rm`
+      }
     } catch (error) {
       throw new InternalServerErrorException();
     }
@@ -390,7 +420,10 @@ export class ChannelService {
   //
   //
   //
-  async getChannel(channelId: number): Promise<ChannelDataWithoutPassword> {
+  // !!! replacing Promise type
+  async getChannel(
+    channelId: number,
+  ): Promise<ChannelDataWithUsersWithoutPassword> {
     try {
       await this.utilsChannelService.channelExists(channelId);
     } catch (error) {
@@ -398,21 +431,61 @@ export class ChannelService {
     }
 
     try {
-      const channel = (await db
+      const result = await db
         .selectFrom('channel')
-        .where('id', '=', channelId)
+        .where('channel.id', '=', channelId)
+        .leftJoin('channelMember', 'channel.id', 'channelMember.channelId')
+        .leftJoin('user', 'channelMember.userId', 'user.id')
         .select([
-          'channelOwner',
-          'createdAt',
-          'id',
-          'isPublic',
-          'name',
-          'photoUrl',
+          'channel.channelOwner',
+          'channel.createdAt',
+          'channel.id',
+          'channel.isPublic',
+          'channel.name',
+          'channel.photoUrl',
+          'user.id as userId',
+          'user.username',
+          'user.avatarUrl',
+          'user.rating',
         ])
-        .executeTakeFirst()) as ChannelDataWithoutPassword;
+        .execute();
 
-      return channel;
+      if (result.length === 0) {
+        throw new NotFoundException('Channel not found');
+      }
+
+      const channelInfo = result[0];
+      const users = result.map((user) => ({
+        userId: user.userId,
+        username: user.username,
+        avatarUrl: user.avatarUrl,
+        rating: user.rating,
+        status: this.usersStatusGateway.getUserStatus(user.userId as number),
+      }));
+
+      const channelData: ChannelDataWithUsersWithoutPassword = {
+        channelOwner: channelInfo.channelOwner,
+        createdAt: channelInfo.createdAt,
+        id: channelInfo.id,
+        isPublic: channelInfo.isPublic,
+        name: channelInfo.name as string,
+        photoUrl: channelInfo.photoUrl,
+        users: users.map((user) => ({
+          userId: user.userId as number,
+          username: user.username as string,
+          avatarUrl: user.avatarUrl as string,
+          rating: user.rating as number,
+          status: user.status,
+        })),
+      };
+
+      console.log('channelData:', channelData.users);
+
+      return channelData;
     } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       throw new InternalServerErrorException();
     }
   }
@@ -456,7 +529,12 @@ export class ChannelService {
         const usersInfo = await db
           .selectFrom('channelMember')
           .leftJoin('user', 'channelMember.userId', 'user.id')
-          .select(['channelMember.userId', 'user.username', 'user.avatarUrl'])
+          .select([
+            'channelMember.userId',
+            'user.username',
+            'user.avatarUrl',
+            'user.rating',
+          ])
           .where('channelMember.channelId', '=', channelInfo.id)
           .execute();
 
@@ -471,6 +549,10 @@ export class ChannelService {
             userId: userInfo.userId,
             username: userInfo.username as string,
             avatarUrl: userInfo.avatarUrl as string,
+            rating: userInfo.rating as number,
+            status: this.usersStatusGateway.getUserStatus(
+              userInfo.userId as number,
+            ),
           })),
         };
         channelsWithUsers.push(channelWithUsers);

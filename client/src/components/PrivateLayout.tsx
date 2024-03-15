@@ -12,28 +12,30 @@ import { GameRequestModal } from "./GameRequestModal";
 import { GameInvitationModal } from "./GameInvitationsModal";
 import { AppUser } from "@api/types/clientSchema";
 import { NavBar } from "./Navbar/Navbar";
+import { useChatSocket } from "../utils/useChatSocket";
 import { RejoinGameNotification } from "./RejoinGameNotification";
 import { UserProfileContext } from "../ContextsProviders/UserProfileIdContext";
 import { useState } from "react";
 import { ProfileModal } from "./profile/ProfileModal";
 
 interface PrivateLayoutProps {
-    user: AppUser  | undefined;
+    user: AppUser | undefined;
 }
 
 export default function PrivateLayout({ user }: PrivateLayoutProps) {
     if (!user) {
-        return <Navigate to="/login"/>
+        return <Navigate to="/login" />;
     }
 
     const { error, addError, removeCurrentError } = useErrorQueue();
     const { gameSocket, gameSocketOn, gameSocketOff } = useGameSocket(addError);
     const { usersStatusSocket, addHandler, removeHandler } =
         useUsersStatusSocket(addError);
+    const { chatSocket } = useChatSocket(addError);
     const [gameSettings, upadteGameSetting] = useGamePreferences();
     const [userProfileId, setUserProfileId] = useState<number>();
 
-    if (!gameSocket || !usersStatusSocket) {
+    if (!gameSocket || !usersStatusSocket || !chatSocket) {
         // todo: add a nice loader like Discord before connection is established
         return (
             <ErrorContext.Provider value={{ error, addError, removeCurrentError }}>
@@ -52,13 +54,16 @@ export default function PrivateLayout({ user }: PrivateLayoutProps) {
                     usersStatusSocket,
                     addUsersStatusHandler: addHandler,
                     removeUsersStatusHandler: removeHandler,
+                    chatSocket,
                 }}
             >
                 <ErrorContext.Provider value={{ error, addError, removeCurrentError }}>
                     <GameSettingsContext.Provider
                         value={{ gameSettings, upadteGameSetting }}
                     >
-                        <UserProfileContext.Provider value={{userProfileId, setUserProfileId}}>
+                        <UserProfileContext.Provider
+                            value={{ userProfileId, setUserProfileId }}
+                        >
                             <div className="flex min-h-[100vh] w-full h-full">
                                 <NavBar />
                                 {error && <ErrorModal />}
