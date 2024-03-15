@@ -35,8 +35,6 @@ export const Channel = () => {
         }
     };
 
-
-
     const quitChannel = () => {
         if (channelId) {
             console.log("Attempting to quit channelId:", channelId);
@@ -92,71 +90,48 @@ export const Channel = () => {
     useEffect(() => {
         if (!channelId) return;
 
-        const handleQuitManagement = (respone: string) => {
-            const regex = /User (\d+) quit the channel/;
-            const matches = respone.match(regex);
-            if (matches) {
-                const userId = parseInt(matches[1], 10);
-                console.log("userId", userId);
-                if (user.id === userId) {
+        const handleMessage = (response: string) => {
+            if (response.includes("quit the channel")) {
+                console.log("JE QUITTE PAR ICI" );
+                const userIdMatch = response.match(/User (\d+) quit the channel/);
+                const userId = userIdMatch ? parseInt(userIdMatch[1], 10) : 0;
+                if (userId === user?.id) {
                     navigate("/home");
+                    queryClient.invalidateQueries({ queryKey: ["chanInfo", channelId]});
+                    queryClient.invalidateQueries({ queryKey: ["allMessagesChan", channelId]});
                 }
-                queryClient.invalidateQueries({
-                    queryKey: ["chanInfo", channelId],
-                });
-                queryClient.invalidateQueries({ queryKey : ["channels"]});
             }
-        };
-
-        const handleUserManagement = (response: string) => {
-            const regex = /User (\d+) has been (\w+)/;
-            const matches = response.match(regex);
-
-            if (matches) {
-                const userId = parseInt(matches[1], 10);
-                const action = matches[2];
-                if (user.id === userId) {
-                    let actionMessage = "";
+        
+            const adminActionMatch = response.match(/User (\d+) has been (\w+)/);
+            if (adminActionMatch) {
+                const userIdStr = adminActionMatch[1];
+                const action = adminActionMatch[2];
+            
+                const userId = parseInt(userIdStr, 10);
+                if (userId === user?.id) {
+                    let actionMessage = `You have been ${action}.`;
                     switch (action) {
                         case "kicked":
                         case "banned":
-                            actionMessage = `You have been ${action}`;
                             alert(actionMessage);
                             navigate("/home");
                             break;
                         case "muted":
-                            actionMessage = "You have been muted";
+                            alert(actionMessage);
                             setIsMuted(true);
+                            actionMessage = "You have been muted.";
                             break;
                     }
+         
+                    queryClient.invalidateQueries({queryKey : ["chanInfo", channelId]});
+                    queryClient.invalidateQueries({queryKey  : ["allMessagesChan", channelId]});
                 }
             }
-            queryClient.invalidateQueries({
-                queryKey: ["chanInfo", channelId],
-            });
-            console.log("UPDATED", chanInfo.data);
         };
 
-        chatSocket.on("leaveChannel", (data) => {
-            console.log("leaveChannel", data);
-        });
-
-        chatSocket.on("message", handleQuitManagement);
-        chatSocket.emit("joinChannel", { channelId });
-
-        chatSocket.on("message", (data) => {
-            console.log("message " + data);
-        });
-
-        chatSocket.on("joinChannel", () => {
-            console.log("Connected to Channel");
-        });
-
-        chatSocket.on("message", handleUserManagement);
         const handleMessageCreation = (newMessage: ChannelMessage) => {
-            // console.log("newMessage", newMessage);
-            if (!chanInfo.data) return;
-
+            if (!channelId) return;
+            console.log("newMessage", newMessage);
             const messageUser = findUserById(newMessage);
             const pushedMessage: ChannelMessages = {
                 avatarUrl: messageUser?.avatarUrl ?? null,
@@ -172,14 +147,23 @@ export const Channel = () => {
             );
         };
 
+        chatSocket.on("leaveChannel", (data) => {
+            console.log("leaveChannel", data);
+        });
+        chatSocket.on("message", handleMessage);
+        chatSocket.emit("joinChannel", { channelId });
+        chatSocket.on("joinChannel", () => {
+            console.log("Connected to Channel");
+        });
         chatSocket.on("createChannelMessage", handleMessageCreation);
 
         return () => {
             chatSocket.off("message");
             chatSocket.off("joinChannel");
-            chatSocket.off("createChannelMessage", handleMessageCreation);
+            chatSocket.off("createChannelMessage");
+            chatSocket.off("leaveChannel");
         };
-    }, [channelId, chatSocket, queryClient, chanInfo.data]);
+    }, [channelId, chatSocket, user, allMessagesChan]);
 
     const sendMessage = () => {
         if (textAreaValue.trim() && channelId) {

@@ -51,6 +51,17 @@ senderIsBlocked: boolean
 }
 
 
+export interface ChannelNewMessage {
+    avatarUrl: string | null;
+    content: string | null;
+    conversationId: number;
+    createdAt: Date;
+    messageId: number;
+    senderId: number;
+    senderIsBlocked: boolean;
+    username: string;
+}
+
 export interface getChannelInfo {
     channelOwner: number;
     createdAt: Date;

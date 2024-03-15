@@ -30,7 +30,6 @@ export default function TextArea({
         area.current.setAttribute("rows", "");
     }, [value]);
 
-    console.log("disabled", disabled);
     return (
         <textarea
             rows={1}

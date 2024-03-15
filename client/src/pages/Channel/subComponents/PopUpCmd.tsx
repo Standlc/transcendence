@@ -13,6 +13,7 @@ interface Props {
     chanInfo: CreateChannelResponse | undefined;
     chatSocket: Socket;
     currentUser: AppUser;
+    
 }
 
 export const PopUpCmd: React.FC<Props> = ({
@@ -108,11 +109,11 @@ export const PopUpCmd: React.FC<Props> = ({
                             ]);
                         }
                         // TODO not leave but send message
-                        userActions.push({
-                            label: "send message",
-                            onClick: () => doCmds("Leave", user.userId),
-                            color: "base",
-                        });
+                        // userActions.push({
+                        //     label: "send message",
+                        //     onClick: () => doCmds("Leave", user.userId),
+                        //     color: "base",
+                        // });
                         return (
                             <li key={user.userId}>
                                 <div className="flex justify-between items-center hover:bg-white hover:bg-opacity-5 hover:rounded-md px-5 py-2">
@@ -130,7 +131,7 @@ export const PopUpCmd: React.FC<Props> = ({
                                             {user.username}
                                         </div>
                                     </div>
-                                    <div className="items-center flex bg-black bg-opacity-30 hover:bg-black hover:bg-opacity-70 rounded-full px-2 py-2">
+                                    <div className="">
                                         <ActionsMenu actions={userActions} />
                                     </div>
                                 </div>
