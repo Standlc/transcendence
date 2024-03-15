@@ -631,34 +631,9 @@ export class SocketService {
   //
   //
   async quitChannelAsOwner(userId: number, channelId: number): Promise<void> {
-    if ((await this.isOnlyOneMember(channelId)) === true) {
-      console.log('Is only one member');
-      await this.channelService.deleteChannel(channelId, userId);
-      console.log('Quit channel as owner = done');
-      return;
-    }
-    console.log('User not alone in channel');
-
-    //if has other admins, set the first admin as the new owner
-    if ((await this.hasAdmins(channelId)) === true) {
-      try {
-        await this.setFirstAdminAsOwner(userId, channelId);
-        await this.deleteFromChannelAdmin(userId, channelId);
-        await this.deleteFromChannelMember(userId, channelId);
-      } catch (error) {
-        console.log(error);
-      }
-      console.log('Owner left, set another admin as owner');
-      return;
-    }
-    console.log('There is no admins other than the owner');
-
-    //if there is no admins, set the first member as the new owner
     try {
-      const newOwnerId = await this.setFirstMemberAsOwner(userId, channelId);
-      await this.deleteFromChannelAdmin(userId, channelId);
-      await this.deleteFromChannelMember(userId, channelId);
-      await this.addNewAdmin(newOwnerId, channelId);
+      await this.channelService.deleteChannel(channelId, userId);
+      console.log('Quit channel as owner');
     } catch (error) {
       console.log(error);
     }

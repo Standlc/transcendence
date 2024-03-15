@@ -530,58 +530,6 @@ export class ChannelGateway
     }
   }
 
-  // //
-  // //
-  // //
-  // //blocked user can still send messages but the user who blocked cannot see them
-  // //blocked works for all the channels
-  // @SubscribeMessage('blockUser')
-  // async handleBlockUser(
-  //   @ConnectedSocket() socket: Socket,
-  //   @MessageBody() payload: { targetUserId: number },
-  // ) {
-  //   try {
-  //     this.connectedUsersService.verifyConnection(socket);
-  //   } catch (error) {
-  //     console.error(error);
-  //     throw new WsException('User did not join channel room');
-  //   }
-
-  //   const userId = socket.data.id;
-
-  //   try {
-  //     await this.socketService.blockUser(userId, payload.targetUserId);
-  //   } catch (error) {
-  //     console.error(error);
-  //     throw new WsException('Could not block user');
-  //   }
-  // }
-
-  // //
-  // //
-  // //
-  // @SubscribeMessage('unblockUser')
-  // async hadleUnblockUser(
-  //   @ConnectedSocket() socket: Socket,
-  //   @MessageBody() payload: { targetUserId: number },
-  // ) {
-  //   try {
-  //     this.connectedUsersService.verifyConnection(socket);
-  //   } catch (error) {
-  //     console.error(error);
-  //     throw new WsException('User did not join channel room');
-  //   }
-
-  //   const userId = socket.data.id;
-
-  //   try {
-  //     await this.socketService.unblockUser(userId, payload.targetUserId);
-  //   } catch (error) {
-  //     console.error(error);
-  //     throw new WsException('Could not unblock user');
-  //   }
-  // }
-
   //
   //
   //
