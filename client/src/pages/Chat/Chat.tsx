@@ -18,6 +18,7 @@ const Chat = () => {
     // const [realTimeMessages, setRealTimeMessages] = useState<MessageDm[]>([]);
     const [textAreaValue, setTextAreaValue] = useState("");
     const queryClient = useQueryClient();
+    const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
     const conversation = useQuery({
         queryKey: ["conversationAllUser"],
@@ -104,6 +105,12 @@ const Chat = () => {
         }
     }, [dmId, conversation.data]);
 
+    useEffect(() => {
+        if (messagesEndRef.current && allMessages.data && allMessages.data.length > 0) {
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [allMessages.data]);
+
     const sendMessage = () => {
         if (textAreaValue.trim() && dmId && socketRef.current) {
             const messageData = {
@@ -114,7 +121,7 @@ const Chat = () => {
 
             socketRef.current.emit("createDirectMessage", messageData);
 
-            setTextAreaValue(""); 
+            setTextAreaValue("");
         }
     };
 
@@ -151,10 +158,13 @@ const Chat = () => {
         return previousMessage.senderId !== currentMessage.senderId;
     };
 
-
     const renderMessages = () => {
         return allMessages.data?.map((msg, index) => (
-            <div className="mt-[20px]" key={index}>
+            <div
+                className="mt-[20px]"
+                key={index}
+                ref={index === allMessages.data.length - 1 ? messagesEndRef : null}
+            >
                 <div className="flex">
                     {shouldDisplayAvatarAndTimestamp(index) && (
                         <div className="flex">
@@ -241,8 +251,7 @@ const Chat = () => {
                     </div>
                 </div>
             </div>
-            
-            
+
             <div className="text-white text-left h-[750px] w-auto ml-[20px] overflow-auto">
                 {renderMessages()}
                 {/* {renderRealTimeMessages()} */}

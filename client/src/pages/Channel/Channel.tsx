@@ -1,18 +1,18 @@
 import { useParams } from "react-router-dom";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ChannelMessages, CreateChannelResponse } from "../types/channel";
-import TextArea from "../UIKit/TextArea";
-import { Avatar } from "../UIKit/avatar/Avatar";
-import ModalLayout from "../UIKit/ModalLayout";
-import { KickPopUp } from "./Channel/subComponents/KickPopUp";
-import { SocketsContext } from "../ContextsProviders/SocketsContext";
+import { ChannelMessages, CreateChannelResponse } from "../../types/channel";
+import TextArea from "../../UIKit/TextArea";
+import { Avatar } from "../../UIKit/avatar/Avatar";
+import ModalLayout from "../../UIKit/ModalLayout";
+import { KickPopUp } from "./subComponents/KickPopUp";
+import { SocketsContext } from "../../ContextsProviders/SocketsContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { ChannelMessage } from "@api/types/schema";
-import { ActionsMenu, MenuActionType } from "../UIKit/ActionsMenu";
-import { MutePopUp } from "./Channel/subComponents/MutePopUp";
-import { BanPopUp } from "./Channel/subComponents/BanPopUp";
-import { useGetUser } from "../utils/useGetUser";
+import { ActionsMenu, MenuActionType } from "../../UIKit/ActionsMenu";
+import { MutePopUp } from "./subComponents/MutePopUp";
+import { BanPopUp } from "./subComponents/BanPopUp";
+import { useGetUser } from "../../utils/useGetUser";
 
 export const Channel = () => {
     const { channelId } = useParams();
@@ -226,7 +226,7 @@ export const Channel = () => {
 
         return allMessagesChan.data.map((msg, index) => (
             <div
-                className="message"
+                className="mt-[20px]"
                 key={index}
                 ref={index === allMessagesChan.data.length - 1 ? messagesEndRef : null}
             >
