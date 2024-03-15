@@ -12,7 +12,11 @@ export const Login = () => {
     const [show2FAModal, setShow2FAModal] = useState(false);
     const [isError, setIsError] = useState(false);
 
-    const logUser = useMutation<Partial<AppUser>, any, { username: string; password: string }>({
+    const logUser = useMutation<
+        Partial<AppUser>,
+        any,
+        { username: string; password: string }
+    >({
         mutationFn: async ({ username, password }) => {
             const response = await axios.post("/api/auth/login", {
                 username,
@@ -35,18 +39,22 @@ export const Login = () => {
 
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+
         logUser.mutate({ username, password });
     };
-
     return (
         <div
             className="bg-discord-light-black min-h-screen
 		w-full flex items-center justify-center"
         >
-            {show2FAModal && <TwoFactorAuthLoginModal hide={() => setShow2FAModal(false)}/>}
+            {show2FAModal && (
+                <TwoFactorAuthLoginModal hide={() => setShow2FAModal(false)} />
+            )}
             <div className="flex flex-col gap-7 bg-discord-dark-grey p-8 rounded-md">
                 <form onSubmit={handleSubmit}>
-                    <div className="text-white text-2xl font-extrabold">Welcome back!</div>
+                    <div className="text-white text-2xl font-extrabold">
+                        Welcome back!
+                    </div>
                     <div className="mb-4 opacity-50">
                         We're so excited to see you again!
                     </div>
@@ -94,8 +102,11 @@ export const Login = () => {
                             name="password"
                         />
 
-                    {isError && <span className="text-sm text-center text-red-600 opacity-70">Username or password is wrong</span>}
-
+                        {isError && (
+                            <span className="text-sm text-center text-red-600 opacity-70">
+                                Username or password is wrong
+                            </span>
+                        )}
                     </div>
                     <button
                         type="submit"
@@ -105,7 +116,10 @@ export const Login = () => {
                     </button>
                     <div className="flex text-sm items-center mt-2">
                         Need an account?
-                        <Link to="/create-account" className="text-sm ml-1 hover:underline">
+                        <Link
+                            to="/create-account"
+                            className="text-sm ml-1 hover:underline"
+                        >
                             <span className="text-discord-blue-link">Register</span>
                         </Link>
                     </div>
@@ -115,7 +129,7 @@ export const Login = () => {
 
                 <div className="flex flex-col items-center justify-center">
                     <a href="/api/auth/oauth" className="flex items-center gap-5">
-                        <img src="/42-logo.png" alt="" className="h-[35px]"/>
+                        <img src="/42-logo.png" alt="" className="h-[35px]" />
                         <button
                             type="submit"
                             className="flex gap-3 text-white bg-white bg-opacity-10  p-5 hover:bg-opacity-15 font-bold rounded-lg text-lg w-full py-2.5 text-center"

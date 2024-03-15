@@ -45,6 +45,8 @@ export interface UserInfo {
   userId: number;
   username: string;
   avatarUrl: string;
+  rating: number;
+  status: number;
 }
 
 // combine User interface and Channel interface
@@ -109,29 +111,24 @@ export interface AllConversationsPromise {
   };
 }
 
+export interface UserConversation {
+  id: number;
+  createdAt: Date;
+  user1: ConversationUser;
+  user2: ConversationUser;
+  isBlocked: boolean;
+}
+
+export type ConversationUser = {
+  userId: number;
+  avatarUrl: string | null;
+  username: string;
+};
+
 export interface ChannelUpdate {
   isPublic: boolean;
   name: string | null;
   password: string | null;
-}
-
-export interface AllConversationsPromise {
-  id: number;
-  createdAt: Date;
-  user1: {
-    userId: number;
-    avatarUrl: string;
-    username: string;
-    rating: number;
-    status: number;
-  };
-  user2: {
-    userId: number;
-    avatarUrl: string;
-    username: string;
-    rating: number;
-    status: number;
-  };
 }
 
 export type PublicChannel = {

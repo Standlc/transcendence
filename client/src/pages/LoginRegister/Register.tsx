@@ -49,18 +49,37 @@ export const Register = () => {
         },
     });
 
+    const checkPassword = () => {
+        const uppercaseRegex = /[A-Z]/;
+        const specialCharRegex = /[!@#$%^&*(),.?":{}|<>]/;
+        const numberRegex = /[0-9]/;
+
+        if (
+            password.trim().length < 8 ||
+            !uppercaseRegex.test(password) ||
+            !specialCharRegex.test(password) ||
+            !numberRegex.test(password)
+        ) {
+            alert(
+                "Password must contain at least one uppercase letter, one special character, and one number and 8 lenght min"
+            );
+            return;
+        }
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        checkPassword();
+        registerUser.mutate();
+    };
+
     return (
         <div
             className="bg-discord-light-black min-h-screen w-full
 				flex items-center justify-center"
         >
             <div className="bg-discord-dark-grey flex p-8 rounded-md">
-                <form
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        registerUser.mutate();
-                    }}
-                >
+                <form onSubmit={handleSubmit}>
                     <div className="text-white text-2xl font-bold mb-5">
                         Create an Account
                     </div>
@@ -71,8 +90,7 @@ export const Register = () => {
                             className="text-left font-bold block mb-2 text-sm
 								text-white"
                         >
-                            USERNAME{" "}
-                            <span className="text-discord-red">*</span>
+                            USERNAME <span className="text-discord-red">*</span>
                         </label>
                         <input
                             type="text"
@@ -93,8 +111,8 @@ export const Register = () => {
                         >
                             PASSWORD <span className="text-discord-red">*</span>
                         </label>
-                        <div className="mb-2 text-left opacity-50 text-sm">
-                            1 upper, 1 lower, 1 digit, 1 special character, 6 min length
+                        <div className="mb-2 text-left text-greyple text-sm">
+                            1 upper, 1 lower, 1 digit, 1 special character, 8 min length
                         </div>
                         <input
                             type="password"
@@ -108,7 +126,11 @@ export const Register = () => {
                         />
                     </div>
 
-                    {isError && <span className="text-sm text-center text-red-600 opacity-70">Username is taken or password is not ok</span>}
+                    {isError && (
+                        <span className="text-sm text-center text-red-600 opacity-70">
+                            Username is taken or password is not ok
+                        </span>
+                    )}
 
                     <button
                         type="submit"
@@ -127,5 +149,3 @@ export const Register = () => {
         </div>
     );
 };
-
-// maj min special nombre 6

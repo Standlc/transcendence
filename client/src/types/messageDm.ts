@@ -1,10 +1,10 @@
-import { Timestamp } from "@api/types/schema";
+// import { Timestamp } from "@api/types/schema";
 
 export interface MessageDm {
     avatarUrl: string | null;
-    content: string;
+    content: string | null;
     conversationId: number;
-    createdAt: Timestamp;
+    createdAt: Date;
     messageId: number;
     senderId: number;
     senderIsBlocked: boolean;

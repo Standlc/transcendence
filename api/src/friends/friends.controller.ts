@@ -70,9 +70,6 @@ export class FriendsController {
     },
     isArray: true
   })
-  @ApiNotFoundResponse({
-    description: "No request was found."
-  })
   @Get('request')
   async findAllRequest(@Request() req): Promise<ListUsers[]> {
     return await this.friendsService.findAllRequest(req.user.id);

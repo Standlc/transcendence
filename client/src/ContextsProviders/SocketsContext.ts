@@ -13,6 +13,7 @@ export type SocketsContextType = {
   usersStatusSocket: Socket;
   addUsersStatusHandler: AddUsersStatusHandlerFnType;
   removeUsersStatusHandler: RemoveUsersStatusHandlerFnType;
+  chatSocket: Socket;
 };
 
 export const SocketsContext = createContext(

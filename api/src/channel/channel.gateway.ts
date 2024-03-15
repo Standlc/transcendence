@@ -78,9 +78,11 @@ export class ChannelGateway
   ): Promise<void> {
     const userId = socket.data.id;
 
+    console.log(`Client socket ${socket.id}, joining channel: ${payload.channelId}`);
     try {
       await this.utilsChannelService.channelExists(payload.channelId);
     } catch (error) {
+      // console.log("no channel")
       console.error(error);
       throw new WsException('Channel do not exist');
     }
@@ -105,7 +107,7 @@ export class ChannelGateway
         await this.socketService.isInInviteList(userId, payload.channelId);
       }
     } catch (error) {
-      console.error(error);
+      // console.error(error);
       throw new WsException('User is not invited to join the channel');
     }
 
@@ -115,7 +117,7 @@ export class ChannelGateway
         payload.password,
       );
     } catch (error) {
-      console.error(error);
+      // console.error(error);
       throw new WsException('Invalid password');
     }
 
@@ -123,7 +125,7 @@ export class ChannelGateway
       try {
         this.socketService.joinChannel(userId, payload.channelId);
       } catch (error) {
-        console.error(error);
+        // console.error(error);
         throw new WsException('Could not join channel');
       }
 
@@ -139,7 +141,7 @@ export class ChannelGateway
         `User ${userId} joined the channel`,
       );
     } catch (error) {
-      console.error(error);
+      // console.error(error);
       this.connectedUsersService.removeUserWithUserId(userId);
       throw new WsException('Could not join channel');
     }
@@ -154,6 +156,7 @@ export class ChannelGateway
     @MessageBody() payload: ChannelMessageContent,
   ): Promise<void> {
     try {
+      console.log('createChannelMessage -------------->', payload)
       this.connectedUsersService.verifyConnection(socket);
     } catch (error) {
       console.error(error);
@@ -527,57 +530,57 @@ export class ChannelGateway
     }
   }
 
-  //
-  //
-  //
-  //blocked user can still send messages but the user who blocked cannot see them
-  //blocked works for all the channels
-  @SubscribeMessage('blockUser')
-  async handleBlockUser(
-    @ConnectedSocket() socket: Socket,
-    @MessageBody() payload: { targetUserId: number },
-  ) {
-    try {
-      this.connectedUsersService.verifyConnection(socket);
-    } catch (error) {
-      console.error(error);
-      throw new WsException('User did not join channel room');
-    }
+  // //
+  // //
+  // //
+  // //blocked user can still send messages but the user who blocked cannot see them
+  // //blocked works for all the channels
+  // @SubscribeMessage('blockUser')
+  // async handleBlockUser(
+  //   @ConnectedSocket() socket: Socket,
+  //   @MessageBody() payload: { targetUserId: number },
+  // ) {
+  //   try {
+  //     this.connectedUsersService.verifyConnection(socket);
+  //   } catch (error) {
+  //     console.error(error);
+  //     throw new WsException('User did not join channel room');
+  //   }
 
-    const userId = socket.data.id;
+  //   const userId = socket.data.id;
 
-    try {
-      await this.socketService.blockUser(userId, payload.targetUserId);
-    } catch (error) {
-      console.error(error);
-      throw new WsException('Could not block user');
-    }
-  }
+  //   try {
+  //     await this.socketService.blockUser(userId, payload.targetUserId);
+  //   } catch (error) {
+  //     console.error(error);
+  //     throw new WsException('Could not block user');
+  //   }
+  // }
 
-  //
-  //
-  //
-  @SubscribeMessage('unblockUser')
-  async hadleUnblockUser(
-    @ConnectedSocket() socket: Socket,
-    @MessageBody() payload: { targetUserId: number },
-  ) {
-    try {
-      this.connectedUsersService.verifyConnection(socket);
-    } catch (error) {
-      console.error(error);
-      throw new WsException('User did not join channel room');
-    }
+  // //
+  // //
+  // //
+  // @SubscribeMessage('unblockUser')
+  // async hadleUnblockUser(
+  //   @ConnectedSocket() socket: Socket,
+  //   @MessageBody() payload: { targetUserId: number },
+  // ) {
+  //   try {
+  //     this.connectedUsersService.verifyConnection(socket);
+  //   } catch (error) {
+  //     console.error(error);
+  //     throw new WsException('User did not join channel room');
+  //   }
 
-    const userId = socket.data.id;
+  //   const userId = socket.data.id;
 
-    try {
-      await this.socketService.unblockUser(userId, payload.targetUserId);
-    } catch (error) {
-      console.error(error);
-      throw new WsException('Could not unblock user');
-    }
-  }
+  //   try {
+  //     await this.socketService.unblockUser(userId, payload.targetUserId);
+  //   } catch (error) {
+  //     console.error(error);
+  //     throw new WsException('Could not unblock user');
+  //   }
+  // }
 
   //
   //

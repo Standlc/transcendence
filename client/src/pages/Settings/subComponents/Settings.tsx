@@ -93,7 +93,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
             localStorage.removeItem("token");
             queryClient.invalidateQueries({ queryKey: ["user"] });
         } catch (error) {
-            console.error("Erreur lors de la déconnexion", error);
+            console.error("Error while disconnecting", error);
         }
         queryClient.setQueryData(["user"], null);
         navigate("/", { replace: true });
@@ -104,7 +104,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
     };
 
     return (
-        <div className="flex w-full">
+        <div className="flex w-full  ">
             {/* Section des champs d'entrée à gauche */}
             {show2FASetupModal && (
                 <TwoFactorAuthentificationSetupModal
@@ -230,25 +230,6 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
                                 <line x1="9" y1="9" x2="15" y2="15" />
                             </svg>
                         </button>
-                    </div>
-                    <div className="rounded-b-xl settings-account bg-discord-black flex flex-col items-center justify-center p-4 mt-20">
-                        <div className="flex flex-row items-center">
-                            <div className="">
-                                <Avatar
-                                    imgUrl={user?.avatarUrl}
-                                    size="2xl"
-                                    borderRadius={0.5}
-                                    userId={user?.id ?? 0}
-                                    status={user?.status ?? 0}
-                                />
-                            </div>
-                            <div className="text-xl ml-4">
-                                <div className=" font-bold">{user?.username}</div>
-                                <div>{user?.firstname} </div>
-                                <div>{user?.lastname}</div>
-                            </div>
-                        </div>
-                        <InsideProfil />
                     </div>
                 </div>
             </div>

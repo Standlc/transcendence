@@ -58,7 +58,7 @@ export const ChanPopUp: React.FC<Props> = ({ onClose }: Props) => {
         mutationFn: async (newChannelData) => {
             try {
                 const response = await axios.post("/api/channels", newChannelData);
-                console.log(response.data);
+                console.log("RESPONSE", response.data);
                 return response.data;
             } catch (error) {
                 throw new Error(error.response.data.message);
@@ -73,7 +73,7 @@ export const ChanPopUp: React.FC<Props> = ({ onClose }: Props) => {
                     return [...oldData, data]; // Ajoutez le nouveau canal aux données existantes
                 }
             );
-            queryClient.invalidateQueries("channels", { exact: true });
+
         },
         onError: (error) => {
             console.error("Error creating channel:", error);
@@ -81,9 +81,12 @@ export const ChanPopUp: React.FC<Props> = ({ onClose }: Props) => {
     });
 
     const handleConfirm = () => {
-        console.log("is public", isPublic);
-        console.log("channel name", channelName);
-        console.log("password", password);
+        if (channelName.trim().length < 1) {
+            // Vérifie si le nom du canal contient au moins une lettre
+            alert("Channel name must contain at least one letter.");
+            return;
+        }
+
         createNewChannel.mutate({
             isPublic,
             name: channelName,
@@ -168,7 +171,6 @@ export const ChanPopUp: React.FC<Props> = ({ onClose }: Props) => {
                         />
                     </div>
                 </div> */}
-
                 <div className="mt-[450px] ml-[200px]  fixed">
                     <button
                         className="mt-4 w-[100px] px-4 py-2 bg-green-700 text-white rounded hover:bg-green-500 mr-5"
