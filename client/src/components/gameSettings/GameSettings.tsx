@@ -8,7 +8,7 @@ export default function GamePreferences({ hide }: { hide: () => void }) {
   const { gameSettings, upadteGameSetting } = useContext(GameSettingsContext);
 
   return (
-    <div className="flex max-h-full flex-col gap-5 flex-[2] p-5 min-w-96">
+    <div className="flex max-h-full flex-col gap-5 p-5 min-w-96">
       <div className="font-[900] text-2xl flex items-center justify-between gap-2">
         <span>Game Settings</span>
         <Tune fontSize="small" />

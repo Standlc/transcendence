@@ -14,6 +14,16 @@ import { MutePopUp } from "./subComponents/MutePopUp";
 import { BanPopUp } from "./subComponents/BanPopUp";
 import { useGetUser } from "../../utils/useGetUser";
 
+interface UserManagementResponse {
+    type: "kickUser" | "banUser" | "muteUser";
+    message: string;
+}
+
+interface Props {
+    type: "leaveChannel";
+    message: string;
+}
+
 export const Channel = () => {
     const { channelId } = useParams();
     const queryClient = useQueryClient();
@@ -124,10 +134,16 @@ export const Channel = () => {
     useEffect(() => {
         if (!channelId) return;
 
-        const handleMessageResponse = (response) => {
+        const handleMessageResponse = (response: Props) => {
             const message = `Type: ${response.type}, Message: ${response.message}`;
             console.log(message);
         };
+
+        // const handleUserManagement = (response: string) => {
+        //     const message = response;
+        //     console.log("COMMANDE", message);
+        // alert(message);
+        // };
 
         chatSocket.emit("joinChannel", { channelId });
 
@@ -140,7 +156,7 @@ export const Channel = () => {
         });
 
         chatSocket.on("leaveChannel", handleMessageResponse);
-
+        // chatSocket.on("message", handleUserManagement);
         const handleMessageCreation = (newMessage: ChannelMessage) => {
             console.log("newMessage", newMessage);
             if (!chanInfo.data) return;
@@ -299,39 +315,39 @@ export const Channel = () => {
                     <div>
                         <ActionsMenu actions={actions} />
                     </div>
-                    {isKickModalOpen && (
-                        <ModalLayout>
-                            <KickPopUp
-                                onClose={() => setIsKickModalOpen(false)}
-                                chanInfo={chanInfo.data}
-                                chatSocket={chatSocket}
-                            />
-                        </ModalLayout>
-                    )}
-                    {isMuteModalOpen && (
-                        <ModalLayout>
-                            <MutePopUp
-                                onClose={() => setIsMuteModalOpen(false)}
-                                chanInfo={chanInfo.data}
-                                chatSocket={chatSocket}
-                            />
-                        </ModalLayout>
-                    )}
-                    {isBanModalOpen && (
-                        <ModalLayout>
-                            <BanPopUp
-                                onClose={() => setIsBanModalOpen(false)}
-                                chanInfo={chanInfo.data}
-                                chatSocket={chatSocket}
-                            />
-                        </ModalLayout>
-                    )}
                 </div>
             </div>
 
             <div className="text-white text-left h-[750px] w-auto ml-[20px] overflow-auto">
                 {renderMessages()}
             </div>
+            {isKickModalOpen && (
+                <ModalLayout>
+                    <KickPopUp
+                        onClose={() => setIsKickModalOpen(false)}
+                        chanInfo={chanInfo.data}
+                        chatSocket={chatSocket}
+                    />
+                </ModalLayout>
+            )}
+            {isMuteModalOpen && (
+                <ModalLayout>
+                    <MutePopUp
+                        onClose={() => setIsMuteModalOpen(false)}
+                        chanInfo={chanInfo.data}
+                        chatSocket={chatSocket}
+                    />
+                </ModalLayout>
+            )}
+            {isBanModalOpen && (
+                <ModalLayout>
+                    <BanPopUp
+                        onClose={() => setIsBanModalOpen(false)}
+                        chanInfo={chanInfo.data}
+                        chatSocket={chatSocket}
+                    />
+                </ModalLayout>
+            )}
             <div className="bg-discord-dark-grey mt-auto p-2 rounded-lg ml-5 mr-5 mb-5">
                 <TextArea
                     value={textAreaValue}

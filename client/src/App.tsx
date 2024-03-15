@@ -20,8 +20,9 @@ import { Settings } from "./pages/Settings/subComponents/Settings";
 import { AppUser } from "@api/types/clientSchema";
 import { ChannelsLayout } from "./components/ChannelsLayout";
 import Chat from "./pages/Chat/Chat";
+import { ExplorePage } from "./pages/ExplorePage";
+import { PlayPageLayout } from "./components/playPage/PlayPageLayout";
 import { Channel } from "./pages/Channel/Channel";
-import { ProfileTestPage } from "./pages/ProfileTestPage";
 
 function App() {
     const getUser = useQuery({
@@ -55,14 +56,19 @@ function App() {
                                 <Route path="dm/:dmId" element={<Chat />}></Route>
                             </Route>
 
-                            <Route
-                                path="/profile/:userId"
-                                element={<ProfileTestPage />}
-                            />
-                            <Route path="/play" element={<PlayPage />} />
-                            <Route path="/play/:gameId" element={<GamePage />} />
-                            <Route path="/leaderboard" element={<LeaderboardPage />} />
-                            <Route path="/live" element={<LiveGamesPage />} />
+                            <Route path="/play/game/:gameId" element={<GamePage />} />
+                            <Route path="/play" element={<PlayPageLayout />}>
+                                <Route index element={<Navigate to="game" />}></Route>
+                                <Route path="game" element={<PlayPage />} />
+                                <Route
+                                    path="leaderboard"
+                                    element={<LeaderboardPage />}
+                                />
+                                <Route path="live" element={<LiveGamesPage />} />
+                            </Route>
+
+                            <Route path="/explore" element={<ExplorePage />} />
+
                             <Route
                                 path="/settings"
                                 element={<Settings user={getUser.data} />}

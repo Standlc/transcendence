@@ -189,7 +189,9 @@ export class GamesService {
       playerId: userId,
       isPublic: true,
       ongoing: false,
-    }).execute();
+    })
+      .orderBy('game.createdAt desc')
+      .execute();
     return games;
   }
 }

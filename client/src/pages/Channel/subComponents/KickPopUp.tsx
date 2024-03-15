@@ -10,20 +10,6 @@ interface Props {
 }
 
 export const KickPopUp: React.FC<Props> = ({ onClose, chanInfo, chatSocket }) => {
-    const [serverMessage, setServerMessage] = useState<string>("");
-
-    useEffect(() => {
-        const handleKickResponse = (response) => {
-            const message = `Type: ${response.type}, Message: ${response.message}`;
-            console.log(message);
-        };
-
-        chatSocket.on("kickUser", handleKickResponse);
-        return () => {
-            chatSocket.off("kickUser", handleKickResponse);
-        };
-    }, [chatSocket]);
-
     const kickUser = (userId: number) => {
         if (chanInfo?.id) {
             console.log("Attempting to kick userId:", userId);

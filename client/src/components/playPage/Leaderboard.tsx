@@ -1,15 +1,16 @@
 import { useContext, useEffect } from "react";
-import { Avatar } from "../UIKit/avatar/Avatar";
+import { Avatar } from "../../UIKit/avatar/Avatar";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { LeaderbordPlayer } from "../../../api/src/types/games";
-import { SocketsContext } from "../ContextsProviders/SocketsContext";
+import { LeaderbordPlayer } from "../../../../api/src/types/games";
+import { SocketsContext } from "../../ContextsProviders/SocketsContext";
 import {
   Tuple,
   WsLeaderboardPlayerUpdate,
-} from "../../../api/src/types/gameServer/socketPayloadTypes";
-import { PlayerRating } from "../UIKit/PlayerRating";
-import { UserProfileContext } from "../ContextsProviders/UserProfileIdContext";
+} from "../../../../api/src/types/gameServer/socketPayloadTypes";
+import { PlayerRating } from "../../UIKit/PlayerRating";
+import { UserProfileContext } from "../../ContextsProviders/UserProfileIdContext";
+import { Spinner } from "../../UIKit/Kit";
 
 export default function Leaderboard({ limit }: { limit?: number }) {
   const {
@@ -126,7 +127,11 @@ export default function Leaderboard({ limit }: { limit?: number }) {
 
   return (
     <div className="flex flex-col gap-5">
-      {leaderboard.data?.length ? (
+      {!leaderboard.data ? (
+        <Spinner isLoading />
+      ) : !leaderboard.data?.length ? (
+        <span className="text-lg opacity-50">No leaderboard yet</span>
+      ) : (
         <table className="border-separate border-spacing-x-0 border-spacing-y-[2px]">
           <thead className="">
             <tr className="opacity-100">
@@ -146,8 +151,6 @@ export default function Leaderboard({ limit }: { limit?: number }) {
             })}
           </tbody>
         </table>
-      ) : (
-        <span className="text-lg opacity-50">No leaderboard yet</span>
       )}
     </div>
   );

@@ -130,3 +130,11 @@ export interface ChannelUpdate {
   name: string | null;
   password: string | null;
 }
+
+export type PublicChannel = {
+  membersCount: number | null;
+  isMember: boolean;
+  id: number;
+  name: string | null;
+  photoUrl: string | null;
+};
