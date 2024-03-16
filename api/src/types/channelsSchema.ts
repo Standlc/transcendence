@@ -1,5 +1,27 @@
-import { Selectable } from 'kysely';
+import { Selectable, Updateable } from 'kysely';
 import { Channel, ChannelMessage, DirectMessage } from './schema';
+
+export type ChannelServerEventTypes = {
+  joinChannel: ConnectToChannel;
+  leaveChannel: ConnectToChannel;
+  createChannelMessage: ChannelMessageContent;
+};
+
+export type ChannelServerEmitTypes = {
+  createChannelMessage: UserChannelMessage;
+  memberLeave: ChannelAndUserIdPayload;
+  memberBanned: ChannelAndUserIdPayload;
+  memberJoin: ChannelAndUserIdPayload;
+  newAdmin: ChannelAndUserIdPayload;
+  adminRemove: ChannelAndUserIdPayload;
+  newChannel: number;
+  channelDelete: number;
+};
+
+export type ChannelAndUserIdPayload = {
+  userId: number;
+  channelId: number;
+};
 
 export interface ChannelCreationData {
   isPublic: boolean;
@@ -32,30 +54,34 @@ export interface ChannelDataWithUsersWithoutPassword {
   users: UserInfo[];
 }
 
-export type UserChannel = Selectable<Channel>;
-
 export interface UserInfo {
   userId: number;
+  isBlocked: boolean;
   username: string;
-  avatarUrl: string;
+  avatarUrl: string | null;
   rating: number;
+  mutedEnd: Date | null;
   status: number;
 }
 
-// combine User interface and Channel interface
+export type UserChannel = {
+  name: string;
+  photoUrl: string | null;
+  id: number;
+  isPublic: boolean;
+  isProtected: boolean;
+  isUserAdmin: boolean;
+  ownerId: number;
+};
+
 export interface MessageWithSenderInfo {
   avatarUrl: string | null;
   username: string;
-  channelId: number;
   messageContent: string | null;
   createdAt: Date;
-  messageId: number;
+  id: number;
   senderId: number;
-  isOwner: boolean;
-  isAdmin: boolean;
-  isBanned: boolean;
-  isMuted: boolean;
-  senderIsBlocked: boolean;
+  isBlocked: boolean;
 }
 
 export interface DmWithSenderInfo {
@@ -111,11 +137,11 @@ export type ConversationUser = {
   username: string;
 };
 
-export interface ChannelUpdate {
-  isPublic: boolean;
-  name: string;
-  password: string | null;
-}
+export type ChannelUpdate = {
+  password?: string | null;
+  name?: string;
+  isPublic?: boolean;
+};
 
 export type PublicChannel = {
   membersCount: number | null;
@@ -130,3 +156,5 @@ export type ChannelJoinDto = {
   channelId: number;
   password?: string;
 };
+
+export type UserChannelMessage = Selectable<ChannelMessage>;

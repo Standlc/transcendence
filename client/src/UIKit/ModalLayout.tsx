@@ -7,7 +7,7 @@ const ModalLayout = memo(
     isLoading,
     onClickOutside,
   }: {
-    children: JSX.Element;
+    children: JSX.Element | undefined;
     isLoading?: boolean;
     onClickOutside?: () => void;
   }) => {

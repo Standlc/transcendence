@@ -1,6 +1,12 @@
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useParams } from "react-router-dom";
 import { useMemo, useState } from "react";
-import { Add, Close, People, Settings } from "@mui/icons-material";
+import {
+  Add,
+  Close,
+  People,
+  Settings,
+  SettingsRounded,
+} from "@mui/icons-material";
 import { useGetUser } from "../../utils/useGetUser";
 import { Avatar } from "../../UIKit/avatar/Avatar";
 import ModalLayout from "../../UIKit/ModalLayout";
@@ -10,9 +16,13 @@ import { CreateChannelCard } from "./CreateChannelCard";
 import { ReloadButton } from "../../UIKit/ReloadButton";
 import { ChannelAvatar } from "../../UIKit/avatar/ChannelAvatar";
 import { useDeleteConversation } from "../../utils/conversations/useDeleteConversation";
-import { UserConversationType } from "@api/types/channelsSchema";
+import { UserChannel, UserConversationType } from "@api/types/channelsSchema";
 import { useGetChannels } from "../../utils/channels/useGetChannels";
 import { useGetConversations } from "../../utils/conversations/useGetConversations";
+import { useDeleteChannel } from "../../utils/channels/useDeleteChannel";
+import { useGetChannel } from "../../utils/channels/useGetChannel";
+import { SwitchSelectable } from "../../UIKit/SwitchSelectable";
+import { useLeaveChannel } from "../../utils/channels/useLeaveChannel";
 
 export const ChanColumn = () => {
   const [showCreateConversation, setShowCreateConversation] = useState(false);
@@ -77,26 +87,8 @@ export const ChanColumn = () => {
             )}
 
             <div className="flex flex-col gap-[2px]">
-              {channels.data?.map((channel, index) => (
-                <NavLink
-                  key={index}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-2 bg-white py-2 rounded-md ${
-                      isActive
-                        ? "bg-opacity-10"
-                        : "bg-opacity-0 hover:bg-opacity-5"
-                    }`
-                  }
-                  to={`channels/${channel.id}`}
-                >
-                  <ChannelAvatar
-                    imgUrl={channel.photoUrl}
-                    size="sm"
-                    id={channel.id}
-                    borderRadius={0.5}
-                  />
-                  <div className="font-bold">{channel.name}</div>
-                </NavLink>
+              {channels.data?.map((channel, i) => (
+                <Channel channel={channel} key={i} />
               ))}
             </div>
           </div>
@@ -168,12 +160,12 @@ const Conversation = ({
 }: {
   conversation: UserConversationType;
 }) => {
-  const location = useLocation();
+  const { dmId } = useParams();
   const deleteConversation = useDeleteConversation();
 
   const isActive = useMemo(
-    () => location.pathname.match(`dm/${conversation.id}`)?.length,
-    [location.pathname, conversation.id]
+    () => Number(dmId) === conversation.id,
+    [dmId, conversation.id]
   );
 
   return (
@@ -205,5 +197,158 @@ const Conversation = ({
         <Close fontSize="small" />
       </button>
     </div>
+  );
+};
+
+const Channel = ({ channel }: { channel: UserChannel }) => {
+  const { channelId } = useParams();
+  const [showSettings, setShowSettings] = useState(false);
+  const deleteChannel = useDeleteChannel();
+  const leaveChannel = useLeaveChannel();
+  const user = useGetUser();
+
+  const isActive = useMemo(
+    () => Number(channelId) === channel.id,
+    [channelId, channel.id]
+  );
+
+  return (
+    <>
+      {showSettings && channel.isUserAdmin && (
+        <ChannelSettingsModal
+          channelId={channel.id}
+          hide={() => setShowSettings(false)}
+        />
+      )}
+      <div
+        className={`relative flex items-center w-full group/channel bg-white rounded-md bg-opacity-0 ${
+          isActive ? "bg-opacity-10" : "bg-opacity-0 hover:bg-opacity-5"
+        }`}
+      >
+        <NavLink
+          className={`flex items-center gap-3 px-2 w-full py-2 rounded-md `}
+          to={`channels/${channel.id}`}
+        >
+          <ChannelAvatar
+            imgUrl={channel.photoUrl}
+            size="sm"
+            id={channel.id}
+            borderRadius={0.5}
+          />
+          <div className="font-bold">{channel.name}</div>
+        </NavLink>
+
+        <div className="absolute right-2 flex items-center gap-2">
+          {user.id === channel.ownerId && (
+            <button
+              onClick={() => setShowSettings(true)}
+              className="group-hover/channel:flex opacity-50 hover:opacity-100 hidden aspect-square items-center justify-center"
+            >
+              <SettingsRounded fontSize="small" />
+            </button>
+          )}
+
+          <button
+            disabled={deleteChannel.isPending || leaveChannel.isPending}
+            onClick={() => {
+              if (user.id === channel.ownerId) {
+                deleteChannel.mutate(channel.id);
+              } else {
+                leaveChannel.mutate(channel.id);
+              }
+            }}
+            className="group-hover/channel:flex opacity-50 hover:opacity-100 hidden aspect-square items-center justify-center"
+          >
+            <Close fontSize="small" />
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+const ChannelSettingsModal = ({
+  channelId,
+  hide,
+}: {
+  channelId: number;
+  hide: () => void;
+}) => {
+  const channel = useGetChannel(channelId);
+  const [newName, setNewName] = useState("");
+  const [isPublic, setIsPublic] = useState(!!channel.data?.isPublic);
+  const [newPassword, setNewPassword] = useState("");
+
+  return (
+    <ModalLayout onClickOutside={hide}>
+      {channel.data && (
+        <div className="p-4 flex flex-col gap-5 text-left">
+          <header className="text-2xl font-extrabold">Channel Settings</header>
+
+          <span className="opacity-50 text-sm font-semibold -mb-3">NAME</span>
+          <input
+            onChange={(e) => {
+              setNewName(e.target.value);
+            }}
+            value={newName}
+            type="text"
+            className="bg-black bg-opacity-40 rounded-md px-3 py-2"
+            placeholder={channel.data.name}
+          />
+
+          <span className="opacity-50 text-sm font-semibold -mb-4">
+            VISIBILITY
+          </span>
+          <div className="flex flex-col">
+            <div
+              onClick={() => {
+                setNewPassword("");
+                setIsPublic(!isPublic);
+              }}
+              className="flex justify-between items-center cursor-pointer"
+            >
+              <span className="font-bold">Private Channel</span>
+              <SwitchSelectable isSelected={!isPublic} />
+            </div>
+            <span className="opacity-50 text-xs">
+              Only selected members will be able to view this channel.
+            </span>
+          </div>
+
+          <span className="opacity-50 text-sm font-semibold -mb-3">
+            PASSWORD
+          </span>
+          <div className="flex flex-col">
+            <input
+              onChange={(e) => {
+                if (e.target.value !== "") {
+                  setIsPublic(true);
+                }
+                setNewPassword(e.target.value);
+              }}
+              value={newPassword}
+              type="password"
+              className="bg-black bg-opacity-40 rounded-md px-3 py-2"
+              placeholder="Channel password (optional)"
+            />
+            <span className="opacity-50 text-xs mt-1">
+              Members will have to enter this password to join the channel.
+            </span>
+          </div>
+
+          <button
+            onClick={() => {}}
+            disabled={
+              (newName === channel.data.name || newName === "") &&
+              isPublic === channel.data.isPublic &&
+              newPassword === ""
+            }
+            className="bg-green-600 py-2 px-4 rounded-md font-semibold disabled:opacity-50"
+          >
+            Save changes
+          </button>
+        </div>
+      )}
+    </ModalLayout>
   );
 };

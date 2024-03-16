@@ -37,21 +37,11 @@ export interface Channel {
   photoUrl: string | null;
 }
 
-export interface ChannelAdmin {
-  channelId: number;
-  userId: number;
-}
-
-export interface ChannelInviteList {
-  channelId: number | null;
-  createdAt: Generated<Timestamp>;
-  invitedByUserId: number | null;
-  invitedUserId: number | null;
-}
-
 export interface ChannelMember {
   channelId: number;
+  isAdmin: Generated<boolean>;
   joinedAt: Generated<Timestamp>;
+  mutedEnd: Timestamp | null;
   userId: number;
 }
 
@@ -113,13 +103,6 @@ export interface GameRequest {
   userId: number;
 }
 
-export interface MutedUser {
-  channelId: number;
-  mutedAt: Generated<Timestamp>;
-  mutedEnd: Timestamp;
-  userId: number;
-}
-
 export interface PrivateGameRequest {
   createdAt: Generated<Timestamp>;
   targetId: number;
@@ -146,8 +129,6 @@ export interface DB {
   bannedUser: BannedUser;
   blockedUser: BlockedUser;
   channel: Channel;
-  channelAdmin: ChannelAdmin;
-  channelInviteList: ChannelInviteList;
   channelMember: ChannelMember;
   channelMessage: ChannelMessage;
   conversation: Conversation;
@@ -156,7 +137,6 @@ export interface DB {
   friendRequest: FriendRequest;
   game: Game;
   gameRequest: GameRequest;
-  mutedUser: MutedUser;
   privateGameRequest: PrivateGameRequest;
   user: User;
 }

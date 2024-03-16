@@ -173,26 +173,32 @@ async function seedChannelMembers() {
       {
         channelId: 1,
         userId: 1,
+        isAdmin: true,
       },
       {
         channelId: 2,
         userId: 2,
+        isAdmin: true,
       },
       {
         channelId: 3,
         userId: 3,
+        isAdmin: true,
       },
       {
         channelId: 4,
         userId: 4,
+        isAdmin: true,
       },
       {
         channelId: 5,
         userId: 5,
+        isAdmin: true,
       },
       {
         channelId: 6,
         userId: 6,
+        isAdmin: true,
       },
       // other members channel 1
       {
@@ -259,35 +265,6 @@ async function seedChannelMembers() {
     .execute();
 }
 
-const seedChannelAdmins = async () => {
-  const channelAdmins = await db.selectFrom('channelAdmin').execute();
-  if (channelAdmins.length) {
-    return;
-  }
-
-  await db
-    .insertInto('channelAdmin')
-    .values([
-      {
-        channelId: 1,
-        userId: 2,
-      },
-      {
-        channelId: 2,
-        userId: 1,
-      },
-      {
-        channelId: 3,
-        userId: 2,
-      },
-      {
-        channelId: 4,
-        userId: 2,
-      },
-    ])
-    .execute();
-};
-
 const seedGames = async () => {
   const games = await db.selectFrom('game').execute();
   if (games.length) {
@@ -345,7 +322,7 @@ const seedGames = async () => {
         playerTwoRatingChange: 64,
         points: 21,
         powerUps: false,
-        winnerId: 2,
+        winnerId: 1,
       },
     ])
     .execute();
@@ -357,7 +334,6 @@ async function seed() {
     await seedFriends();
     await seedChannels();
     await seedChannelMembers();
-    await seedChannelAdmins();
     await seedGames();
   } catch (error) {
     await db.deleteFrom('user').execute();

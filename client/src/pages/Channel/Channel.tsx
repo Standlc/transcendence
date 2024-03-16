@@ -13,6 +13,9 @@ import { ActionsMenu, MenuActionType } from "../../UIKit/ActionsMenu";
 import { MutePopUp } from "./subComponents/MutePopUp";
 import { BanPopUp } from "./subComponents/BanPopUp";
 import { useGetUser } from "../../utils/useGetUser";
+import { ChannelDataWithUsersWithoutPassword, MessageWithSenderInfo, UserChannelMessage } from "@api/types/channelsSchema";
+import { TestComponent } from "./TestComponent";
+import { useGetChannel } from "../../utils/channels/useGetChannel";
 
 interface UserManagementResponse {
     type: "kickUser" | "banUser" | "muteUser";
@@ -67,7 +70,7 @@ export const Channel = () => {
         }
     };
 
-    const allMessagesChan = useQuery<ChannelMessages[]>({
+    const allMessagesChan = useQuery<MessageWithSenderInfo[]>({
         queryKey: ["allMessagesChan", channelId],
         queryFn: async () => {
             if (!channelId) {
@@ -79,14 +82,7 @@ export const Channel = () => {
         enabled: !!channelId,
     });
 
-    const chanInfo = useQuery<CreateChannelResponse>({
-        queryKey: ["chanInfo", channelId],
-        queryFn: async () => {
-            const response = await axios.get(`/api/channels/${channelId}/channel`);
-            console.log(response.data);
-            return response.data;
-        },
-    });
+    const chanInfo = useGetChannel(Number(channelId));
 
     const actions: MenuActionType[] = useMemo(() => {
         let conditionalActions: MenuActionType[] = [];
@@ -108,7 +104,7 @@ export const Channel = () => {
         return conditionalActions;
     }, [user.id, chanInfo.data?.channelOwner]);
 
-    const findUserById = (newMessage: ChannelMessage) => {
+    const findUserById = (newMessage: UserChannelMessage) => {
         console.log("newMESSAGE", newMessage.content);
         if (chanInfo.data?.users) {
             for (const user of chanInfo.data.users) {
@@ -157,20 +153,22 @@ export const Channel = () => {
 
         chatSocket.on("leaveChannel", handleMessageResponse);
         // chatSocket.on("message", handleUserManagement);
-        const handleMessageCreation = (newMessage: ChannelMessage) => {
+        const handleMessageCreation = (newMessage: UserChannelMessage) => {
             console.log("newMessage", newMessage);
             if (!chanInfo.data) return;
 
             const messageUser = findUserById(newMessage);
-            const pushedMessage: ChannelMessages = {
-                avatarUrl: messageUser?.avatarUrl ?? null,
-                channelId: newMessage.channelId,
-                messageContent: newMessage.content,
-                senderId: newMessage.senderId,
-                createdAt: newMessage.createdAt,
+            const pushedMessage: MessageWithSenderInfo = {
+              avatarUrl: messageUser?.avatarUrl ?? null,
+              messageContent: newMessage.content,
+              senderId: newMessage.senderId,
+              createdAt: newMessage.createdAt,
+              id: newMessage.id,
+              isBlocked: messageUser?.isBlocked ?? false,
+              username: messageUser?.username ?? "Unkown",
             };
 
-            queryClient.setQueryData<ChannelMessages[]>(
+            queryClient.setQueryData<MessageWithSenderInfo[]>(
                 ["allMessagesChan", channelId],
                 (prev) => [...(prev ? prev : []), pushedMessage]
             );
@@ -321,33 +319,7 @@ export const Channel = () => {
             <div className="text-white text-left h-[750px] w-auto ml-[20px] overflow-auto">
                 {renderMessages()}
             </div>
-            {isKickModalOpen && (
-                <ModalLayout>
-                    <KickPopUp
-                        onClose={() => setIsKickModalOpen(false)}
-                        chanInfo={chanInfo.data}
-                        chatSocket={chatSocket}
-                    />
-                </ModalLayout>
-            )}
-            {isMuteModalOpen && (
-                <ModalLayout>
-                    <MutePopUp
-                        onClose={() => setIsMuteModalOpen(false)}
-                        chanInfo={chanInfo.data}
-                        chatSocket={chatSocket}
-                    />
-                </ModalLayout>
-            )}
-            {isBanModalOpen && (
-                <ModalLayout>
-                    <BanPopUp
-                        onClose={() => setIsBanModalOpen(false)}
-                        chanInfo={chanInfo.data}
-                        chatSocket={chatSocket}
-                    />
-                </ModalLayout>
-            )}
+
             <div className="bg-discord-dark-grey mt-auto p-2 rounded-lg ml-5 mr-5 mb-5">
                 <TextArea
                     value={textAreaValue}
