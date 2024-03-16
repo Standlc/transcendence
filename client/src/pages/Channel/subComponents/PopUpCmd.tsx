@@ -3,7 +3,7 @@ import { Avatar } from "../../../UIKit/avatar/Avatar";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import { DoNotDisturbOn, PersonRemove } from "@mui/icons-material";
 import { ActionsMenu, MenuActionType } from "../../../UIKit/ActionsMenu";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { AppUser } from "@api/types/clientSchema";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import { ChannelDataWithUsersWithoutPassword } from "@api/types/channelsSchema";
@@ -13,6 +13,8 @@ import { useMuteMember } from "../../../utils/channels/useMuteMember";
 import { useAddAdmin } from "../../../utils/channels/useAddAdmin";
 import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
 import HowToRegRoundedIcon from '@mui/icons-material/HowToRegRounded';
+import { useRemoveAdmin } from "../../../utils/channels/useRemoveAdmin";
+import { UserProfileContext } from "../../../ContextsProviders/UserProfileIdContext";
 
 interface Props {
     onClose: () => void;
@@ -32,7 +34,8 @@ export const PopUpCmd: React.FC<Props> = ({
     const banMember = useBanUserFromChannel();
     const muteMember = useMuteMember();
     const addAdmin = useAddAdmin();
-
+    const removeAdmin = useRemoveAdmin();
+    const { setUserProfileId } = useContext(UserProfileContext);
 
     return (
         <div className=" w-[500px] h-[550px] flex flex-col">
@@ -48,6 +51,26 @@ export const PopUpCmd: React.FC<Props> = ({
                         let userActions: MenuActionType[] = [];
                         if (chanInfo?.channelOwner === currentUser.id) {
                            
+                            const isAdmin = user.isAdmin;
+
+                            const adminAction = isAdmin ? {
+                                label: "Remove Admin",
+                                onClick: () => removeAdmin.mutate({
+                                    channelId: chanInfo.id,
+                                    userId: user.userId,
+                                }),
+                                color: "base" as const,
+                                icon: <VerifiedUserIcon fontSize="small" />, // Consider using a different icon for removal
+                            } : {
+                                label: "Add Admin",
+                                onClick: () => addAdmin.mutate({
+                                    channelId: chanInfo.id,
+                                    userId: user.userId,
+                                }),
+                                color: "base" as const,
+                                icon: <VerifiedUserIcon fontSize="small" />,
+                            };
+                        
                             userActions = userActions.concat([
                                 {
                                     label: "Kick",
@@ -76,21 +99,14 @@ export const PopUpCmd: React.FC<Props> = ({
                                     color: "red",
                                     icon: <VolumeOffIcon fontSize="small" />,
                                 },
-                                {
-                                    label: "Add Admin",
-                                    onClick : () => addAdmin.mutate({
-                                        channelId:  chanInfo.id,
-                                        userId: user.userId
-                                    }),
-                                    color: "base",
-                                    icon: <VerifiedUserIcon fontSize="small" />,
-                                },
+                                adminAction,
                             ]);
                         }
                         return (
                             <li key={user.userId}>
                                 <div className="flex justify-between items-center hover:bg-white hover:bg-opacity-5 hover:rounded-md px-5 py-2">
                                     <div className="flex items-center">
+                                        <div onClick={() => setUserProfileId(user.userId)} className="flex cursor-pointer">
                                         <div>
                                             <Avatar
                                                 imgUrl={user.avatarUrl}
@@ -100,14 +116,15 @@ export const PopUpCmd: React.FC<Props> = ({
                                                 borderRadius={0.5}
                                             />
                                         </div>
-                                        <div className="font-bold ml-[20px]">
+                                        <div className="font-bold ml-[20px] gap-3 flex">
                                             {user.username}
                                             {chanInfo.channelOwner === user.userId && (
-                                                <span className="ml-2"><VerifiedRoundedIcon/> </span>
+                                                <span className="text-indigo-500 "><VerifiedRoundedIcon sx={{fontSize: "medium"}}/> </span>
                                             )}
                                             {user.isAdmin && (
-                                                <span className="ml-2"><HowToRegRoundedIcon/> </span>
+                                                <span className="text-white opacity-40"><HowToRegRoundedIcon sx={{fontSize: "medium"}}/> </span>
                                              )}
+                                        </div>
                                         </div>
                                     </div>
                                     <div className="">
