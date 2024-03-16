@@ -341,6 +341,7 @@ export class ChannelService {
                 'user.avatarUrl',
                 'user.rating',
                 'channelMember.mutedEnd',
+                'channelMember.isAdmin',
                 (eb) =>
                   eb
                     .case()

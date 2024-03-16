@@ -85,23 +85,14 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
 
     const handleNewAdmin = (payload: ChannelServerEmitTypes["newAdmin"]) => {
       console.log("new admin");
-      queryClient.setQueryData<UserChannel[]>(["channels"], (prev) => {
-        if (!prev) return undefined;
-        return prev.map((c) => {
-          if (c.id !== payload.channelId) return c;
-          return {
-            ...c,
-            isUserAdmin: payload.userId === user.id ? true : c.isUserAdmin,
-          };
-        });
-      });
+      queryClient.invalidateQueries({ queryKey: ["channel"] });
     };
 
     const handleAdminRemove = (
       payload: ChannelServerEmitTypes["adminRemove"]
     ) => {
       console.log("admin remove");
-      queryClient.setQueryData<UserChannel[]>(["channels"], (prev) => {
+      queryClient.setQueryData<UserChannel[]>(["channel"], (prev) => {
         if (!prev) return undefined;
         return prev.map((c) => {
           if (c.id !== payload.channelId) return c;

@@ -67,6 +67,7 @@ export const Channel = () => {
         console.log("AllMessage : ", allMessagesChan.data);
     }, [allMessagesChan.data]);
 
+ 
     useEffect(() => {
         if (!channelId) return;
 
@@ -96,6 +97,7 @@ export const Channel = () => {
         chatSocket.on("joinChannel", () => {
             console.log("Connected to Channel");
         });
+        
         chatSocket.on("createChannelMessage", handleMessageCreation);
 
         return () => {
@@ -237,12 +239,14 @@ export const Channel = () => {
                         >
                             <PersonIcon />
                         </button>
+                        {chanInfo.data?.channelOwner === user.userId && (
                         <button
                             className="mr-5 hover:bg-black hover:bg-opacity-30 rounded-full py-2 px-2 justify-center"
                             onClick={() => leaveChannel.mutate(chanInfo.data?.id ?? 0)}
                         >
                             <LogoutIcon />
                         </button>
+                        )}
                         {isCmdOpen && (
                             <ModalLayout>
                                 <PopUpCmd

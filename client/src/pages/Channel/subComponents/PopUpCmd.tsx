@@ -11,6 +11,8 @@ import { useKickMemberFromChannel } from "../../../utils/channels/useKickMemberF
 import { useBanUserFromChannel } from "../../../utils/channels/useBanUserFromChannel";
 import { useMuteMember } from "../../../utils/channels/useMuteMember";
 import { useAddAdmin } from "../../../utils/channels/useAddAdmin";
+import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
+import HowToRegRoundedIcon from '@mui/icons-material/HowToRegRounded';
 
 interface Props {
     onClose: () => void;
@@ -45,6 +47,7 @@ export const PopUpCmd: React.FC<Props> = ({
                     {chanInfo?.users.map((user) => {
                         let userActions: MenuActionType[] = [];
                         if (chanInfo?.channelOwner === currentUser.id) {
+                           
                             userActions = userActions.concat([
                                 {
                                     label: "Kick",
@@ -99,6 +102,12 @@ export const PopUpCmd: React.FC<Props> = ({
                                         </div>
                                         <div className="font-bold ml-[20px]">
                                             {user.username}
+                                            {chanInfo.channelOwner === user.userId && (
+                                                <span className="ml-2"><VerifiedRoundedIcon/> </span>
+                                            )}
+                                            {user.isAdmin && (
+                                                <span className="ml-2"><HowToRegRoundedIcon/> </span>
+                                             )}
                                         </div>
                                     </div>
                                     <div className="">
@@ -110,12 +119,12 @@ export const PopUpCmd: React.FC<Props> = ({
                     })}
                 </ul>
             </div>
-            <div>
-                <button
-                    className="gap px-5 py-2 bg-indigo-500 text-white rounded-md hover:bg-blurple-hover mb-5"
+            <div className="text-right mr-2 mb-2">
+               <button
+                    className="px-5 py-2 bg-indigo-500 text-white rounded-md hover:bg-blurple-hover"
                     onClick={onClose}
-                >
-                    Close
+                    >
+                        Close
                 </button>
             </div>
         </div>
