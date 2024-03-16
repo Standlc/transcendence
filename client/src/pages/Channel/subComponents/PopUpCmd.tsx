@@ -1,16 +1,22 @@
 import { Socket } from "socket.io-client";
 import { Avatar } from "../../../UIKit/avatar/Avatar";
-import { CreateChannelResponse, ChannelUser } from "../../../types/channel";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import { DoNotDisturbOn, PersonRemove } from "@mui/icons-material";
 import { ActionsMenu, MenuActionType } from "../../../UIKit/ActionsMenu";
 import { useState } from "react";
 import { AppUser } from "@api/types/clientSchema";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
+import { ChannelDataWithUsersWithoutPassword } from "@api/types/channelsSchema";
+import { useKickMemberFromChannel } from "../../../utils/channels/useKickMemberFromChannel";
+import { useBanUserFromChannel } from "../../../utils/channels/useBanUserFromChannel";
+import { useMuteMember } from "../../../utils/channels/useMuteMember";
+import { channel } from "diagnostics_channel";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAddAdmin } from "../../../utils/channels/useAddAdmin";
 
 interface Props {
     onClose: () => void;
-    chanInfo: CreateChannelResponse | undefined;
+    chanInfo: ChannelDataWithUsersWithoutPassword | undefined;
     chatSocket: Socket;
     currentUser: AppUser;
     
@@ -19,53 +25,14 @@ interface Props {
 export const PopUpCmd: React.FC<Props> = ({
     onClose,
     chanInfo,
-    chatSocket,
     currentUser,
 }) => {
     const [nbrUsers, setNbrUsers] = useState<number>(chanInfo?.users.length || 0);
+    const kickMember = useKickMemberFromChannel();
+    const banMember = useBanUserFromChannel();
+    const muteMember = useMuteMember();
+    const addAdmin = useAddAdmin();
 
-    const doCmds = (label: string, targetId: number) => {
-        if (label === "Kick") {
-            console.log("Attempting to kick userId:");
-            const body = {
-                targetUserId: targetId,
-                channelId: chanInfo?.id,
-            };
-            chatSocket.emit("kickUser", body);
-        } else if (label === "Mute") {
-            console.log("Attempting to mute userId:", targetId);
-            const now = new Date();
-            const fiveMinutesLater = new Date(now.getTime() + 5 * 60000);
-            const body = {
-                targetUserId: targetId,
-                channelId: chanInfo?.id,
-                muteEnd: fiveMinutesLater.toISOString(),
-            };
-            chatSocket.emit("muteUser", body);
-        } else if (label === "Ban") {
-            console.log("Attempting to ban userId:", targetId);
-            const body = {
-                targetUserId: targetId,
-                channelId: chanInfo?.id,
-            };
-            chatSocket.emit("banUser", body);
-        } else if (label === "Add Admin") {
-            console.log("Attempting to give admin userId:", targetId);
-            const body = {
-                targetUserId: targetId,
-                channelId: chanInfo?.id,
-            };
-            chatSocket.emit("addChannelAdmin", body);
-        }
-        // else if (label === "Leave") {
-        //     console.log("Attempting to leave channelId:", channelId);
-        //     const body = {
-        //         channelId: chanInfo?.id,
-        //         password: password,
-        //     };
-        //     chatSocket.emit("leaveChannel", body);
-        // }
-    };
 
     return (
         <div className=" w-[500px] h-[550px] flex flex-col">
@@ -77,43 +44,48 @@ export const PopUpCmd: React.FC<Props> = ({
             </div>
             <div className="mt-5 h-[500px] overflow-y-auto px-5 py-2">
                 <ul>
-                    {chanInfo?.users.map((user: ChannelUser) => {
+                    {chanInfo?.users.map((user) => {
                         let userActions: MenuActionType[] = [];
-
                         if (chanInfo?.channelOwner === currentUser.id) {
                             userActions = userActions.concat([
                                 {
                                     label: "Kick",
-                                    onClick: () => doCmds("Kick", user.userId),
+                                    onClick : () => kickMember.mutate({
+                                        channelId:  chanInfo.id,
+                                        userId: user.userId
+                                    }),
                                     color: "red",
                                     icon: <PersonRemove fontSize="small" />,
                                 },
                                 {
                                     label: "Ban",
-                                    onClick: () => doCmds("Ban", user.userId),
+                                    onClick : () => banMember.mutate({
+                                        channelId:  chanInfo.id,
+                                        userId: user.userId
+                                    }),
                                     color: "red",
                                     icon: <DoNotDisturbOn fontSize="small" />,
                                 },
                                 {
                                     label: "Mute",
-                                    onClick: () => doCmds("Mute", user.userId),
+                                    onClick : () => muteMember.mutate({
+                                        channelId:  chanInfo.id,
+                                        userId: user.userId
+                                    }),
                                     color: "red",
                                     icon: <VolumeOffIcon fontSize="small" />,
                                 },
                                 {
                                     label: "Add Admin",
-                                    onClick: () => doCmds("Add Admin", user.userId),
+                                    onClick : () => addAdmin.mutate({
+                                        channelId:  chanInfo.id,
+                                        userId: user.userId
+                                    }),
                                     color: "base",
                                     icon: <VerifiedUserIcon fontSize="small" />,
                                 },
                             ]);
                         }
-                        // TODO not leave but send message
-                        // userActions.push({
-                        //     label: "send message",
-                        //     onClick: () => doCmds("Leave", user.userId),
-                        //     color: "base",
-                        // });
                         return (
                             <li key={user.userId}>
                                 <div className="flex justify-between items-center hover:bg-white hover:bg-opacity-5 hover:rounded-md px-5 py-2">

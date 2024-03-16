@@ -24,9 +24,11 @@ import {
   Res,
   ForbiddenException,
   BadRequestException,
+  Req,
 } from '@nestjs/common';
 import { ChannelService } from './channel.service';
 import {
+  ChannelAndUserIdPayload,
   ChannelCreationData,
   ChannelDataWithUsersWithoutPassword,
   ChannelJoinDto,
@@ -122,68 +124,6 @@ export class UserController {
     return await this.channelService.getAllChannelsOfTheUser(req.user.id);
   }
 
-  //
-  //
-  //
-  @ApiOperation({ summary: 'Create a new channel' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        isPublic: {
-          type: 'boolean',
-        },
-        name: {
-          type: 'string',
-        },
-        photoUrl: {
-          type: 'string | null',
-        },
-        password: {
-          type: 'string | null',
-        },
-      },
-    },
-  })
-  @ApiOkResponse({
-    description: 'Channels found',
-    schema: {
-      type: 'object',
-      properties: {
-        channelOwner: {
-          type: 'number',
-        },
-        createdAt: {
-          type: 'Date',
-        },
-        id: {
-          type: 'number',
-        },
-        isPublic: {
-          type: 'boolean',
-        },
-        name: {
-          type: 'string',
-        },
-        photoUrl: {
-          type: 'string | null',
-        },
-      },
-    },
-  })
-  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @ApiUnprocessableEntityResponse({
-    description:
-      'Invalid channel name length (1-49) | \
-      Invalid photo url length (1-49) | \
-      A public channel cannot have a password | \
-      Channel name already exists | \
-      Invalid password length | \
-      Password must contain a letter | \
-      Password must contain a number | \
-      Password must contain a special character !@#$%^&* | \
-      Password can only contain letters, numbers, and special characters !@#$%^&*',
-  })
   @Post()
   async createChannel(
     @Body() channel: ChannelCreationData,
@@ -199,69 +139,12 @@ export class UserController {
     return await this.channelService.createChannel(channel, req.user.id);
   }
 
-  //
-  //
-  //
-  @ApiOperation({ summary: 'Get a channel' })
-  @ApiParam({
-    name: 'channelId',
-    description: 'Id of the channel',
-    type: 'number',
-  })
-  @ApiOkResponse({
-    description: 'Channel found',
-    schema: {
-      type: 'object',
-      properties: {
-        channelOwner: {
-          type: 'number',
-        },
-        createdAt: {
-          type: 'Date',
-        },
-        id: {
-          type: 'number',
-        },
-        isPublic: {
-          type: 'boolean',
-        },
-        name: {
-          type: 'string',
-        },
-        photoUrl: {
-          type: 'string | null',
-        },
-        schema: {
-          type: 'object',
-          properties: {
-            userId: {
-              type: 'number',
-            },
-            username: {
-              type: 'string',
-            },
-            avatarUrl: {
-              type: 'string',
-            },
-            rating: {
-              type: 'number',
-            },
-            status: {
-              type: 'number',
-            },
-          },
-        },
-      },
-    },
-  })
-  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @ApiNotFoundResponse({ description: 'Channel not found' })
   @Get(':channelId/channel')
   async getChannel(
     @Param('channelId') channelId: number,
+    @Req() req,
   ): Promise<ChannelDataWithUsersWithoutPassword> {
-    console.log('GET: Recieved channelId:', channelId);
-    return await this.channelService.getChannel(channelId);
+    return await this.channelService.getChannel(req.user.id, channelId);
   }
 
   //
@@ -316,44 +199,36 @@ export class UserController {
     @Param('channelId') channelId: number,
     @Body() channel: ChannelUpdate,
     @Request() req,
-  ): Promise<string> {
-    console.log('PUT: Recieved id:', channelId);
-    return await this.channelService.updateChannel(
+  ) {
+    const userId: number = req.user.id;
+    const canUserUpdateChannel = this.channelService.canUserUpdateChannel(
+      userId,
       channelId,
-      channel,
-      req.user.id,
     );
-  }
+    if (!canUserUpdateChannel) {
+      throw new ForbiddenException();
+    }
 
-  //
-  //
-  //
-  @ApiOperation({ summary: 'Delete a channel' })
-  @ApiParam({
-    name: 'channelId',
-    description: 'Id of the channel',
-    type: 'number',
-  })
-  @ApiOkResponse({ description: 'Channel deleted' })
-  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @ApiNotFoundResponse({ description: 'Channel not found' })
-  @ApiUnauthorizedResponse({
-    description: 'Only the owner can delete this channel',
-  })
-  @Delete(':channelId')
-  async deleteChannel(
-    @Param('channelId') channelId: number,
-    @Request() req,
-  ): Promise<string> {
-    console.log('DELETE: Received channelId:', channelId);
-    return await this.channelService.deleteChannel(channelId, req.user.id);
+    await this.channelService.updateChannel(channelId, channel);
   }
 
   @Get('/public')
   async getAllPublicChannels(@Request() req): Promise<PublicChannel[]> {
     const userId: number = req.user.id;
-    console.log('public');
     return await this.channelService.getAllPublicChannels(userId);
+  }
+
+  //#region Get Photo
+
+  @ApiOperation({ summary: 'Get the photoUrl using fileId' })
+  @ApiCookieAuth()
+  @ApiParam({ name: 'fileId', description: 'Should start with /api/channels' })
+  @ApiOkResponse({ description: 'Image file' })
+  @ApiNotFoundResponse({ description: 'No such file exist' })
+  @UseGuards(JwtAuthGuard)
+  @Get('photo/:fileId')
+  async getPhoto(@Param('fileId') fileId, @Res() res) {
+    res.sendFile(fileId, { root: './public/channels' });
   }
 
   @Post('/join')
@@ -373,18 +248,140 @@ export class UserController {
     );
   }
 
-  //#region Get Photo
+  @Delete('/delete/:channelId')
+  async deleteChannel(@Req() req, @Param('channelId') channelId: number) {
+    const userId: number = req.user.id;
+    const canUserDeleteChannel = await this.channelService.canUserDeleteChannel(
+      userId,
+      channelId,
+    );
+    if (!canUserDeleteChannel) {
+      throw new ForbiddenException();
+    }
 
-  @ApiOperation({ summary: 'Get the photoUrl using fileId' })
-  @ApiCookieAuth()
-  @ApiParam({ name: 'fileId', description: 'Should start with /api/channels' })
-  @ApiOkResponse({ description: 'Image file' })
-  @ApiNotFoundResponse({ description: 'No such file exist' })
-  @UseGuards(JwtAuthGuard)
-  @Get('photo/:fileId')
-  async getPhoto(@Param('fileId') fileId, @Res() res) {
-    res.sendFile(fileId, { root: './public/channels' });
+    await this.channelService.deleteChannel(channelId);
   }
 
-  //#endregion
+  @Post('/add-admin')
+  async addAdmin(@Req() req, @Body() payload: ChannelAndUserIdPayload) {
+    const userId: number = req.user.id;
+    const canUserBeAdmin = await this.channelService.canUserBeAdmin(
+      userId,
+      payload.userId,
+      payload.channelId,
+    );
+    if (!canUserBeAdmin) {
+      throw new ForbiddenException();
+    }
+    await this.channelService.changeMemberAdmin(
+      payload.userId,
+      payload.channelId,
+      true,
+    );
+  }
+
+  @Post('/remove-admin')
+  async removeAdmin(@Req() req, @Body() payload: ChannelAndUserIdPayload) {
+    const userId: number = req.user.id;
+    const canUserBeNotAdmin = await this.channelService.canUserBeNotAdmin(
+      userId,
+      payload.userId,
+      payload.channelId,
+    );
+    if (!canUserBeNotAdmin) {
+      throw new ForbiddenException();
+    }
+    await this.channelService.changeMemberAdmin(
+      payload.userId,
+      payload.channelId,
+      false,
+    );
+  }
+
+  @Post('/mute')
+  async muteMember(@Req() req, @Body() payload: ChannelAndUserIdPayload) {
+    const userId: number = req.user.id;
+    const canUserBeMuted = await this.channelService.canUserBeMuted(
+      userId,
+      payload.userId,
+      payload.channelId,
+    );
+    if (!canUserBeMuted) {
+      throw new ForbiddenException();
+    }
+    await this.channelService.muteMember(payload.userId, payload.channelId);
+  }
+
+  @Post('/kick')
+  async kickUserFromChannel(
+    @Req() req,
+    @Body() payload: ChannelAndUserIdPayload,
+  ) {
+    console.log("KICK")
+    const userId: number = req.user.id;
+    const canUserBeKicked = await this.channelService.canUserBeKicked(
+      userId,
+      payload.userId,
+      payload.channelId,
+    );
+    if (!canUserBeKicked) {
+      throw new ForbiddenException();
+    }
+    await this.channelService.removeMemberFromChannel(
+      payload.userId,
+      payload.channelId,
+    );
+  }
+
+  @Delete('/leave/:channelId')
+  async leaveChannel(@Req() req, @Param('channelId') channelId: number) {
+    const userId: number = req.user.id;
+    const canLeaveChannel = await this.channelService.canUserLeaveChannel(
+      userId,
+      channelId,
+    );
+    if (!canLeaveChannel) {
+      throw new ForbiddenException();
+    }
+
+    await this.channelService.removeMemberFromChannel(userId, channelId);
+  }
+
+  @Post('/ban')
+  async banUserFromChannel(
+    @Req() req,
+    @Body() payload: ChannelAndUserIdPayload,
+  ) {
+    const userId: number = req.user.id;
+    const canUserBeBanned = await this.channelService.canUserBanUser(
+      userId,
+      payload.userId,
+      payload.channelId,
+    );
+    if (!canUserBeBanned) {
+      throw new ForbiddenException();
+    }
+    await this.channelService.banUser(
+      userId,
+      payload.userId,
+      payload.channelId,
+    );
+  }
+
+  @Post('/unban')
+  async unbanUserFromChannel(
+    @Req() req,
+    @Body() payload: ChannelAndUserIdPayload,
+  ) {
+    const userId: number = req.user.id;
+    const canUserBeUnbanned = await this.channelService.canUserBeUnbanned(
+      userId,
+      payload.userId,
+      payload.channelId,
+    );
+    if (!canUserBeUnbanned) {
+      throw new ForbiddenException();
+    }
+    await this.channelService.unbanUser(payload.userId, payload.channelId);
+  }
 }

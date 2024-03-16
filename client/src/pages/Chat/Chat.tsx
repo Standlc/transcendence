@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from "react";
-import io, { Socket } from "socket.io-client";
+import { useState, useEffect, useRef, useContext } from "react";
 import { Avatar } from "../../UIKit/avatar/Avatar";
 import { useNavigate, useParams } from "react-router-dom";
 import { useGetUser } from "../../utils/useGetUser";
@@ -9,16 +8,16 @@ import { UserConversation } from "@api/types/channelsSchema";
 import { MessageDm } from "../../types/messageDm";
 import TextArea from "../../UIKit/TextArea";
 import { UserDirectMessage } from "@api/types/clientSchema";
+import { SocketsContext } from "../../ContextsProviders/SocketsContext";
 
 const Chat = () => {
     const { dmId } = useParams();
     const user = useGetUser();
     const navigate = useNavigate();
-    const socketRef = useRef<Socket>();
-    // const [realTimeMessages, setRealTimeMessages] = useState<MessageDm[]>([]);
     const [textAreaValue, setTextAreaValue] = useState("");
     const queryClient = useQueryClient();
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
+    const {conversationSocket} = useContext(SocketsContext);
 
     const conversation = useQuery({
         queryKey: ["conversationAllUser"],
@@ -27,16 +26,6 @@ const Chat = () => {
             return res.data;
         },
     });
-
-    useEffect(() => {
-        console.log(conversation.data);
-    }, [conversation.data]);
-
-    const otherUser = conversation.data
-        ? conversation.data.user1.userId === user?.id
-            ? conversation.data.user2
-            : conversation.data.user1
-        : null;
 
     const allMessages = useQuery<MessageDm[]>({
         queryKey: ["allMessages", dmId],
@@ -47,39 +36,20 @@ const Chat = () => {
             const response = await axios.get<MessageDm[]>(`/api/dm/${dmId}/messages`);
             return response.data;
         },
-        enabled: !!dmId,
     });
 
-    useEffect(() => {
-        const socket = io("/dm");
-        socketRef.current = socket;
-        return () => {
-            if (socketRef.current) {
-                socketRef.current.off("connect");
-                socketRef.current.off("connect_error");
-                socketRef.current.off("connect_timeout");
-                socketRef.current.off("connect");
-
-                socketRef.current.disconnect();
-            }
-        };
-    }, []);
+    const otherUser = conversation.data
+        ? conversation.data.user1.userId === user?.id
+            ? conversation.data.user2
+            : conversation.data.user1
+        : null;
 
     useEffect(() => {
-        if (!socketRef.current) return;
+        if (!dmId) return;
 
-        socketRef.current.on("connect", () => console.log("Connected to server"));
-        socketRef.current.on("connect_error", (error) =>
-            console.error("Connection error:", error)
-        );
-        socketRef.current.on("connect_timeout", (timeout) =>
-            console.error("Connection timeout:", timeout)
-        );
-
-        if (dmId) {
-            socketRef.current.emit("joinConversation", { conversationId: dmId });
-
-            socketRef.current.on(
+            conversationSocket.emit("joinConversation", { conversationId: dmId });
+            
+            conversationSocket.on(
                 "createDirectMessage",
                 (newMessage: UserDirectMessage) => {
                     if (!conversation.data) return;
@@ -107,7 +77,10 @@ const Chat = () => {
                     );
                 }
             );
-        }
+            return () => {
+                conversationSocket.off("createDirectMessage");
+                conversationSocket.emit("leaveConversation", { conversationId: dmId });
+            };
     }, [dmId, conversation.data]);
 
     useEffect(() => {
@@ -117,14 +90,14 @@ const Chat = () => {
     }, [allMessages.data]);
 
     const sendMessage = () => {
-        if (textAreaValue.trim() && dmId && socketRef.current) {
+        if (textAreaValue.trim() && dmId) {
             const messageData = {
                 content: textAreaValue,
                 conversationId: dmId,
                 senderId: user?.id,
             };
 
-            socketRef.current.emit("createDirectMessage", messageData);
+            conversationSocket.emit("createDirectMessage", messageData);
 
             setTextAreaValue("");
         }

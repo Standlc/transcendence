@@ -4,8 +4,6 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
-  UnauthorizedException,
-  UnprocessableEntityException,
 } from '@nestjs/common';
 import { db } from 'src/database';
 import {
@@ -22,12 +20,16 @@ import * as bcrypt from 'bcrypt';
 import { Utils } from './utilsChannel.service';
 import { unlink } from 'fs/promises';
 import { UsersStatusGateway } from 'src/usersStatusGateway/UsersStatus.gateway';
+import { sql } from 'kysely';
+import { jsonArrayFrom } from 'kysely/helpers/postgres';
+import { ChannelGateway } from './channel.gateway';
 
 @Injectable()
 export class ChannelService {
   constructor(
     private readonly utilsChannelService: Utils,
     private readonly usersStatusGateway: UsersStatusGateway,
+    private readonly channelsGateway: ChannelGateway,
   ) {}
 
   async setPhoto(
@@ -35,16 +37,8 @@ export class ChannelService {
     channelId: number,
     path: string,
   ): Promise<ChannelWithoutPsw> {
-    // ? Check if user is Admin Owner
-    if (
-      !(await this.utilsChannelService.userIsAdmin(userId, channelId)) &&
-      !(await this.utilsChannelService.userIsOwner(userId, channelId))
-    ) {
-      await unlink(path.replace('/api/channels/', ''));
-      throw new UnprocessableEntityException(
-        'user is not channel admin nor owner',
-      );
-    }
+    const isUserAdmin = await this.canUserUpdateChannel(userId, channelId);
+    if (!isUserAdmin) throw new ForbiddenException();
 
     try {
       const result = await db
@@ -88,9 +82,6 @@ export class ChannelService {
     }
   }
 
-  //
-  //
-  //
   async getChannelMessages(
     userId: number,
     channelId: number,
@@ -109,92 +100,70 @@ export class ChannelService {
     }
 
     try {
-      await this.utilsChannelService.userIsBanned(userId, channelId);
-    } catch (error) {
-      throw error;
-    }
-
-    try {
       const messages = await db
         .selectFrom('channelMessage')
-        .selectAll()
         .where('channelMessage.channelId', '=', channelId)
-        .orderBy('channelMessage.createdAt', 'asc')
-        .leftJoin('user', 'channelMessage.senderId', 'user.id')
-        .leftJoin(
-          'channelAdmin',
-          'channelAdmin.channelId',
-          'channelMessage.channelId',
+        .innerJoin('channelMember', (join) =>
+          join.on((eb) =>
+            eb.and([
+              eb('channelMember.channelId', '=', channelId),
+              eb('channelMember.userId', '=', userId),
+            ]),
+          ),
         )
-        .leftJoin('channel', 'channel.channelOwner', 'channelMessage.senderId')
-        .leftJoin(
-          'bannedUser',
-          'bannedUser.bannedId',
-          'channelMessage.senderId',
-        )
-        .leftJoin('mutedUser', (join) =>
-          join
-            .onRef('mutedUser.userId', '=', 'channelMessage.senderId')
-            .on('mutedUser.channelId', '=', channelId)
-            .on('mutedUser.mutedEnd', '>', new Date()),
-        )
+        .innerJoin('user', 'channelMessage.senderId', 'user.id')
         .leftJoin('blockedUser', (join) =>
-          join
-            .onRef('blockedUser.blockedId', '=', 'channelMessage.senderId')
-            .on('blockedUser.blockedById', '=', userId),
+          join.on((eb) =>
+            eb.or([
+              eb.and([
+                eb(
+                  'blockedUser.blockedById',
+                  '=',
+                  eb.ref('channelMessage.senderId'),
+                ),
+                eb('blockedUser.blockedId', '=', userId),
+              ]),
+              eb.and([
+                eb(
+                  'blockedUser.blockedId',
+                  '=',
+                  eb.ref('channelMessage.senderId'),
+                ),
+                eb('blockedUser.blockedById', '=', userId),
+              ]),
+            ]),
+          ),
         )
         .select([
-          'channelMessage.channelId',
-          'channelMessage.content',
-          'channelMessage.createdAt',
-          'channelMessage.id as messageId',
-          'channelMessage.senderId',
           'user.avatarUrl',
           'user.username',
-          'channelAdmin.userId as isAdmin',
-          'bannedUser.bannedId as isBanned',
-          'mutedUser.userId as isMuted',
-          'mutedUser.mutedEnd',
-          'channel.channelOwner',
-          'blockedUser.blockedId',
+          'user.id as senderId',
+          'channelMessage.content as messageContent',
+          'channelMessage.createdAt',
+          'channelMessage.id',
+          (eb) =>
+            eb
+              .case()
+              .when('blockedId', 'is not', null)
+              .then(true)
+              .else(false)
+              .end()
+              .as('isBlocked'),
         ])
+        .orderBy('channelMessage.createdAt', 'asc')
         .execute();
 
-      const result: MessageWithSenderInfo[] = messages.map((message) => ({
-        channelId: message.channelId,
-        messageContent: message.content,
-        createdAt: message.createdAt as Date,
-        messageId: message.messageId as number,
-        senderId: message.senderId,
-        isOwner: message.channelOwner !== null,
-        isAdmin: message.isAdmin !== null,
-        isBanned: message.isBanned !== null,
-        isMuted: message.isMuted !== null,
-        mutedEnd: message.mutedEnd,
-        avatarUrl: message.avatarUrl,
-        username: message.username || 'no username',
-        senderIsBlocked: Boolean(message.blockedId),
-      })) as MessageWithSenderInfo[];
-
-      return result as MessageWithSenderInfo[];
+      return messages;
     } catch (error) {
       console.error('Error getting messages:', error);
       throw new InternalServerErrorException();
     }
   }
 
-  //
-  //
-  //
   async createChannel(
     payload: ChannelCreationData,
     userId: number,
   ): Promise<number> {
-    // const existingChannel = await db.selectFrom("channel").where("channel.name", "=", payload.name).executeTakeFirst();
-    // if (!!existingChannel) {
-    //   throw new ConflictException();
-    // }
-
     if (payload.memberIds.length) {
       const checkFriends = await db
         .selectFrom('friend')
@@ -219,10 +188,7 @@ export class ChannelService {
 
     let hashedPassword: string | undefined = undefined;
     if (payload.password) {
-      if (payload.password.length === 0) {
-        throw new BadRequestException();
-      }
-      hashedPassword = await bcrypt.hash(payload.password, 10);
+      hashedPassword = await this.hashPassword(payload.password);
     }
 
     const newChannel = await db
@@ -241,14 +207,7 @@ export class ChannelService {
       .values({
         channelId: newChannel.id,
         userId,
-      })
-      .execute();
-
-    await db
-      .insertInto('channelAdmin')
-      .values({
-        channelId: newChannel.id,
-        userId,
+        isAdmin: true,
       })
       .execute();
 
@@ -266,202 +225,148 @@ export class ChannelService {
         .execute();
     }
 
+    this.channelsGateway.emitNewChannel(newChannel.id, payload.memberIds);
     return newChannel.id;
   }
 
-  //
-  //
-  //
-  async deleteChannel(channelId: number, userId: number): Promise<string> {
+  async deleteChannel(channelId: number) {
     try {
-      await this.utilsChannelService.channelExists(channelId);
-    } catch (error) {
-      throw error;
-    }
-
-    if (
-      (await this.utilsChannelService.userIsOwner(userId, channelId)) === false
-    ) {
-      throw new UnauthorizedException('Only the owner can delete the channel');
-    }
-
-    try {
-      await db.transaction().execute(async (trx) => {
-        await trx
-          .deleteFrom('channelAdmin')
-          .where('channelId', '=', channelId)
-          .execute();
-        await trx
-          .deleteFrom('channelMember')
-          .where('channelId', '=', channelId)
-          .execute();
-        await trx.deleteFrom('channel').where('id', '=', channelId).execute();
-      });
-
-      // Delete photo
-      const photoUrl = await db
+      const channel = await db
         .selectFrom('channel')
+        .select((eb) =>
+          jsonArrayFrom(
+            eb
+              .selectFrom('channelMember')
+              .where('channelMember.channelId', '=', channelId)
+              .select('channelMember.userId as id'),
+          ).as('members'),
+        )
         .select('photoUrl')
         .where('id', '=', channelId)
         .executeTakeFirst(); //Recupere photoUrl
-      if (photoUrl && photoUrl.photoUrl) {
+
+      if (!channel) {
+        throw new NotFoundException();
+      }
+
+      if (channel.photoUrl) {
         await unlink(
-          photoUrl.photoUrl.replace(`/api/channels/photo`, 'public/channels/'),
+          channel.photoUrl.replace(`/api/channels/photo`, 'public/channels/'),
         ); //Unlink permet de faire comme la commande `rm`
       }
+
+      await db.deleteFrom('channel').where('id', '=', channelId).execute();
+
+      this.channelsGateway.emitChannelDelete(
+        Number(channelId),
+        channel.members.map((m) => m.id),
+      );
     } catch (error) {
       throw new InternalServerErrorException();
     }
-    return `Channel ${channelId} deleted`;
   }
 
-  //
-  //
-  //
-  async updateChannel(
-    channelId: number,
-    channel: ChannelUpdate,
-    userId: number,
-  ): Promise<string> {
-    try {
-      this.utilsChannelService.dataCanBeUpdated(channel);
-    } catch (error) {
-      throw error;
+  async updateChannel(channelId: number, payload: ChannelUpdate) {
+    let hashedPassword: string | undefined = undefined;
+    if (payload.password) {
+      hashedPassword = await this.hashPassword(payload.password);
+    }
+    const channelPrevData = await db
+      .selectFrom('channel')
+      .where('channel.id', '=', channelId)
+      .selectAll()
+      .executeTakeFirst();
+    if (!channelPrevData) {
+      throw new NotFoundException();
     }
 
-    try {
-      await this.utilsChannelService.channelExists(channelId);
-    } catch (error) {
-      throw error;
-    }
-
-    try {
-      await this.utilsChannelService.channelNameIsTaken(
-        channel.name,
-        channelId,
-      );
-    } catch (error) {
-      throw error;
-    }
-
-    let userIsOwner: boolean;
-    try {
-      userIsOwner = await this.utilsChannelService.userIsOwner(
-        userId,
-        channelId,
-      );
-    } catch (error) {
-      throw error;
-    }
-
-    try {
-      await this.utilsChannelService.userAuthorizedToUpdate(
-        channel.isPublic,
-        channel.password,
-        channelId,
-        userIsOwner,
-      );
-    } catch (error) {
-      throw error;
-    }
-
-    if (userIsOwner == true) {
-      try {
-        return await this.utilsChannelService.updateChannelAsOwner(
-          channelId,
-          channel,
-        );
-      } catch (error) {
-        throw error;
+    const isPublic = () => {
+      if (hashedPassword !== undefined) {
+        return true;
       }
-    }
-
-    if (
-      (await this.utilsChannelService.userIsAdmin(userId, channelId)) == true
-    ) {
-      try {
-        return await this.utilsChannelService.updateChannelAsAdmin(
-          channel.name,
-          channelId,
-        );
-      } catch (error) {
-        throw error;
+      if (payload.isPublic !== undefined) {
+        return payload.isPublic;
       }
-    }
-    throw new UnauthorizedException('User is not an admin');
+      return payload.isPublic;
+    };
+
+    await db
+      .updateTable('channel')
+      .where('channel.id', '=', channelId)
+      .set({
+        password: hashedPassword ?? channelPrevData.password,
+        isPublic: isPublic(),
+        name: payload.name,
+      })
+      .execute();
   }
 
-  //
-  //
-  //
-  // !!! replacing Promise type
   async getChannel(
+    userId: number,
     channelId: number,
   ): Promise<ChannelDataWithUsersWithoutPassword> {
-    try {
-      await this.utilsChannelService.channelExists(channelId);
-    } catch (error) {
-      throw error;
+    const channel = await db
+      .selectFrom('channel')
+      .where('channel.id', '=', channelId)
+      .select([
+        'channelOwner',
+        'createdAt',
+        'id',
+        'isPublic',
+        'name',
+        'photoUrl',
+        (eb) =>
+          jsonArrayFrom(
+            eb
+              .selectFrom('channelMember')
+              .where('channelMember.channelId', '=', channelId)
+              .innerJoin('user', 'user.id', 'channelMember.userId')
+              .leftJoin('blockedUser', (join) =>
+                join.on((eb) =>
+                  eb.or([
+                    eb.and([
+                      eb('blockedById', '=', userId),
+                      eb('blockedId', '=', eb.ref('user.id')),
+                    ]),
+                    eb.and([
+                      eb('blockedId', '=', userId),
+                      eb('blockedById', '=', eb.ref('user.id')),
+                    ]),
+                  ]),
+                ),
+              )
+              .select([
+                'user.id as userId',
+                'user.username',
+                'user.avatarUrl',
+                'user.rating',
+                'channelMember.mutedEnd',
+                (eb) =>
+                  eb
+                    .case()
+                    .when('blockedById', 'is not', null)
+                    .then(true)
+                    .else(false)
+                    .end()
+                    .as('isBlocked'),
+              ]),
+          ).as('users'),
+      ])
+      .executeTakeFirst();
+
+    if (!channel) {
+      throw new NotFoundException();
     }
 
-    try {
-      const result = await db
-        .selectFrom('channel')
-        .where('channel.id', '=', channelId)
-        .leftJoin('channelMember', 'channel.id', 'channelMember.channelId')
-        .leftJoin('user', 'channelMember.userId', 'user.id')
-        .select([
-          'channel.channelOwner',
-          'channel.createdAt',
-          'channel.id',
-          'channel.isPublic',
-          'channel.name',
-          'channel.photoUrl',
-          'user.id as userId',
-          'user.username',
-          'user.avatarUrl',
-          'user.rating',
-        ])
-        .execute();
-
-      if (result.length === 0) {
-        throw new NotFoundException('Channel not found');
-      }
-
-      const channelInfo = result[0];
-      const users = result.map((user) => ({
-        userId: user.userId,
-        username: user.username,
-        avatarUrl: user.avatarUrl,
-        rating: user.rating,
-        status: this.usersStatusGateway.getUserStatus(user.userId as number),
-      }));
-
-      const channelData: ChannelDataWithUsersWithoutPassword = {
-        channelOwner: channelInfo.channelOwner,
-        createdAt: channelInfo.createdAt,
-        id: channelInfo.id,
-        isPublic: channelInfo.isPublic,
-        name: channelInfo.name as string,
-        photoUrl: channelInfo.photoUrl,
-        users: users.map((user) => ({
-          userId: user.userId as number,
-          username: user.username as string,
-          avatarUrl: user.avatarUrl as string,
-          rating: user.rating as number,
-          status: user.status,
-        })),
-      };
-
-      console.log('channelData:', channelData.users);
-
-      return channelData;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new InternalServerErrorException();
-    }
+    return {
+      ...channel,
+      users: channel.users.map((user) => {
+        return {
+          ...user,
+          status: this.usersStatusGateway.getUserStatus(user.userId),
+        };
+      }),
+    };
   }
 
   async getAllChannelsOfTheUser(userId: number): Promise<UserChannel[]> {
@@ -469,7 +374,30 @@ export class ChannelService {
       .selectFrom('channelMember')
       .where('userId', '=', userId)
       .innerJoin('channel', 'channel.id', 'channelMember.channelId')
-      .selectAll('channel')
+      .select([
+        'channel.id',
+        'channel.isPublic',
+        'channel.channelOwner as ownerId',
+        'channel.name',
+        'channel.photoUrl',
+        (eb) =>
+          eb
+            .case()
+            .when('channelMember.isAdmin', 'is', true)
+            .then(true)
+            .else(false)
+            .end()
+            .as('isUserAdmin'),
+        (eb) =>
+          eb
+            .case()
+            .when('channel.password', 'is not', null)
+            .then(true)
+            .else(false)
+            .end()
+            .as('isProtected'),
+      ])
+      .orderBy('createdAt desc')
       .execute();
     return channels;
   }
@@ -522,6 +450,109 @@ export class ChannelService {
       .execute();
   }
 
+  async removeMemberFromChannel(userId: number, channelId: number) {
+    await db
+      .deleteFrom('channelMember')
+      .where('channelId', '=', channelId)
+      .where('userId', '=', userId)
+      .execute();
+
+    this.channelsGateway.emitUserLeave({ userId, channelId });
+  }
+
+  async banUser(currentUserId: number, userId: number, channelId: number) {
+    await this.removeMemberFromChannel(userId, channelId);
+
+    await db
+      .insertInto('bannedUser')
+      .values({
+        bannedById: currentUserId,
+        bannedId: userId,
+        channelId: channelId,
+      })
+      .execute();
+  }
+
+  async unbanUser(userId: number, channelId: number) {
+    await db
+      .deleteFrom('bannedUser')
+      .where('bannedUser.bannedId', '=', userId)
+      .where('channelId', '=', channelId)
+      .execute();
+  }
+
+  async muteMember(userId: number, channelId: number) {
+    await db
+      .updateTable('channelMember')
+      .where('channelId', '=', channelId)
+      .where('userId', '=', userId)
+      .set({
+        mutedEnd: sql`now() + interval '5 minutes'`,
+      })
+      .execute();
+  }
+
+  async joinUserToChannel(userId: number, channelId: number) {
+    await db
+      .insertInto('channelMember')
+      .values({ channelId, userId })
+      .executeTakeFirstOrThrow();
+
+    this.channelsGateway.emitUserJoined({ userId, channelId });
+  }
+
+  async changeMemberAdmin(
+    userId: number,
+    channelId: number,
+    makeAdmin: boolean,
+  ) {
+    await db
+      .updateTable('channelMember')
+      .where('userId', '=', userId)
+      .where('channelId', '=', channelId)
+      .set({
+        isAdmin: makeAdmin,
+      })
+      .execute();
+
+    if (makeAdmin) {
+      this.channelsGateway.emitNewAdmin({ userId, channelId });
+    } else {
+      this.channelsGateway.emitAdminRemove({ userId, channelId });
+    }
+  }
+
+  // UTILS
+
+  async hashPassword(password: string) {
+    if (password.length === 0) {
+      throw new BadRequestException();
+    }
+    return await bcrypt.hash(password, 10);
+  }
+
+  selectAdminQuery(userId: number, channelId: number) {
+    return db
+      .selectFrom('channelMember')
+      .where('channelMember.userId', '=', userId)
+      .where('channelMember.channelId', '=', channelId)
+      .where('channelMember.isAdmin', 'is', true);
+  }
+
+  selectAdminAndTargetMemberQuery(
+    currentUserId: number,
+    userId: number,
+    channelId: number,
+  ) {
+    return this.selectAdminQuery(currentUserId, channelId)
+      .innerJoin('channel', 'channel.id', 'channelMember.channelId')
+      .innerJoin('channelMember as targetUser', (join) =>
+        join
+          .on('targetUser.userId', '=', userId)
+          .on('targetUser.channelId', '=', channelId),
+      );
+  }
+
   async checkCanUserJoinChannel(userId: number, payload: ChannelJoinDto) {
     const channel = await db
       .selectFrom('channel')
@@ -558,11 +589,142 @@ export class ChannelService {
     return channel?.id ? true : false;
   }
 
-  async joinUserToChannel(userId: number, channelId: number) {
-    await db
-      .insertInto('channelMember')
-      .values({ channelId, userId })
-      .executeTakeFirstOrThrow();
+  async canUserBeAdmin(
+    currentUserId: number,
+    userId: number,
+    channelId: number,
+  ) {
+    const member = await this.selectAdminAndTargetMemberQuery(
+      currentUserId,
+      userId,
+      channelId,
+    )
+      .where('targetUser.isAdmin', 'is', false)
+      .execute();
+    return !!member;
+  }
+
+  async canUserBeNotAdmin(
+    currentUserId: number,
+    userId: number,
+    channelId: number,
+  ) {
+    const member = await this.selectAdminAndTargetMemberQuery(
+      currentUserId,
+      userId,
+      channelId,
+    )
+      .where('targetUser.isAdmin', 'is', true)
+      .execute();
+    return !!member;
+  }
+
+  async canUserUpdateChannel(
+    userId: number,
+    channelId: number,
+  ): Promise<boolean> {
+    const channel = await this.selectAdminQuery(userId, channelId)
+      .innerJoin('channel', 'channel.id', 'channelMember.channelId')
+      .where('channel.channelOwner', '=', userId)
+      .executeTakeFirst();
+    return !!channel;
+  }
+
+  async canUserDeleteChannel(
+    userId: number,
+    channelId: number,
+  ): Promise<boolean> {
+    const channel = await db
+      .selectFrom('channel')
+      .where('id', '=', channelId)
+      .where('channelOwner', '=', userId)
+      .executeTakeFirst();
+    return !!channel;
+  }
+
+  async canUserBeMuted(
+    currentUserId: number,
+    userId: number,
+    channelId: number,
+  ) {
+    const member = await this.selectAdminAndTargetMemberQuery(
+      currentUserId,
+      userId,
+      channelId,
+    )
+      .where('channel.channelOwner', '!=', userId)
+      .where((eb) =>
+        eb
+          .case()
+          .when('targetUser.mutedEnd', 'is not', null)
+          .then(eb('targetUser.mutedEnd', '<', new Date()))
+          .else(true)
+          .end(),
+      )
+      .executeTakeFirst();
+    return !!member;
+  }
+
+  async canUserBeKicked(
+    currentUserId: number,
+    userId: number,
+    channelId: number,
+  ) {
+    const member = await this.selectAdminAndTargetMemberQuery(
+      currentUserId,
+      userId,
+      channelId,
+    )
+      .where('channel.channelOwner', '!=', userId)
+      .executeTakeFirst();
+    return !!member;
+  }
+
+  async canUserBanUser(
+    currentUserId: number,
+    userId: number,
+    channelId: number,
+  ) {
+    const member = await this.selectAdminAndTargetMemberQuery(
+      currentUserId,
+      userId,
+      channelId,
+    )
+      .where('channel.channelOwner', '!=', userId)
+      .leftJoin('bannedUser', (join) =>
+        join
+          .on('bannedId', '=', userId)
+          .on('bannedUser.channelId', '=', channelId),
+      )
+      .where('bannedId', 'is', null)
+      .executeTakeFirst();
+    return !!member;
+  }
+
+  async canUserBeUnbanned(
+    currentUserId: number,
+    userId: number,
+    channelId: number,
+  ) {
+    const bannedUser = await this.selectAdminQuery(currentUserId, channelId)
+      .innerJoin('bannedUser', (join) =>
+        join
+          .on('bannedId', '=', userId)
+          .on('bannedUser.channelId', '=', channelId),
+      )
+      .executeTakeFirst();
+    return !!bannedUser;
+  }
+
+  async canUserLeaveChannel(userId: number, channelId: number) {
+    const member = await db
+      .selectFrom('channelMember')
+      .where('channelMember.userId', '=', userId)
+      .where('channelId', '=', channelId)
+      .innerJoin('channel', 'channel.id', 'channelMember.channelId')
+      .where('channel.channelOwner', '!=', userId)
+      .executeTakeFirst();
+    return !!member;
   }
 
   async removeMember(memberId: number, channelId: number) {

@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ChannelMessages, CreateChannelResponse } from "../../types/channel";
+import { ChannelMessages } from "../../types/channel";
 import TextArea from "../../UIKit/TextArea";
 import { Avatar } from "../../UIKit/avatar/Avatar";
 import ModalLayout from "../../UIKit/ModalLayout";
@@ -12,6 +12,12 @@ import { useGetUser } from "../../utils/useGetUser";
 import { PopUpCmd } from "./subComponents/PopUpCmd";
 import PersonIcon from "@mui/icons-material/Person";
 import LogoutIcon from "@mui/icons-material/Logout";
+import { ChannelDataWithUsersWithoutPassword, ChannelServerEmitTypes, MessageWithSenderInfo, UserChannelMessage } from "@api/types/channelsSchema";
+import { TestComponent } from "./TestComponent";
+import { useGetChannel } from "../../utils/channels/useGetChannel";
+import { useLeaveChannel } from "../../utils/channels/useLeaveChannel";
+import { ChannelAvatar } from "../../UIKit/avatar/ChannelAvatar";
+
 
 export const Channel = () => {
     const { channelId } = useParams();
@@ -23,27 +29,7 @@ export const Channel = () => {
     const [isCmdOpen, setIsCmdOpen] = useState(false);
     const user = useGetUser();
     const { chatSocket } = useContext(SocketsContext);
-
-    const leaveChan = (password = null) => {
-        if (channelId) {
-            console.log("Attempting to leave channelId:", channelId);
-            const body = {
-                channelId: channelId,
-                password: password,
-            };
-            chatSocket.emit("leaveChannel", body);
-        }
-    };
-
-    const quitChannel = () => {
-        if (channelId) {
-            console.log("Attempting to quit channelId:", channelId);
-            const body = {
-                channelId: channelId,
-            };
-            chatSocket.emit("quitChannel", body);
-        }
-    };
+    const leaveChannel = useLeaveChannel();
 
     const allMessagesChan = useQuery<ChannelMessages[]>({
         queryKey: ["allMessagesChan", channelId],
@@ -54,19 +40,11 @@ export const Channel = () => {
             const response = await axios.get(`/api/channels/${channelId}/messages`);
             return response.data;
         },
-        enabled: !!channelId,
     });
 
-    const chanInfo = useQuery<CreateChannelResponse>({
-        queryKey: ["chanInfo", channelId],
-        queryFn: async () => {
-            const response = await axios.get(`/api/channels/${channelId}/channel`);
-            console.log(response.data);
-            return response.data;
-        },
-    });
+    const chanInfo = useGetChannel(Number(channelId));
 
-    const findUserById = (newMessage: ChannelMessage) => {
+    const findUserById = (newMessage: UserChannelMessage) => {
         if (chanInfo.data?.users) {
             for (const user of chanInfo.data.users) {
                 if (user.userId === newMessage.senderId) {
@@ -77,6 +55,7 @@ export const Channel = () => {
         return null;
     };
 
+
     useEffect(() => {
         if (
             messagesEndRef.current &&
@@ -85,79 +64,41 @@ export const Channel = () => {
         ) {
             messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
         }
+        console.log("AllMessage : ", allMessagesChan.data);
     }, [allMessagesChan.data]);
 
     useEffect(() => {
         if (!channelId) return;
 
-        const handleMessage = (response: string) => {
-            if (response.includes("quit the channel")) {
-                console.log("JE QUITTE PAR ICI" );
-                const userIdMatch = response.match(/User (\d+) quit the channel/);
-                const userId = userIdMatch ? parseInt(userIdMatch[1], 10) : 0;
-                if (userId === user?.id) {
-                    navigate("/home");
-                    queryClient.invalidateQueries({ queryKey: ["chanInfo", channelId]});
-                    queryClient.invalidateQueries({ queryKey: ["allMessagesChan", channelId]});
-                }
-            }
-        
-            const adminActionMatch = response.match(/User (\d+) has been (\w+)/);
-            if (adminActionMatch) {
-                const userIdStr = adminActionMatch[1];
-                const action = adminActionMatch[2];
-            
-                const userId = parseInt(userIdStr, 10);
-                if (userId === user?.id) {
-                    let actionMessage = `You have been ${action}.`;
-                    if (action === "kicked") {
-                        alert(actionMessage);
-                        navigate("/home");
-                    } else if (action === "banned") {
-                        alert(actionMessage);
-                        navigate("/home");
-                    } else if (action === "muted") {
-                        alert(actionMessage);
-                        setIsMuted(true);
-                        actionMessage = "You have been muted.";
-                    }
-                    queryClient.invalidateQueries({queryKey : ["chanInfo", channelId]});
-                    queryClient.invalidateQueries({queryKey  : ["allMessagesChan", channelId]});
-                    queryClient.invalidateQueries({queryKey : ["channels"]});
-                }
-            }
-        };
-
-        const handleMessageCreation = (newMessage: ChannelMessage) => {
-            if (!channelId) return;
+        const handleMessageCreation = (newMessage: ChannelServerEmitTypes["createChannelMessage"]) => {
             console.log("newMessage", newMessage);
             const messageUser = findUserById(newMessage);
-            const pushedMessage: ChannelMessages = {
-                avatarUrl: messageUser?.avatarUrl ?? null,
-                channelId: newMessage.channelId,
-                messageContent: newMessage.content,
-                senderId: newMessage.senderId,
-                createdAt: newMessage.createdAt,
+            const pushedMessage: MessageWithSenderInfo = {
+              avatarUrl: messageUser?.avatarUrl ?? null,
+              messageContent: newMessage.content,
+              senderId: newMessage.senderId,
+              createdAt: newMessage.createdAt,
+              id: newMessage.id,
+              isBlocked: messageUser?.isBlocked ?? false,
+              username: messageUser?.username ?? "Unkown",
             };
 
-            queryClient.setQueryData<ChannelMessages[]>(
+            queryClient.setQueryData<MessageWithSenderInfo[]>(
                 ["allMessagesChan", channelId],
                 (prev) => [...(prev ? prev : []), pushedMessage]
             );
         };
+        chatSocket.emit("joinChannel", { channelId });
 
         chatSocket.on("leaveChannel", (data) => {
             console.log("leaveChannel", data);
         });
-        chatSocket.on("message", handleMessage);
-        chatSocket.emit("joinChannel", { channelId });
         chatSocket.on("joinChannel", () => {
             console.log("Connected to Channel");
         });
         chatSocket.on("createChannelMessage", handleMessageCreation);
 
         return () => {
-            chatSocket.off("message");
             chatSocket.off("joinChannel");
             chatSocket.off("createChannelMessage");
             chatSocket.off("leaveChannel");
@@ -171,6 +112,7 @@ export const Channel = () => {
                 channelId: channelId,
             };
 
+            console.log("messageData", messageData);
             chatSocket.emit("createChannelMessage", messageData);
             setTextAreaValue("");
         }
@@ -272,23 +214,21 @@ export const Channel = () => {
                 className="bg-discord-greyple h-[60px] width-full flex  border-b border-b-almost-black"
                 style={{ borderBottomWidth: "3px" }}
             >
+                {chanInfo.data && (
                 <div className="w-full flex justify-between items-center ">
                     <div className="w-full flex ">
                         <div className="flex item-center  ml-[20px]">
-                            <Avatar
+                            <ChannelAvatar
                                 imgUrl={chanInfo.data?.photoUrl}
                                 size="md"
-                                userId={chanInfo.data?.id ?? 0}
+                                id={chanInfo.data?.id ?? 0}
                                 borderRadius={0.5}
                             />
                         </div>
                         <div className="ml-2 mt-2 font-bold text-xl">
                             <button>{chanInfo.data?.name}</button>
-                            <span className="ml-[20px]">|</span>
                         </div>
-                        <div className="ml-5 mt-2 text-xl">
-                            <div>USERS</div>
-                        </div>
+                      
                     </div>
                     <div className="flex">
                         <button
@@ -299,7 +239,7 @@ export const Channel = () => {
                         </button>
                         <button
                             className="mr-5 hover:bg-black hover:bg-opacity-30 rounded-full py-2 px-2 justify-center"
-                            onClick={() => quitChannel()}
+                            onClick={() => leaveChannel.mutate(chanInfo.data?.id ?? 0)}
                         >
                             <LogoutIcon />
                         </button>
@@ -315,6 +255,7 @@ export const Channel = () => {
                         )}
                     </div>
                 </div>
+                )}
             </div>
 
             <div className="text-white text-left h-full w-auto ml-[20px] overflow-auto">

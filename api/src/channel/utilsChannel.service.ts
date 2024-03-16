@@ -11,149 +11,6 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class Utils {
-  // PUT request
-
-  //
-  //
-  //
-
-  async updateChannelAsOwner(
-    channelId: number,
-    channel: ChannelUpdate,
-  ): Promise<string> {
-    try {
-      if (channel.password) {
-        try {
-          await this.passwordSecurityVerification(channel.password);
-        } catch (error) {
-          throw error;
-        }
-      }
-
-      let hashedPassword: string | null = null;
-      if (channel.password != null) {
-        hashedPassword = channel.password
-          ? await bcrypt.hash(channel.password, 10)
-          : null;
-      }
-
-      if (hashedPassword == null && channel.password) {
-        throw new UnprocessableEntityException('Unable to hash password');
-      }
-
-      await db
-        .updateTable('channel')
-        .set({
-          isPublic: channel.isPublic,
-          name: channel.name,
-          password: hashedPassword,
-        })
-        .where('id', '=', channelId)
-        .executeTakeFirst();
-    } catch (error) {
-      if (error instanceof UnprocessableEntityException) throw error;
-      throw new InternalServerErrorException();
-    }
-    return `Channel ${channelId} updated by owner`;
-  }
-
-  //
-  //
-  //
-
-  async updateChannelAsAdmin(
-    name: string,
-    channelId: number,
-  ): Promise<string> {
-    try {
-      await db
-        .updateTable('channel')
-        .set({
-          name: name,
-        })
-        .where('id', '=', channelId)
-        .executeTakeFirst();
-    } catch (error) {
-      throw new InternalServerErrorException();
-    }
-    return `Channel ${channelId} updated by admin`;
-  }
-
-  //
-  //
-
-  async channelNameIsTaken(
-    name: string | null,
-    channelId: number,
-  ): Promise<void> {
-    if (!name || name == null) return;
-    try {
-      const nameFound = await db
-        .selectFrom('channel')
-        .select('name')
-        .where('name', '=', name)
-        .where('id', '!=', channelId)
-        .executeTakeFirst();
-      if (nameFound) {
-        throw new UnprocessableEntityException('Channel name already exists');
-      }
-    } catch (error) {
-      if (error instanceof UnprocessableEntityException) throw error;
-      throw new InternalServerErrorException();
-    }
-  }
-
-  //
-  //
-  //
-
-  verifyLength(name: string | null): void {
-    if (!name || name == null) return;
-    if (name.length < 1 || name.length > 49) {
-      throw new UnprocessableEntityException();
-    }
-  }
-
-  //
-  //
-  //
-
-  canSetPassword(isPublic: boolean, password: string | null): void {
-    if (isPublic == true && password) {
-      throw new UnprocessableEntityException(
-        'A public channel cannot have a password',
-      );
-    }
-  }
-
-  //
-  //
-  //
-
-  dataCanBeUpdated(channel: ChannelUpdate): void {
-    if (!channel.isPublic && !channel.name && !channel.password) {
-      throw new UnprocessableEntityException('No data to update');
-    }
-
-    try {
-      this.canSetPassword(channel.isPublic, channel.password);
-    } catch (error) {
-      throw error;
-    }
-
-    try {
-      this.verifyLength(channel.name);
-    } catch (error) {
-      throw new UnprocessableEntityException(
-        'Invalid channel name length (1-49)',
-      );
-    }
-  }
-
-  //
-  //
-  //
-
   async userAuthorizedToUpdate(
     isPublic: boolean,
     password: string | null,
@@ -283,7 +140,7 @@ export class Utils {
         .select('id')
         .executeTakeFirst();
 
-        console.log(channelIdExists)
+      console.log(channelIdExists);
       if (!channelIdExists) {
         throw new NotFoundException('Channel not found');
       }
@@ -296,44 +153,28 @@ export class Utils {
   //
   //
   //
-  async userIsBanned(userId: number, channelId: number): Promise<void> {
-    let bannedUser: { bannedId: number }[];
-    try {
-      bannedUser = await db
-        .selectFrom('bannedUser')
-        .select('bannedId')
-        .where('bannedId', '=', userId)
-        .where('channelId', '=', channelId)
-        .execute();
-    } catch (error) {
-      throw new InternalServerErrorException();
-    }
-    if (bannedUser.length > 0) {
-      throw new UnauthorizedException('User is banned');
-    }
+  async userIsBanned(userId: number, channelId: number): Promise<boolean> {
+    const bannedUser = await db
+      .selectFrom('bannedUser')
+      .where('bannedId', '=', userId)
+      .where('channelId', '=', channelId)
+      .select('bannedId')
+      .executeTakeFirst();
+    return bannedUser?.bannedId ? true : false;
   }
 
   //
   //
   //
-  async userIsMuted(senderId: number, channelId: number): Promise<void> {
-    let mutedUser: { userId: number; mutedEnd: Date }[];
-    try {
-      mutedUser = await db
-        .selectFrom('mutedUser')
-        .select(['userId', 'channelId', 'mutedEnd'])
-        .where('channelId', '=', channelId)
-        .where('userId', '=', senderId)
-        .where('mutedEnd', '>', new Date())
-        .execute();
-
-      console.log(mutedUser);
-    } catch (error) {
-      throw new InternalServerErrorException();
-    }
-    if (mutedUser.length > 0) {
-      throw new UnauthorizedException('User is muted');
-    }
+  async userIsMuted(senderId: number, channelId: number): Promise<boolean> {
+    const mutedUser = await db
+      .selectFrom('channelMember')
+      .where('channelId', '=', channelId)
+      .where('mutedEnd', '<', new Date())
+      .where('userId', '=', senderId)
+      .select(['userId', 'channelId', 'mutedEnd'])
+      .executeTakeFirst();
+    return mutedUser?.userId ? true : false;
   }
 
   //
@@ -359,23 +200,26 @@ export class Utils {
   //
   //
   async isChannelMember(userId: number, channelId: number): Promise<boolean> {
-    try {
-      const member = await db
-        .selectFrom('channelMember')
-        .select('userId')
-        .where('userId', '=', userId)
-        .where('channelId', '=', channelId)
-        .executeTakeFirst();
+    const member = await db
+      .selectFrom('channelMember')
+      .select('userId')
+      .where('userId', '=', userId)
+      .where('channelId', '=', channelId)
+      .executeTakeFirst();
 
-      if (!member || member.userId == null) {
-        console.log(`User ${userId} is not member of the channel ${channelId}`);
-        return false;
-      }
-      console.log(`User ${userId} is member of the channel ${channelId}`);
-      return true;
-    } catch (error) {
-      throw new InternalServerErrorException();
-    }
+    return member?.userId !== null ? true : false;
+  }
+
+  async isUserAdmin(userId: number, channelId: number) {
+    const member = await db
+      .selectFrom('channelMember')
+      .select('userId')
+      .where('userId', '=', userId)
+      .where('channelId', '=', channelId)
+      .where('isAdmin', 'is', true)
+      .executeTakeFirst();
+
+    return member?.userId !== null ? true : false;
   }
 
   //
@@ -384,15 +228,13 @@ export class Utils {
   async userIsAdmin(userId: number, channelId: number): Promise<boolean> {
     try {
       const admin = await db
-        .selectFrom('channelAdmin')
-        .select('userId')
+        .selectFrom('channelMember')
         .where('userId', '=', userId)
         .where('channelId', '=', channelId)
+        .select(['isAdmin'])
         .executeTakeFirst();
 
-      if (!admin || admin.userId == null) return false;
-
-      return true;
+      return admin?.isAdmin ? true : false;
     } catch (error) {
       throw new InternalServerErrorException();
     }
@@ -405,13 +247,12 @@ export class Utils {
     try {
       const owner = await db
         .selectFrom('channel')
-        .select('channelOwner')
         .where('channelOwner', '=', userId)
         .where('id', '=', channelId)
+        .select('channelOwner')
         .executeTakeFirst();
 
-      if (!owner || owner.channelOwner == null) return false;
-
+      if (!owner || owner.channelOwner === null) return false;
       return true;
     } catch (error) {
       throw new InternalServerErrorException();
