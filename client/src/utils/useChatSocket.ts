@@ -56,7 +56,7 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
       payload: ChannelServerEmitTypes["memberLeave"]
     ) => {
       if (payload.userId === user.id) {
-        navigate("/home/friends/all");
+        navigate("/home");
         queryClient.invalidateQueries({ queryKey: ["channels"] });
       } else {
         queryClient.invalidateQueries({ queryKey: ["channel"] });
@@ -131,16 +131,16 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
     chatSocket.on("adminRemove", handleAdminRemove);
 
     return () => {
-      chatSocket.off("disconnect", handleDisconnect);
-      chatSocket.off("connect_error", handleErrors);
-      chatSocket.off("connect_failed", handleErrors);
+      chatSocket.off("disconnect");
+      chatSocket.off("connect_error");
+      chatSocket.off("connect_failed");
 
-      chatSocket.off("memberJoin", handleMemberJoin);
-      chatSocket.off("memberLeave", handleMemberLeave);
-      chatSocket.off("channelDelete", handleChannelDelete);
-      chatSocket.off("newChannel", handleNewChannel);
-      chatSocket.off("newAdmin", handleNewAdmin);
-      chatSocket.off("adminRemove", handleAdminRemove);
+      chatSocket.off("memberJoin");
+      chatSocket.off("memberLeave");
+      chatSocket.off("channelDelete");
+      chatSocket.off("newChannel");
+      chatSocket.off("newAdmin");
+      chatSocket.off("adminRemove");
     };
   }, [chatSocket]);
   return { chatSocket };

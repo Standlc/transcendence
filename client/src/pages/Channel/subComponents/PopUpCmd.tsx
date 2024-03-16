@@ -10,8 +10,6 @@ import { ChannelDataWithUsersWithoutPassword } from "@api/types/channelsSchema";
 import { useKickMemberFromChannel } from "../../../utils/channels/useKickMemberFromChannel";
 import { useBanUserFromChannel } from "../../../utils/channels/useBanUserFromChannel";
 import { useMuteMember } from "../../../utils/channels/useMuteMember";
-import { channel } from "diagnostics_channel";
-import { useQueryClient } from "@tanstack/react-query";
 import { useAddAdmin } from "../../../utils/channels/useAddAdmin";
 
 interface Props {
