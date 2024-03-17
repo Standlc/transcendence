@@ -229,6 +229,16 @@ export class AuthController {
     return await this.usersService.getUserById(req.user.id);
   }
 
+  @UseGuards(Jwt2faAuthGuard)
+  @Get('2fa/check')
+  async checkIfUserAs2fa(@Req() req) {
+    if (!req.user.id)
+      throw new UnauthorizedException("Missing Id from the payload");
+    const user = await this.usersService.getUserById(req.user.id);
+    if (!user.isTwoFactorAuthenticationEnabled)
+      throw new UnauthorizedException("User do not have 2fa enabled");
+  }
+
   //#region token
 
   /**
