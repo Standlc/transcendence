@@ -322,20 +322,20 @@ export class UsersService {
   }
 
   async updateUser(userId: number, updateUsersDto: UpdateUsersDto) {
-    if (updateUsersDto.bio || updateUsersDto.firstname || updateUsersDto.lastname) {
-      try {
-        const result = await db
-        .updateTable('user')
-        .set({...updateUsersDto})
-        .where('id', '=', userId)
-        .executeTakeFirst()
-      } catch (error) {
-        console.log(error);
-        throw new InternalServerErrorException();
-      }
-    }
-    else
+    if (!updateUsersDto.bio && !updateUsersDto.username)
       throw new UnprocessableEntityException("Empty value");
+    else if (updateUsersDto.username && updateUsersDto.username.length < 50)
+      throw new UnprocessableEntityException("Username is too long");
+    try {
+      const result = await db
+      .updateTable('user')
+      .set({...updateUsersDto})
+      .where('id', '=', userId)
+      .executeTakeFirst()
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
   }
 
   /**

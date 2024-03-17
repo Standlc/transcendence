@@ -8,9 +8,5 @@ export class UpdateUsersDto {
 
     @ApiProperty({required: false})
     @IsString()
-    firstname?: string;
-
-    @ApiProperty({required: false})
-    @IsString()
-    lastname?: string;
+    username?: string;
 }
