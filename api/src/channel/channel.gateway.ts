@@ -142,6 +142,17 @@ export class ChannelGateway
       );
   }
 
+  emitChannelUpdated(channelId: number, membersId: number[]) {
+    membersId.forEach((id) => {
+      this.server
+        .to(btoa(id.toString()))
+        .emit(
+          'channelUpdated',
+          channelId satisfies ChannelServerEmitTypes['channelUpdated'],
+        );
+    });
+  }
+
   //
   //
   //

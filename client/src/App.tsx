@@ -39,7 +39,7 @@ function App() {
   });
 
   if (getUser.isLoading) {
-    return <div className="">Loading...</div>;
+    return null;
   }
 
   return (

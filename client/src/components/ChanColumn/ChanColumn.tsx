@@ -9,7 +9,6 @@ import {
 } from "@mui/icons-material";
 import { useGetUser } from "../../utils/useGetUser";
 import { Avatar } from "../../UIKit/avatar/Avatar";
-import ModalLayout from "../../UIKit/ModalLayout";
 import { USER_STATUS } from "@api/types/usersStatusTypes";
 import { CreateConversationCard } from "./CreateConversationCard";
 import { CreateChannelCard } from "./CreateChannelCard";
@@ -20,9 +19,8 @@ import { UserChannel, UserConversationType } from "@api/types/channelsSchema";
 import { useGetChannels } from "../../utils/channels/useGetChannels";
 import { useGetConversations } from "../../utils/conversations/useGetConversations";
 import { useDeleteChannel } from "../../utils/channels/useDeleteChannel";
-import { useGetChannel } from "../../utils/channels/useGetChannel";
-import { SwitchSelectable } from "../../UIKit/SwitchSelectable";
 import { useLeaveChannel } from "../../utils/channels/useLeaveChannel";
+import { ChannelSettingsModal } from "./ChannelSettingsModal";
 
 export const ChanColumn = () => {
   const [showCreateConversation, setShowCreateConversation] = useState(false);
@@ -57,13 +55,9 @@ export const ChanColumn = () => {
             />
 
             {showCreateConversation && (
-              <ModalLayout
-                onClickOutside={() => setShowCreateConversation(false)}
-              >
-                <CreateConversationCard
-                  hide={() => setShowCreateConversation(false)}
-                />
-              </ModalLayout>
+              <CreateConversationCard
+                hide={() => setShowCreateConversation(false)}
+              />
             )}
 
             <div className="text-left flex flex-col gap-[2px]">
@@ -81,9 +75,7 @@ export const ChanColumn = () => {
             />
 
             {showCreateChannel && (
-              <ModalLayout onClickOutside={() => setShowCreateChannel(false)}>
-                <CreateChannelCard hide={() => setShowCreateChannel(false)} />
-              </ModalLayout>
+              <CreateChannelCard hide={() => setShowCreateChannel(false)} />
             )}
 
             <div className="flex flex-col gap-[2px]">
@@ -207,6 +199,8 @@ const Channel = ({ channel }: { channel: UserChannel }) => {
   const leaveChannel = useLeaveChannel();
   const user = useGetUser();
 
+  const isUserOwner = user.id === channel.ownerId;
+
   const isActive = useMemo(
     () => Number(channelId) === channel.id,
     [channelId, channel.id]
@@ -214,7 +208,7 @@ const Channel = ({ channel }: { channel: UserChannel }) => {
 
   return (
     <>
-      {showSettings && channel.isUserAdmin && (
+      {showSettings && (
         <ChannelSettingsModal
           channelId={channel.id}
           hide={() => setShowSettings(false)}
@@ -239,7 +233,7 @@ const Channel = ({ channel }: { channel: UserChannel }) => {
         </NavLink>
 
         <div className="absolute right-2 flex items-center gap-2">
-          {user.id === channel.ownerId && (
+          {isUserOwner && (
             <button
               onClick={() => setShowSettings(true)}
               className="group-hover/channel:flex opacity-50 hover:opacity-100 hidden aspect-square items-center justify-center"
@@ -251,7 +245,7 @@ const Channel = ({ channel }: { channel: UserChannel }) => {
           <button
             disabled={deleteChannel.isPending || leaveChannel.isPending}
             onClick={() => {
-              if (user.id === channel.ownerId) {
+              if (isUserOwner) {
                 deleteChannel.mutate(channel.id);
               } else {
                 leaveChannel.mutate(channel.id);
@@ -264,91 +258,5 @@ const Channel = ({ channel }: { channel: UserChannel }) => {
         </div>
       </div>
     </>
-  );
-};
-
-const ChannelSettingsModal = ({
-  channelId,
-  hide,
-}: {
-  channelId: number;
-  hide: () => void;
-}) => {
-  const channel = useGetChannel(channelId);
-  const [newName, setNewName] = useState("");
-  const [isPublic, setIsPublic] = useState(!!channel.data?.isPublic);
-  const [newPassword, setNewPassword] = useState("");
-
-  return (
-    <ModalLayout onClickOutside={hide}>
-      {channel.data && (
-        <div className="p-4 flex flex-col gap-5 text-left">
-          <header className="text-2xl font-extrabold">Channel Settings</header>
-
-          <span className="opacity-50 text-sm font-semibold -mb-3">NAME</span>
-          <input
-            onChange={(e) => {
-              setNewName(e.target.value);
-            }}
-            value={newName}
-            type="text"
-            className="bg-black bg-opacity-40 rounded-md px-3 py-2"
-            placeholder={channel.data.name}
-          />
-
-          <span className="opacity-50 text-sm font-semibold -mb-4">
-            VISIBILITY
-          </span>
-          <div className="flex flex-col">
-            <div
-              onClick={() => {
-                setNewPassword("");
-                setIsPublic(!isPublic);
-              }}
-              className="flex justify-between items-center cursor-pointer"
-            >
-              <span className="font-bold">Private Channel</span>
-              <SwitchSelectable isSelected={!isPublic} />
-            </div>
-            <span className="opacity-50 text-xs">
-              Only selected members will be able to view this channel.
-            </span>
-          </div>
-
-          <span className="opacity-50 text-sm font-semibold -mb-3">
-            PASSWORD
-          </span>
-          <div className="flex flex-col">
-            <input
-              onChange={(e) => {
-                if (e.target.value !== "") {
-                  setIsPublic(true);
-                }
-                setNewPassword(e.target.value);
-              }}
-              value={newPassword}
-              type="password"
-              className="bg-black bg-opacity-40 rounded-md px-3 py-2"
-              placeholder="Channel password (optional)"
-            />
-            <span className="opacity-50 text-xs mt-1">
-              Members will have to enter this password to join the channel.
-            </span>
-          </div>
-
-          <button
-            onClick={() => {}}
-            disabled={
-              (newName === channel.data.name || newName === "") &&
-              isPublic === channel.data.isPublic &&
-              newPassword === ""
-            }
-            className="bg-green-600 py-2 px-4 rounded-md font-semibold disabled:opacity-50"
-          >
-            Save changes
-          </button>
-        </div>
-      )}
-    </ModalLayout>
   );
 };

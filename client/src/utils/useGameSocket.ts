@@ -64,7 +64,6 @@ export const useGameSocket = (addError: (error: ErrorType) => void) => {
     if (!gameSocket) return;
 
     const handleErrors = (err: Error) => {
-      // redirect to login page
       gameSocket.disconnect();
       setGameSocket(undefined);
       addError({ message: err.message });

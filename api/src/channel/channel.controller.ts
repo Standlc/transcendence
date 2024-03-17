@@ -39,6 +39,8 @@ import {
 } from 'src/types/channelsSchema';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
+const isWhitespaceString = (str: string) => !str.replace(/\s/g, '').length;
+
 @UseGuards(JwtAuthGuard)
 @ApiTags('channels')
 @ApiBearerAuth()
@@ -129,10 +131,11 @@ export class UserController {
     @Body() channel: ChannelCreationData,
     @Request() req,
   ): Promise<number> {
-    const isWhitespaceString = (str: string) => !str.replace(/\s/g, '').length;
     if (
       isWhitespaceString(channel.name) ||
-      (channel.password && isWhitespaceString(channel.password))
+      (channel.password && isWhitespaceString(channel.password)) ||
+      channel.name.length > 30 ||
+      (channel.password?.length ?? 0) > 30
     ) {
       throw new BadRequestException();
     }
@@ -207,6 +210,15 @@ export class UserController {
     );
     if (!canUserUpdateChannel) {
       throw new ForbiddenException();
+    }
+
+    if (
+      (channel.name && isWhitespaceString(channel.name)) ||
+      (channel.password && isWhitespaceString(channel.password)) ||
+      (channel.name?.length ?? 0) > 30 ||
+      (channel.password?.length ?? 0) > 30
+    ) {
+      throw new BadRequestException();
     }
 
     await this.channelService.updateChannel(channelId, channel);
@@ -317,7 +329,6 @@ export class UserController {
     @Req() req,
     @Body() payload: ChannelAndUserIdPayload,
   ) {
-    console.log("KICK")
     const userId: number = req.user.id;
     const canUserBeKicked = await this.channelService.canUserBeKicked(
       userId,
