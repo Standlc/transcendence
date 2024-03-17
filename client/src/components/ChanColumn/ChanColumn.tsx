@@ -12,7 +12,6 @@ import { Avatar } from "../../UIKit/avatar/Avatar";
 import { USER_STATUS } from "@api/types/usersStatusTypes";
 import { CreateConversationCard } from "./CreateConversationCard";
 import { CreateChannelCard } from "./CreateChannelCard";
-import { ReloadButton } from "../../UIKit/ReloadButton";
 import { ChannelAvatar } from "../../UIKit/avatar/ChannelAvatar";
 import { useDeleteConversation } from "../../utils/conversations/useDeleteConversation";
 import { UserChannel, UserConversationType } from "@api/types/channelsSchema";
@@ -21,6 +20,8 @@ import { useGetConversations } from "../../utils/conversations/useGetConversatio
 import { useDeleteChannel } from "../../utils/channels/useDeleteChannel";
 import { useLeaveChannel } from "../../utils/channels/useLeaveChannel";
 import { ChannelSettingsModal } from "./ChannelSettingsModal";
+import { useQueryClient } from "@tanstack/react-query";
+import { useHandlerUsersStatusInLive } from "../../utils/useHandleUsersStatusInLive";
 
 export const ChanColumn = () => {
   const [showCreateConversation, setShowCreateConversation] = useState(false);
@@ -28,6 +29,27 @@ export const ChanColumn = () => {
   const user = useGetUser();
   const conversations = useGetConversations();
   const channels = useGetChannels();
+  const queryClient = useQueryClient();
+
+  useHandlerUsersStatusInLive("conversations", (data) => {
+    queryClient.setQueryData<UserConversationType[]>(
+      ["conversations"],
+      (prev) => {
+        if (!prev) return undefined;
+        return prev.map((conv) => {
+          if (conv.user.id !== data.userId) return conv;
+
+          return {
+            ...conv,
+            user: {
+              ...conv.user,
+              status: data.status,
+            },
+          };
+        });
+      }
+    );
+  });
 
   return (
     <div className="bg-bg-1 relative min-w-64 border-r border-r-[rgba(0,0,0,0.2)] max-h-[100vh] min-h-[100vh] flex flex-col justify-between overflow-y-auto">
@@ -51,7 +73,6 @@ export const ChanColumn = () => {
             <Header
               onClick={() => setShowCreateConversation(!showCreateConversation)}
               title="DIRECT MESSAGES"
-              refetch={conversations.refetch}
             />
 
             {showCreateConversation && (
@@ -71,7 +92,6 @@ export const ChanColumn = () => {
             <Header
               onClick={() => setShowCreateChannel(!showCreateConversation)}
               title="CHANNELS"
-              refetch={channels.refetch}
             />
 
             {showCreateChannel && (
@@ -121,10 +141,8 @@ export const ChanColumn = () => {
 const Header = ({
   onClick,
   title,
-  refetch,
 }: {
   onClick: () => void | any;
-  refetch: () => void | any;
   title: string;
 }) => {
   return (
@@ -138,7 +156,6 @@ const Header = ({
       <span className="text-sm font-[600]">{title}</span>
 
       <div className="flex items-center gap-1">
-        <ReloadButton onClick={refetch} />
         <div className="h-[25px] aspect-square rounded-full bg-black opacity-75 hover:opacity-100 bg-opacity-30 flex items-center justify-center active:scale-90 transition-transform">
           <Add fontSize="small" />
         </div>

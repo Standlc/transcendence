@@ -1,4 +1,4 @@
-import { UseGuards } from '@nestjs/common';
+import { Inject, UseGuards, forwardRef } from '@nestjs/common';
 import { DmService } from './dm.service';
 import {
   ConnectedSocket,
@@ -14,6 +14,7 @@ import { Server, Socket } from 'socket.io';
 import { DirectMessageContent } from 'src/types/channelsSchema';
 import { WsAuthGuard } from 'src/auth/ws-auth.guard';
 import { ConnectedUsersService } from 'src/connectedUsers/connectedUsers.service';
+import { DmGatewayEmitTypes } from 'src/types/conversations';
 
 @WebSocketGateway(5050, {
   namespace: 'dm',
@@ -24,6 +25,7 @@ import { ConnectedUsersService } from 'src/connectedUsers/connectedUsers.service
 @UseGuards(WsAuthGuard)
 export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
+    @Inject(forwardRef(() => DmService))
     private dmService: DmService,
     private readonly wsGuard: WsAuthGuard,
     private readonly connectedUsersService: ConnectedUsersService,
@@ -53,20 +55,16 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
   //
   //
   handleConnection(@ConnectedSocket() socket: Socket) {
-    console.log(`Client connected: ${socket.id}`);
+    const userId = this.extractUserId(socket);
+    socket.join(btoa(String(userId)));
   }
 
   //
   //
   //
   handleDisconnect(socket: Socket) {
-    try {
-      socket.disconnect();
-      console.log('Client disconnected');
-    } catch (error) {
-      console.error('Error disconnecting client:', error);
-      throw new WsException('Error disconnecting client');
-    }
+    const userId = this.extractUserId(socket);
+    socket.leave(btoa(String(userId)));
   }
 
   //
@@ -77,8 +75,6 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() socket: Socket,
     @MessageBody() payload: { conversationId: number },
   ) {
-    const userId = socket.data.id;
-
     try {
       await this.dmService.conversationExists(payload.conversationId);
     } catch (error) {
@@ -86,25 +82,7 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
       throw new WsException('Conversation not found');
     }
 
-    try {
-      socket.join(payload.conversationId.toString());
-      console.log(
-        `User ${userId} joined conversation ${payload.conversationId}`,
-      );
-
-      if (socket.rooms.has(payload.conversationId.toString())) {
-        this.server
-          .to(payload.conversationId.toString())
-          .emit(
-            'message',
-            `User ${userId} joined conversation ${payload.conversationId}`,
-          );
-      }
-      this.connectedUsersService.addUser(userId, socket);
-    } catch (error) {
-      console.error(error);
-      throw new WsException('Unable to join conversation');
-    }
+    socket.join(payload.conversationId.toString());
   }
 
   //
@@ -115,26 +93,7 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() socket: Socket,
     @MessageBody() payload: { conversationId: number },
   ) {
-    const userId = socket.data.id;
-
-    try {
-      if (socket.rooms.has(payload.conversationId.toString())) {
-        this.server
-          .to(payload.conversationId.toString())
-          .emit(
-            'message',
-            `User ${userId} left conversation ${payload.conversationId}`,
-          );
-      }
-      socket.leave(payload.conversationId.toString());
-      console.log(`User ${userId} left conversation ${payload.conversationId}`);
-
-      this.connectedUsersService.removeUserWithSocketId(socket.id);
-    } catch (error) {
-      console.error(error);
-      socket.disconnect();
-      throw new WsException('Unable to leave conversation');
-    }
+    socket.leave(payload.conversationId.toString());
   }
 
   //
@@ -146,26 +105,48 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() payload: DirectMessageContent,
   ) {
     try {
-      this.connectedUsersService.verifyConnection(socket);
-    } catch (error) {
-      console.error(error);
-      throw new WsException('User did not join channel room');
-    }
-
-    try {
-      const senderId = socket.data.id;
-
-      if (socket.rooms.has(payload.conversationId.toString())) {
-        const newMessage = await this.dmService.createDirectMessage(payload, senderId);
-        this.server
-          .to(payload.conversationId.toString())
-          .emit('createDirectMessage', newMessage);
+      const senderId = this.extractUserId(socket);
+      const canSendMessage = await this.dmService.canUserSendMessage(
+        senderId,
+        payload.conversationId,
+      );
+      if (!canSendMessage) {
+        throw new WsException('Not allowed');
       }
+
+      const newMessage = await this.dmService.createDirectMessage(
+        payload,
+        senderId,
+      );
+      this.server
+        .to(payload.conversationId.toString())
+        .emit('createDirectMessage', newMessage);
     } catch (error) {
-      this.connectedUsersService.removeUserWithSocketId(socket.id);
       console.error(error);
       throw new WsException('Cannot send message');
     }
+  }
+
+  emitNewConversation(membersIds: number[], conversationId: number) {
+    membersIds.forEach((id) => {
+      this.server
+        .to(btoa(id.toString()))
+        .emit(
+          'newConversation',
+          conversationId satisfies DmGatewayEmitTypes['newConversation'],
+        );
+    });
+  }
+
+  emitConversationDeleted(membersIds: number[], conversationId: number) {
+    membersIds.forEach((id) => {
+      this.server
+        .to(btoa(id.toString()))
+        .emit(
+          'conversationDeleted',
+          conversationId satisfies DmGatewayEmitTypes['conversationDeleted'],
+        );
+    });
   }
 
   //
@@ -194,5 +175,9 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
       console.error(error);
       throw new WsException('Cannot get messages');
     }
+  }
+
+  extractUserId(socket: Socket) {
+    return socket.data.id as number;
   }
 }

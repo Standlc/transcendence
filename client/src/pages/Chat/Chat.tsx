@@ -4,7 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useGetUser } from "../../utils/useGetUser";
 import axios from "axios";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { UserConversation } from "@api/types/channelsSchema";
+import { DmWithSenderInfo, UserConversation } from "@api/types/channelsSchema";
 import { MessageDm } from "../../types/messageDm";
 import TextArea from "../../UIKit/TextArea";
 import { UserDirectMessage } from "@api/types/clientSchema";
@@ -53,26 +53,11 @@ const Chat = () => {
 
     conversationSocket.on(
       "createDirectMessage",
-      (newMessage: UserDirectMessage) => {
+      (newMessage: DmWithSenderInfo) => {
         if (!conversation.data) return;
-        const messageUser =
-          conversation.data.user1.userId === newMessage.senderId
-            ? conversation.data.user1
-            : conversation.data.user2;
-        const pushedMessage: MessageDm = {
-          avatarUrl: messageUser.avatarUrl,
-          conversationId: newMessage.conversationId,
-          messageId: newMessage.id,
-          username: messageUser.username,
-          senderIsBlocked: conversation.data.isBlocked,
-          senderId: newMessage.senderId,
-          createdAt: newMessage.createdAt,
-          content: newMessage.content,
-        };
-
         queryClient.setQueryData<MessageDm[]>(["allMessages", dmId], (prev) => {
-          if (!prev) return [pushedMessage];
-          return [...prev, pushedMessage];
+          if (!prev) return undefined;
+          return [...prev, newMessage];
         });
       }
     );
