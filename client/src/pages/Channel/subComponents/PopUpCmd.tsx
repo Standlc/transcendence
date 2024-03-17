@@ -50,8 +50,7 @@ export const PopUpCmd: React.FC<Props> = ({ chanInfo, currentUser }) => {
             if (
               (chanInfo?.channelOwner === currentUser.id &&
                 currentUser.id !== user.userId) ||
-              // (currentUserIsAdmin && user.userId !== currentUser.id)
-              currentUserIsAdmin
+              (currentUserIsAdmin && currentUser.id !== user.userId)
             ) {
               const isAdmin = user.isAdmin;
               const adminAction = isAdmin
@@ -63,7 +62,7 @@ export const PopUpCmd: React.FC<Props> = ({ chanInfo, currentUser }) => {
                         userId: user.userId,
                       }),
                     color: "base" as const,
-                    icon: <VerifiedUserIcon fontSize="small" />, // Consider using a different icon for removal
+                    icon: <VerifiedUserIcon fontSize="small" />,
                   }
                 : {
                     label: "Add Admin",
@@ -112,12 +111,12 @@ export const PopUpCmd: React.FC<Props> = ({ chanInfo, currentUser }) => {
             }
             return (
               <li key={user.userId}>
-                <div className="flex justify-between items-center hover:bg-white hover:bg-opacity-5 hover:rounded-md px-5 py-2">
+                <div
+                  onClick={() => setUserProfileId(user.userId)}
+                  className="flex justify-between items-center hover:bg-white hover:bg-opacity-5 hover:rounded-md px-2 py-2 cursor-pointer"
+                >
                   <div className="flex items-center">
-                    <div
-                      onClick={() => setUserProfileId(user.userId)}
-                      className="flex cursor-pointer"
-                    >
+                    <div className="flex">
                       <div>
                         <Avatar
                           imgUrl={user.avatarUrl}
