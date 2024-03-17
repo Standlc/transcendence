@@ -138,12 +138,17 @@ export const PopUpCmd: React.FC<Props> = ({ chanInfo, currentUser }) => {
                         {user.username}
                         {chanInfo.channelOwner === user.userId && (
                           <span className="text-indigo-500 ">
-                            <VerifiedRoundedIcon sx={{ fontSize: "medium" }} />{" "}
+                            <VerifiedRoundedIcon sx={{ fontSize: "medium" }} />
                           </span>
                         )}
                         {user.isAdmin && (
                           <span className="text-white opacity-40">
-                            <HowToRegRoundedIcon sx={{ fontSize: "medium" }} />{" "}
+                            <HowToRegRoundedIcon sx={{ fontSize: "medium" }} />
+                          </span>
+                        )}
+                        {user.mutedEnd && (
+                          <span className="text-red-500 ">
+                            <VolumeOffIcon sx={{ fontSize: "medium" }} />
                           </span>
                         )}
                       </div>
