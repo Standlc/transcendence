@@ -267,6 +267,7 @@ export class ChannelService {
   }
 
   async updateChannel(channelId: number, payload: ChannelUpdate) {
+    console.log(payload);
     let hashedPassword: string | undefined = undefined;
     if (payload.password) {
       hashedPassword = await this.hashPassword(payload.password);
@@ -290,15 +291,31 @@ export class ChannelService {
       return payload.isPublic;
     };
 
-    await db
+    const updatedChannel = await db
       .updateTable('channel')
       .where('channel.id', '=', channelId)
       .set({
-        password: hashedPassword ?? channelPrevData.password,
+        password:
+          payload.password === null
+            ? null
+            : hashedPassword ?? channelPrevData.password,
         isPublic: isPublic(),
         name: payload.name,
       })
       .execute();
+
+    const channelMembers = await this.getChannelMembers(channelId);
+    this.channelsGateway.emitChannelUpdated(channelId, channelMembers);
+  }
+
+  async getChannelMembers(channelId: number) {
+    const members = await db
+      .selectFrom('channelMember')
+      .where('channelId', '=', channelId)
+      .select('channelMember.userId as id')
+      .execute();
+
+    return members.map((u) => u.id);
   }
 
   async getChannel(
@@ -315,6 +332,14 @@ export class ChannelService {
         'isPublic',
         'name',
         'photoUrl',
+        (eb) =>
+          eb
+            .case()
+            .when('channel.password', 'is not', null)
+            .then(true)
+            .else(false)
+            .end()
+            .as('isProtected'),
         (eb) =>
           jsonArrayFrom(
             eb
@@ -692,7 +717,7 @@ export class ChannelService {
       channelId,
     )
       .where('channel.channelOwner', '!=', userId)
-      .leftJoin('bannedUser', (join) =>
+      .fullJoin('bannedUser', (join) =>
         join
           .on('bannedId', '=', userId)
           .on('bannedUser.channelId', '=', channelId),

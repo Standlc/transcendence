@@ -16,6 +16,7 @@ export type ChannelServerEmitTypes = {
   adminRemove: ChannelAndUserIdPayload;
   newChannel: number;
   channelDelete: number;
+  channelUpdated: number;
 };
 
 export type ChannelAndUserIdPayload = {
@@ -49,6 +50,7 @@ export interface ChannelDataWithUsersWithoutPassword {
   createdAt: Date;
   id: number;
   isPublic: boolean;
+  isProtected: boolean;
   name: string;
   photoUrl: string | null;
   users: UserInfo[];
@@ -64,6 +66,14 @@ export interface UserInfo {
   status: number;
   isAdmin: boolean;
 }
+
+export type UpdatedChannel = {
+  name: string;
+  photoUrl: string | null;
+  id: number;
+  isPublic: boolean;
+  isProtected: boolean;
+};
 
 export type UserChannel = {
   name: string;

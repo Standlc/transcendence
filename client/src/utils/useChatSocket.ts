@@ -77,7 +77,7 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
     const handleChannelDelete = (
       channelId: ChannelServerEmitTypes["channelDelete"]
     ) => {
-      navigate("/home/friends/all");
+      navigate("/home");
       queryClient.setQueryData<UserChannel[]>(["channels"], (prev) => {
         return prev?.filter((c) => c.id !== channelId);
       });
@@ -110,6 +110,15 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
       queryClient.invalidateQueries({ queryKey: ["channels"] });
     };
 
+    const handleChannelUpdated = (
+      channelId: ChannelServerEmitTypes["channelUpdated"]
+    ) => {
+      queryClient.invalidateQueries({ queryKey: ["channels"] });
+      queryClient.invalidateQueries({
+        queryKey: ["channel", Number(channelId)],
+      });
+    };
+
     chatSocket.on("disconnect", handleDisconnect);
     chatSocket.on("connect_error", handleErrors);
     chatSocket.on("connect_failed", handleErrors);
@@ -120,19 +129,21 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
     chatSocket.on("channelDelete", handleChannelDelete);
     chatSocket.on("newAdmin", handleNewAdmin);
     chatSocket.on("adminRemove", handleAdminRemove);
+    chatSocket.on("channelUpdated", handleChannelUpdated);
 
     return () => {
-      chatSocket.off("disconnect");
-      chatSocket.off("connect_error");
-      chatSocket.off("connect_failed");
-
-      chatSocket.off("memberJoin");
-      chatSocket.off("memberLeave");
-      chatSocket.off("channelDelete");
-      chatSocket.off("newChannel");
-      chatSocket.off("newAdmin");
-      chatSocket.off("adminRemove");
+      chatSocket.off("disconnect", handleDisconnect);
+      chatSocket.off("connect_error", handleErrors);
+      chatSocket.off("connect_failed", handleErrors);
+      chatSocket.off("memberJoin", handleMemberJoin);
+      chatSocket.off("memberLeave", handleMemberLeave);
+      chatSocket.off("channelDelete", handleChannelDelete);
+      chatSocket.off("newChannel", handleNewChannel);
+      chatSocket.off("newAdmin", handleNewAdmin);
+      chatSocket.off("adminRemove", handleAdminRemove);
+      chatSocket.on("channelUpdated", handleChannelUpdated);
     };
-  }, [chatSocket, navigate]);
+  }, [chatSocket, navigate, queryClient]);
+
   return { chatSocket };
 };
