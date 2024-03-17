@@ -36,7 +36,7 @@ export const PopUpCmd: React.FC<Props> = ({ chanInfo, currentUser }) => {
   )?.isAdmin;
 
   return (
-    <div className=" w-[500px] h-[550px] flex flex-col">
+    <div className="min-w-[500px] h-full flex flex-col">
       <div className="mt-10 ml-10 text-3xl text-left font-bold">
         {chanInfo?.name}
       </div>
