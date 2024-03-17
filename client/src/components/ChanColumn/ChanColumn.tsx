@@ -1,5 +1,5 @@
 import { Link, NavLink, useParams } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import {
   Add,
   Close,
@@ -22,6 +22,7 @@ import { useLeaveChannel } from "../../utils/channels/useLeaveChannel";
 import { ChannelSettingsModal } from "./ChannelSettingsModal";
 import { useQueryClient } from "@tanstack/react-query";
 import { useHandlerUsersStatusInLive } from "../../utils/useHandleUsersStatusInLive";
+import { UserProfileContext } from "../../ContextsProviders/UserProfileIdContext";
 
 export const ChanColumn = () => {
   const [showCreateConversation, setShowCreateConversation] = useState(false);
@@ -30,6 +31,7 @@ export const ChanColumn = () => {
   const conversations = useGetConversations();
   const channels = useGetChannels();
   const queryClient = useQueryClient();
+  const { setUserProfileId } = useContext(UserProfileContext);
 
   useHandlerUsersStatusInLive("conversations", (data) => {
     queryClient.setQueryData<UserConversationType[]>(
@@ -108,7 +110,10 @@ export const ChanColumn = () => {
       </div>
 
       <div className="flex sticky w-full bottom-0 bg-almost-black p-2 items-center justify-between">
-        <div className="flex items-center">
+        <div
+          onClick={() => setUserProfileId(user.id)}
+          className="flex items-center cursor-pointer"
+        >
           <Avatar
             imgUrl={user?.avatarUrl}
             size="sm"

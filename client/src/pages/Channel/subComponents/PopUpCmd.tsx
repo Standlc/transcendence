@@ -61,7 +61,7 @@ export const PopUpCmd: React.FC<Props> = ({ chanInfo, currentUser }) => {
   )?.isAdmin;
 
   return (
-    <div className=" w-[500px] h-[550px] flex flex-col">
+    <div className="min-w-[500px] h-full flex flex-col">
       <div className="mt-10 ml-10 text-3xl text-left font-bold">
         {chanInfo?.name}
       </div>
@@ -72,10 +72,18 @@ export const PopUpCmd: React.FC<Props> = ({ chanInfo, currentUser }) => {
         <ul>
           {chanInfo?.users.map((user) => {
             let userActions: MenuActionType[] = [];
+
+            const isCurrentUserOwner =
+              chanInfo?.channelOwner === currentUser.id;
+            const isUserOwner = user.userId === chanInfo?.channelOwner;
+            const currentUserIsAdmin =
+              chanInfo?.users.find((user) => user.userId === currentUser.id)
+                ?.isAdmin && !isCurrentUserOwner;
+
             if (
-              (chanInfo?.channelOwner === currentUser.id &&
-                currentUser.id !== user.userId) ||
-              (currentUserIsAdmin && currentUser.id !== user.userId)
+              !isUserOwner &&
+              (isCurrentUserOwner || currentUserIsAdmin) &&
+              currentUser.id !== user.userId
             ) {
               const isAdmin = user.isAdmin;
               const adminAction = isAdmin
@@ -155,12 +163,17 @@ export const PopUpCmd: React.FC<Props> = ({ chanInfo, currentUser }) => {
                         {user.username}
                         {chanInfo.channelOwner === user.userId && (
                           <span className="text-indigo-500 ">
-                            <VerifiedRoundedIcon sx={{ fontSize: "medium" }} />{" "}
+                            <VerifiedRoundedIcon sx={{ fontSize: "medium" }} />
                           </span>
                         )}
                         {user.isAdmin && (
                           <span className="text-white opacity-40">
-                            <HowToRegRoundedIcon sx={{ fontSize: "medium" }} />{" "}
+                            <HowToRegRoundedIcon sx={{ fontSize: "medium" }} />
+                          </span>
+                        )}
+                        {user.mutedEnd && (
+                          <span className="text-red-500 ">
+                            <VolumeOffIcon sx={{ fontSize: "medium" }} />
                           </span>
                         )}
                       </div>

@@ -118,7 +118,6 @@ export const Channel = () => {
     const handleMessageCreation = (
       newMessage: ChannelServerEmitTypes["createChannelMessage"]
     ) => {
-      console.log("newMessage", newMessage);
       const messageUser = findUserById(newMessage);
       const pushedMessage: MessageWithSenderInfo = {
         avatarUrl: messageUser?.avatarUrl ?? null,
@@ -161,7 +160,6 @@ export const Channel = () => {
         channelId: channelId,
       };
 
-      console.log("messageData", messageData);
       chatSocket.emit("createChannelMessage", messageData);
       setTextAreaValue("");
     }
@@ -215,8 +213,6 @@ export const Channel = () => {
 
     return previousMessage.senderId !== currentMessage.senderId;
   };
-
-  console.log(allMessagesChan.data);
 
   const renderMessages = () => {
     if (
@@ -342,7 +338,7 @@ export const Channel = () => {
         )}
       </div>
 
-      <div className="text-white text-left h-full w-auto ml-[20px] overflow-auto">
+      <div className="text-white text-left h-full w-full p-5 overflow-y-auto break-all">
         {renderMessages()}
       </div>
       <div className="bg-discord-dark-grey mt-auto p-2 rounded-lg ml-5 mr-5 mb-5">

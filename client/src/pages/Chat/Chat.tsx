@@ -10,6 +10,7 @@ import TextArea from "../../UIKit/TextArea";
 import { UserDirectMessage } from "@api/types/clientSchema";
 import { SocketsContext } from "../../ContextsProviders/SocketsContext";
 import { UserProfileContext } from "../../ContextsProviders/UserProfileIdContext";
+import { SendGameInvitationModal } from "../../components/SendGameInvitationModal";
 
 const Chat = () => {
   const { dmId } = useParams();
@@ -20,6 +21,7 @@ const Chat = () => {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const { conversationSocket } = useContext(SocketsContext);
   const { setUserProfileId } = useContext(UserProfileContext);
+  const [showGameInvitationModal, setShowGameInvitationModal] = useState(false);
 
   const conversation = useQuery({
     queryKey: ["conversationAllUser"],
@@ -186,6 +188,15 @@ const Chat = () => {
 
   return (
     <div className="w-full flex flex-col bg-discord-light-grey">
+      {showGameInvitationModal && (
+        <SendGameInvitationModal
+          invitedUser={{
+            username: otherUser?.username ?? "",
+            id: otherUser?.userId ?? 0,
+          }}
+          hide={() => setShowGameInvitationModal(false)}
+        />
+      )}
       <div
         className="bg-discord-greyple h-[60px] width-full flexborder-b border-b-almost-black"
         style={{ borderBottomWidth: "3px" }}
@@ -206,13 +217,12 @@ const Chat = () => {
               </div>
               <div className="ml-2 mt-4 font-bold text-xl">
                 <button onClick={openPopup}>{otherUser?.username}</button>
-                <span className="ml-[20px]">|</span>
               </div>
             </div>
-            <div>
+            <div className="w-full text-right mr-4">
               <button
-                onClick={handleClickPlay}
-                className="ml-4 mt-4 bg-green-500 hover:bg-green-700 rounded-lg py-1 px-3"
+                onClick={() => setShowGameInvitationModal(true)}
+                className="text-right ml-4 mt-4 bg-green-500 hover:bg-green-700 rounded-lg py-1 px-3"
               >
                 Play
               </button>
@@ -221,7 +231,7 @@ const Chat = () => {
         </div>
       </div>
 
-      <div className="text-white text-left h-[750px] w-auto ml-[20px] overflow-auto">
+      <div className="text-white text-left h-full w-full p-5 overflow-y-auto break-all">
         {renderMessages()}
       </div>
 
