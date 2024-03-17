@@ -6,13 +6,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { TwoFactorAuthentificationSetupModal } from "../../../components/TwoFactorAuthentificationSetupModal";
 import { Avatar } from "../../../UIKit/avatar/Avatar";
+import { useGetUser } from "../../../utils/useGetUser";
 
-interface Props {
-  user: AppUser | undefined;
-}
-
-export const Settings: React.FC<Props> = ({ user }: Props) => {
-  if (!user) return null;
+export const Settings = () => {
+  const user = useGetUser();
 
   const [showConfirmAvatarPopup, setShowConfirmAvatarPopup] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -42,6 +39,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
             "Content-Type": "multipart/form-data",
           },
         });
+
         queryClient.setQueryData<AppUser | undefined>(["user"], (oldData) => {
           if (oldData) {
             return {
@@ -50,6 +48,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
               bio,
               firstname,
               lastname,
+              username,
             };
           } else {
             return undefined;
@@ -63,7 +62,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
         alert("Failed to upload avatar");
       }
     }
-    setShowConfirmAvatarPopup(false); // Hide the popup regardless of the outcome
+    setShowConfirmAvatarPopup(false);
   };
 
   const handleCancelChange = () => {
@@ -73,11 +72,13 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
   const queryClient = useQueryClient();
 
   const updateUserProfile = async () => {
+    console.log("username", username);
     try {
       const body = {
         bio,
         firstname,
         lastname,
+        username,
       };
       await axios.patch("/api/users/update", body, {});
 
@@ -123,7 +124,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
         </div>
         <div className="flex justify-between items-start gap-10">
           <div className="flex flex-col flex-1 gap-6">
-            <div className="mb-2 w-2/3">
+            <div className="mb-3 w-2/3 w-2/3">
               <label
                 htmlFor="username"
                 className="font-bold block mb-2 text-sm text-white"
@@ -139,7 +140,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
                 placeholder="Username"
               />
             </div>
-            <div className="mb-2 w-2/3 w-2/3">
+            <div className="mb-3 w-2/3 w-2/3">
               <label
                 htmlFor="firstname"
                 className="font-bold block mb-2 text-sm text-white"
@@ -155,7 +156,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
                 placeholder="Firstname"
               />
             </div>
-            <div className="mb-2 w-2/3">
+            <div className="mb-3 w-2/3">
               <label
                 htmlFor="lastname"
                 className="font-bold block mb-2 text-sm text-white"
@@ -171,7 +172,7 @@ export const Settings: React.FC<Props> = ({ user }: Props) => {
                 placeholder="Lastname"
               />
             </div>
-            <div className="mb-2 w-2/3">
+            <div className="mb-3 w-2/3">
               <label
                 htmlFor="bio"
                 className="font-bold block mb-2 text-sm text-white"
