@@ -176,7 +176,7 @@ export const Channel = () => {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-
+      ``;
       sendMessage();
     }
   };
@@ -315,14 +315,14 @@ export const Channel = () => {
             </div>
             <div className="flex">
               <button
-                className="mr-5 hover:bg-black hover:bg-opacity-30 rounded-full py-2 px-2 justify-center"
+                className="mr-5 hover:bg-black h-[40px] w-[40px] hover:bg-opacity-30 rounded-full py-2 px-2 justify-center"
                 onClick={() => setIsCmdOpen(true)}
               >
                 <PersonIcon />
               </button>
               {chanInfo.data?.channelOwner != user.id && (
                 <button
-                  className="mr-5 hover:bg-black hover:bg-opacity-30 rounded-full py-2 px-2 justify-center"
+                  className="mr-5 hover:bg-black h-[40px] w-[40px] hover:bg-opacity-30 rounded-full py-2 px-2 justify-center"
                   onClick={() => leaveChannel.mutate(chanInfo.data?.id ?? 0)}
                 >
                   <LogoutIcon />
