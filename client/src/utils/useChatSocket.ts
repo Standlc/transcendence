@@ -59,12 +59,12 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
       if (payload.userId === user.id) {
         navigate("/home");
         queryClient.invalidateQueries({ queryKey: ["channels"] });
-      } else {
-        queryClient.invalidateQueries({ queryKey: ["channel"] });
       }
+      queryClient.invalidateQueries({ queryKey: ["channel"] });
+
       console.log(payload.userId, " left the channel");
       queryClient.setQueryData<ChannelDataWithUsersWithoutPassword>(
-        ["channel", payload.channelId.toString()],
+        ["channel", payload.channelId],
         (prev) => {
           if (!prev) return undefined;
           return {
@@ -73,6 +73,14 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
           };
         }
       );
+    };
+
+    const handleMemberMuted = (
+      payload: ChannelServerEmitTypes["memberMuted"]
+    ) => {
+      queryClient.invalidateQueries({
+        queryKey: ["channel", payload.channelId],
+      });
     };
 
     const handleChannelDelete = (
@@ -95,16 +103,7 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
       payload: ChannelServerEmitTypes["adminRemove"]
     ) => {
       console.log("admin remove");
-      queryClient.setQueryData<UserChannel[]>(["channel"], (prev) => {
-        if (!prev) return undefined;
-        return prev.map((c) => {
-          if (c.id !== payload.channelId) return c;
-          return {
-            ...c,
-            isUserAdmin: payload.userId === user.id ? false : c.isUserAdmin,
-          };
-        });
-      });
+      queryClient.invalidateQueries({ queryKey: ["channel"] });
     };
 
     const handleNewChannel = (
@@ -128,6 +127,7 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
 
     chatSocket.on("memberJoin", handleMemberJoin);
     chatSocket.on("memberLeave", handleMemberLeave);
+    chatSocket.on("memberMuted", handleMemberMuted);
     chatSocket.on("newChannel", handleNewChannel);
     chatSocket.on("channelDelete", handleChannelDelete);
     chatSocket.on("newAdmin", handleNewAdmin);
@@ -144,6 +144,7 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
       chatSocket.off("newChannel", handleNewChannel);
       chatSocket.off("newAdmin", handleNewAdmin);
       chatSocket.off("adminRemove", handleAdminRemove);
+      chatSocket.off("memberMuted", handleMemberMuted);
       chatSocket.off("channelUpdated", handleChannelUpdated);
     };
   }, [chatSocket, navigate, queryClient, channelId, user]);

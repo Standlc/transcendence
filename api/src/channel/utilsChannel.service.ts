@@ -170,7 +170,7 @@ export class Utils {
     const mutedUser = await db
       .selectFrom('channelMember')
       .where('channelId', '=', channelId)
-      .where('mutedEnd', '<', new Date())
+      .where('mutedEnd', '>', new Date())
       .where('userId', '=', senderId)
       .select(['userId', 'channelId', 'mutedEnd'])
       .executeTakeFirst();

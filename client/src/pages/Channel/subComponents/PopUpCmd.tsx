@@ -11,139 +11,146 @@ import { useKickMemberFromChannel } from "../../../utils/channels/useKickMemberF
 import { useBanUserFromChannel } from "../../../utils/channels/useBanUserFromChannel";
 import { useMuteMember } from "../../../utils/channels/useMuteMember";
 import { useAddAdmin } from "../../../utils/channels/useAddAdmin";
-import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
-import HowToRegRoundedIcon from '@mui/icons-material/HowToRegRounded';
+import VerifiedRoundedIcon from "@mui/icons-material/VerifiedRounded";
+import HowToRegRoundedIcon from "@mui/icons-material/HowToRegRounded";
 import { useRemoveAdmin } from "../../../utils/channels/useRemoveAdmin";
 import { UserProfileContext } from "../../../ContextsProviders/UserProfileIdContext";
 
 interface Props {
-    onClose: () => void;
-    chanInfo: ChannelDataWithUsersWithoutPassword | undefined;
-    chatSocket: Socket;
-    currentUser: AppUser;
-    
+  chanInfo: ChannelDataWithUsersWithoutPassword | undefined;
+  chatSocket: Socket;
+  currentUser: AppUser;
 }
 
-export const PopUpCmd: React.FC<Props> = ({
-    onClose,
-    chanInfo,
-    currentUser,
-}) => {
-    const [nbrUsers, setNbrUsers] = useState<number>(chanInfo?.users.length || 0);
-    const kickMember = useKickMemberFromChannel();
-    const banMember = useBanUserFromChannel();
-    const muteMember = useMuteMember();
-    const addAdmin = useAddAdmin();
-    const removeAdmin = useRemoveAdmin();
-    const { setUserProfileId } = useContext(UserProfileContext);
+export const PopUpCmd: React.FC<Props> = ({ chanInfo, currentUser }) => {
+  const [nbrUsers, setNbrUsers] = useState<number>(chanInfo?.users.length || 0);
+  const kickMember = useKickMemberFromChannel();
+  const banMember = useBanUserFromChannel();
+  const muteMember = useMuteMember();
+  const addAdmin = useAddAdmin();
+  const removeAdmin = useRemoveAdmin();
+  const { setUserProfileId } = useContext(UserProfileContext);
 
-    return (
-        <div className=" w-[500px] h-[550px] flex flex-col">
-            <div className="mt-10 ml-10 text-3xl text-left font-bold">
-                {chanInfo?.name}
-            </div>
-            <div className="mt-5 ml-10 text-left text-sm  font-bold opacity-50">
-                CHANNEL MEMBERS — {nbrUsers}
-            </div>
-            <div className="mt-5 h-[500px] overflow-y-auto px-5 py-2">
-                <ul>
-                    {chanInfo?.users.map((user) => {
-                        let userActions: MenuActionType[] = [];
-                        if (chanInfo?.channelOwner === currentUser.id) {
-                           
-                            const isAdmin = user.isAdmin;
+  const currentUserIsAdmin = chanInfo?.users.find(
+    (user) => user.userId === currentUser.id
+  )?.isAdmin;
 
-                            const adminAction = isAdmin ? {
-                                label: "Remove Admin",
-                                onClick: () => removeAdmin.mutate({
-                                    channelId: chanInfo.id,
-                                    userId: user.userId,
-                                }),
-                                color: "base" as const,
-                                icon: <VerifiedUserIcon fontSize="small" />, // Consider using a different icon for removal
-                            } : {
-                                label: "Add Admin",
-                                onClick: () => addAdmin.mutate({
-                                    channelId: chanInfo.id,
-                                    userId: user.userId,
-                                }),
-                                color: "base" as const,
-                                icon: <VerifiedUserIcon fontSize="small" />,
-                            };
-                        
-                            userActions = userActions.concat([
-                                {
-                                    label: "Kick",
-                                    onClick : () => kickMember.mutate({
-                                        channelId:  chanInfo.id,
-                                        userId: user.userId
-                                    }),
-                                    color: "red",
-                                    icon: <PersonRemove fontSize="small" />,
-                                },
-                                {
-                                    label: "Ban",
-                                    onClick : () => banMember.mutate({
-                                        channelId:  chanInfo.id,
-                                        userId: user.userId
-                                    }),
-                                    color: "red",
-                                    icon: <DoNotDisturbOn fontSize="small" />,
-                                },
-                                {
-                                    label: "Mute",
-                                    onClick : () => muteMember.mutate({
-                                        channelId:  chanInfo.id,
-                                        userId: user.userId
-                                    }),
-                                    color: "red",
-                                    icon: <VolumeOffIcon fontSize="small" />,
-                                },
-                                adminAction,
-                            ]);
-                        }
-                        return (
-                            <li key={user.userId}>
-                                <div className="flex justify-between items-center hover:bg-white hover:bg-opacity-5 hover:rounded-md px-5 py-2">
-                                    <div className="flex items-center">
-                                        <div onClick={() => setUserProfileId(user.userId)} className="flex cursor-pointer">
-                                        <div>
-                                            <Avatar
-                                                imgUrl={user.avatarUrl}
-                                                size="md"
-                                                userId={user.userId}
-                                                status={user.status}
-                                                borderRadius={0.5}
-                                            />
-                                        </div>
-                                        <div className="font-bold ml-[20px] gap-3 flex">
-                                            {user.username}
-                                            {chanInfo.channelOwner === user.userId && (
-                                                <span className="text-indigo-500 "><VerifiedRoundedIcon sx={{fontSize: "medium"}}/> </span>
-                                            )}
-                                            {user.isAdmin && (
-                                                <span className="text-white opacity-40"><HowToRegRoundedIcon sx={{fontSize: "medium"}}/> </span>
-                                             )}
-                                        </div>
-                                        </div>
-                                    </div>
-                                    <div className="">
-                                        <ActionsMenu actions={userActions} />
-                                    </div>
-                                </div>
-                            </li>
-                        );
-                    })}
-                </ul>
-            </div>
-            <div className="text-right mr-2 mb-2">
-               <button
-                    className="px-5 py-2 bg-indigo-500 text-white rounded-md hover:bg-blurple-hover"
-                    onClick={onClose}
+  return (
+    <div className=" w-[500px] h-[550px] flex flex-col">
+      <div className="mt-10 ml-10 text-3xl text-left font-bold">
+        {chanInfo?.name}
+      </div>
+      <div className="mt-5 ml-10 text-left text-sm  font-bold opacity-50">
+        CHANNEL MEMBERS — {nbrUsers}
+      </div>
+      <div className="mt-5 h-[500px] overflow-y-auto px-5 py-2">
+        <ul>
+          {chanInfo?.users.map((user) => {
+            let userActions: MenuActionType[] = [];
+            if (
+              (chanInfo?.channelOwner === currentUser.id &&
+                currentUser.id !== user.userId) ||
+              // (currentUserIsAdmin && user.userId !== currentUser.id)
+              currentUserIsAdmin
+            ) {
+              const isAdmin = user.isAdmin;
+              const adminAction = isAdmin
+                ? {
+                    label: "Remove Admin",
+                    onClick: () =>
+                      removeAdmin.mutate({
+                        channelId: chanInfo.id,
+                        userId: user.userId,
+                      }),
+                    color: "base" as const,
+                    icon: <VerifiedUserIcon fontSize="small" />, // Consider using a different icon for removal
+                  }
+                : {
+                    label: "Add Admin",
+                    onClick: () =>
+                      addAdmin.mutate({
+                        channelId: chanInfo.id,
+                        userId: user.userId,
+                      }),
+                    color: "base" as const,
+                    icon: <VerifiedUserIcon fontSize="small" />,
+                  };
+
+              userActions = userActions.concat([
+                {
+                  label: "Kick",
+                  onClick: () =>
+                    kickMember.mutate({
+                      channelId: chanInfo.id,
+                      userId: user.userId,
+                    }),
+                  color: "red",
+                  icon: <PersonRemove fontSize="small" />,
+                },
+                {
+                  label: "Ban",
+                  onClick: () =>
+                    banMember.mutate({
+                      channelId: chanInfo.id,
+                      userId: user.userId,
+                    }),
+                  color: "red",
+                  icon: <DoNotDisturbOn fontSize="small" />,
+                },
+                {
+                  label: "Mute",
+                  onClick: () =>
+                    muteMember.mutate({
+                      channelId: chanInfo.id,
+                      userId: user.userId,
+                    }),
+                  color: "red",
+                  icon: <VolumeOffIcon fontSize="small" />,
+                },
+                adminAction,
+              ]);
+            }
+            return (
+              <li key={user.userId}>
+                <div className="flex justify-between items-center hover:bg-white hover:bg-opacity-5 hover:rounded-md px-5 py-2">
+                  <div className="flex items-center">
+                    <div
+                      onClick={() => setUserProfileId(user.userId)}
+                      className="flex cursor-pointer"
                     >
-                        Close
-                </button>
-            </div>
-        </div>
-    );
+                      <div>
+                        <Avatar
+                          imgUrl={user.avatarUrl}
+                          size="md"
+                          userId={user.userId}
+                          status={user.status}
+                          borderRadius={0.5}
+                        />
+                      </div>
+                      <div className="font-bold ml-[20px] gap-3 flex">
+                        {user.username}
+                        {chanInfo.channelOwner === user.userId && (
+                          <span className="text-indigo-500 ">
+                            <VerifiedRoundedIcon sx={{ fontSize: "medium" }} />{" "}
+                          </span>
+                        )}
+                        {user.isAdmin && (
+                          <span className="text-white opacity-40">
+                            <HowToRegRoundedIcon sx={{ fontSize: "medium" }} />{" "}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="">
+                    <ActionsMenu actions={userActions} />
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </div>
+  );
 };

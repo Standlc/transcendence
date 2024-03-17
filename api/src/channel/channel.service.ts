@@ -487,9 +487,11 @@ export class ChannelService {
       .where('channelId', '=', channelId)
       .where('userId', '=', userId)
       .set({
-        mutedEnd: sql`now() + interval '5 minutes'`,
+        mutedEnd: sql`now() + interval '1 minute 10s'`,
       })
       .execute();
+
+    this.channelsGateway.emitMemberMuted({ userId, channelId });
   }
 
   async joinUserToChannel(userId: number, channelId: number) {
@@ -602,7 +604,7 @@ export class ChannelService {
       channelId,
     )
       .where('targetUser.isAdmin', 'is', false)
-      .execute();
+      .executeTakeFirst();
     return !!member;
   }
 
@@ -617,7 +619,7 @@ export class ChannelService {
       channelId,
     )
       .where('targetUser.isAdmin', 'is', true)
-      .execute();
+      .executeTakeFirst();
     return !!member;
   }
 
