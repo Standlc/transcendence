@@ -717,7 +717,7 @@ export class ChannelService {
       channelId,
     )
       .where('channel.channelOwner', '!=', userId)
-      .fullJoin('bannedUser', (join) =>
+      .leftJoin('bannedUser', (join) =>
         join
           .on('bannedId', '=', userId)
           .on('bannedUser.channelId', '=', channelId),
