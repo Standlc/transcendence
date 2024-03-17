@@ -322,11 +322,20 @@ export class UsersService {
   }
 
   async updateUser(userId: number, updateUsersDto: UpdateUsersDto) {
-    if (!updateUsersDto.bio && !updateUsersDto.username)
+    if (!updateUsersDto.bio && !updateUsersDto.username && !updateUsersDto.firstname && !updateUsersDto.lastname)
       throw new UnprocessableEntityException("Empty value");
     else if (updateUsersDto.username && updateUsersDto.username.length < 50)
       throw new UnprocessableEntityException("Username is too long");
     try {
+      if (updateUsersDto.username) {
+        const user = await db
+        .selectFrom('user')
+        .selectAll()
+        .where('username', '=', updateUsersDto.username)
+        .executeTakeFirst();
+        if (user)
+          throw new UnprocessableEntityException("Username already taken");
+      }
       const result = await db
       .updateTable('user')
       .set({...updateUsersDto})
@@ -334,6 +343,8 @@ export class UsersService {
       .executeTakeFirst()
     } catch (error) {
       console.log(error);
+      if (error instanceof UnprocessableEntityException)
+        throw error;
       throw new InternalServerErrorException();
     }
   }

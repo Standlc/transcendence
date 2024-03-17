@@ -143,7 +143,7 @@ export class UsersController {
   @ApiOperation({summary: "Update user profile"})
   @ApiCookieAuth()
   @ApiOkResponse({description: "Profile updated"})
-  @ApiUnprocessableEntityResponse({description: "Invalid field | empty field | username too long"})
+  @ApiUnprocessableEntityResponse({description: "Invalid field | empty field | username too long | Username already taken"})
   @ApiBody({
     description: "UpdateUserDto",
     schema: {
