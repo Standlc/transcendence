@@ -3,7 +3,7 @@ import { Avatar } from "../../../UIKit/avatar/Avatar";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import { DoNotDisturbOn, PersonRemove } from "@mui/icons-material";
 import { ActionsMenu, MenuActionType } from "../../../UIKit/ActionsMenu";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { AppUser } from "@api/types/clientSchema";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import { ChannelDataWithUsersWithoutPassword } from "@api/types/channelsSchema";
@@ -15,6 +15,7 @@ import VerifiedRoundedIcon from "@mui/icons-material/VerifiedRounded";
 import HowToRegRoundedIcon from "@mui/icons-material/HowToRegRounded";
 import { useRemoveAdmin } from "../../../utils/channels/useRemoveAdmin";
 import { UserProfileContext } from "../../../ContextsProviders/UserProfileIdContext";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Props {
   chanInfo: ChannelDataWithUsersWithoutPassword | undefined;
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export const PopUpCmd: React.FC<Props> = ({ chanInfo, currentUser }) => {
+  const queryClient = useQueryClient();
   const [nbrUsers, setNbrUsers] = useState<number>(chanInfo?.users.length || 0);
   const kickMember = useKickMemberFromChannel();
   const banMember = useBanUserFromChannel();
@@ -30,6 +32,29 @@ export const PopUpCmd: React.FC<Props> = ({ chanInfo, currentUser }) => {
   const addAdmin = useAddAdmin();
   const removeAdmin = useRemoveAdmin();
   const { setUserProfileId } = useContext(UserProfileContext);
+
+  useEffect(() => {
+    queryClient.setQueryData<ChannelDataWithUsersWithoutPassword>(
+      ["channel", chanInfo?.id],
+      () => {
+        if (!chanInfo) return undefined;
+
+        const owner = chanInfo.users.find(
+          (u) => u.userId === chanInfo?.channelOwner
+        );
+
+        if (!owner) return chanInfo;
+
+        return {
+          ...chanInfo,
+          users: [
+            owner,
+            ...chanInfo?.users.filter((u) => u.userId !== owner?.userId),
+          ],
+        };
+      }
+    );
+  }, [queryClient, chanInfo?.users]);
 
   const currentUserIsAdmin = chanInfo?.users.find(
     (user) => user.userId === currentUser.id

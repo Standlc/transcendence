@@ -349,7 +349,8 @@ export class ChannelService {
                         ),
                     )
                     .as('isBlocked'),
-              ]),
+              ])
+              .orderBy('channelMember.isAdmin', 'desc'),
           ).as('users'),
       ])
       .executeTakeFirst();

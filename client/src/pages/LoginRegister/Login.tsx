@@ -1,9 +1,8 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useState } from "react";
-import { AppUser } from "@api/types/clientSchema";
 import { TwoFactorAuthLoginModal } from "../../components/login/TwoFactorAuthLoginModal";
 import { Link } from "react-router-dom";
+import { useLogin } from "../../utils/auth/useLogin";
 
 export const Login = () => {
     const [username, setUsername] = useState("");
@@ -12,18 +11,7 @@ export const Login = () => {
     const [show2FAModal, setShow2FAModal] = useState(false);
     const [isError, setIsError] = useState(false);
 
-    const logUser = useMutation<
-        Partial<AppUser>,
-        any,
-        { username: string; password: string }
-    >({
-        mutationFn: async ({ username, password }) => {
-            const response = await axios.post("/api/auth/login", {
-                username,
-                password,
-            });
-            return response.data;
-        },
+    const logUser = useLogin({
         onSuccess: (data) => {
             if (data.isTwoFactorAuthenticationEnabled) {
                 setShow2FAModal(true);
@@ -32,7 +20,6 @@ export const Login = () => {
             }
         },
         onError: () => {
-            console.log("Error");
             setIsError(true);
         },
     });

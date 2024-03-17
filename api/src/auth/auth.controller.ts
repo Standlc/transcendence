@@ -64,7 +64,11 @@ export class AuthController {
       httpOnly: true
     });
     if (process.env.FRONTEND_URL) {
-      res.redirect(process.env.FRONTEND_URL);
+      const user = await this.usersService.getUserById(req.user.id);
+      if (user.isTwoFactorAuthenticationEnabled)
+        res.redirect(process.env.FRONTEND_URL + "/login-2fa");
+      else
+        res.redirect(process.env.FRONTEND_URL);
       return undefined;
     }
     return "This server is missing a front end to redirect...";
@@ -223,6 +227,20 @@ export class AuthController {
       httpOnly: true
     });
     return await this.usersService.getUserById(req.user.id);
+  }
+
+  @ApiOperation({summary: "Checking 2FA status"})
+  @ApiOkResponse({description: "2FA is enabled for this user"})
+  @ApiUnauthorizedResponse({description: "2FA is not enabled or Id was missing from the payload"})
+  @ApiInternalServerErrorResponse({ description: "Whenever the backend fail in some point, probably an error with the db." })
+  @UseGuards(Jwt2faAuthGuard)
+  @Get('2fa/check')
+  async checkIfUserAs2fa(@Req() req) {
+    if (!req.user.id)
+      throw new UnauthorizedException("Missing Id from the payload");
+    const user = await this.usersService.getUserById(req.user.id);
+    if (!user.isTwoFactorAuthenticationEnabled)
+      throw new UnauthorizedException("User do not have 2fa enabled");
   }
 
   //#region token

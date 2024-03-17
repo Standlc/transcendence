@@ -13,4 +13,8 @@ export class UpdateUsersDto {
     @ApiProperty({required: false})
     @IsString()
     lastname?: string;
+
+    @ApiProperty({required: false})
+    @IsString()
+    username?: string;
 }

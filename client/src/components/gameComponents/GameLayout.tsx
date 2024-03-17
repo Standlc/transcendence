@@ -133,7 +133,7 @@ const PlayersInfos = memo(
           <div>
             <Avatar
               size="md"
-              imgUrl={undefined}
+              imgUrl={gameRecord.playerOne.avatarUrl}
               userId={gameRecord.playerOne.id}
             />
           </div>
@@ -155,7 +155,7 @@ const PlayersInfos = memo(
           <div>
             <Avatar
               size="md"
-              imgUrl={undefined}
+              imgUrl={gameRecord.playerTwo.avatarUrl}
               userId={gameRecord.playerTwo.id}
             />
           </div>
