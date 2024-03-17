@@ -229,6 +229,10 @@ export class AuthController {
     return await this.usersService.getUserById(req.user.id);
   }
 
+  @ApiOperation({summary: "Checking 2FA status"})
+  @ApiOkResponse({description: "2FA is enabled for this user"})
+  @ApiUnauthorizedResponse({description: "2FA is not enabled or Id was missing from the payload"})
+  @ApiInternalServerErrorResponse({ description: "Whenever the backend fail in some point, probably an error with the db." })
   @UseGuards(Jwt2faAuthGuard)
   @Get('2fa/check')
   async checkIfUserAs2fa(@Req() req) {
