@@ -62,6 +62,7 @@ export interface UserInfo {
   rating: number;
   mutedEnd: Date | null;
   status: number;
+  isAdmin: boolean;
 }
 
 export type UserChannel = {

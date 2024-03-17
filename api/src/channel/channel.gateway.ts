@@ -215,7 +215,14 @@ export class ChannelGateway
     @ConnectedSocket() socket: Socket,
     @MessageBody() payload: ActionOnUser,
   ) {
-    const userId = this.extractUserId(socket);
+    // try {
+    //   this.connectedUsersService.verifyConnection(socket);
+    // } catch (error) {
+    //   console.error(error);
+    //   throw new WsException('User did not join channel room');
+    // }
+
+    const userId = socket.data.id;
 
     try {
       await this.socketService.kickUser(

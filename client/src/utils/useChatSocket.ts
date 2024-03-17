@@ -48,16 +48,22 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
       // invalidate channel info
       console.log("new member");
       queryClient.invalidateQueries({
-        queryKey: ["chanInfo", payload.channelId.toString()],
+        queryKey: ["channel", payload.channelId],
       });
     };
 
     const handleMemberLeave = (
       payload: ChannelServerEmitTypes["memberLeave"]
     ) => {
-      console.log("member leave");
+      if (payload.userId === user.id) {
+        navigate("/home");
+        queryClient.invalidateQueries({ queryKey: ["channels"] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["channel"] });
+      }
+      console.log(payload.userId, " left the channel");
       queryClient.setQueryData<ChannelDataWithUsersWithoutPassword>(
-        ["chanInfo", payload.channelId.toString()],
+        ["channel", payload.channelId.toString()],
         (prev) => {
           if (!prev) return undefined;
           return {
@@ -79,23 +85,14 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
 
     const handleNewAdmin = (payload: ChannelServerEmitTypes["newAdmin"]) => {
       console.log("new admin");
-      queryClient.setQueryData<UserChannel[]>(["channels"], (prev) => {
-        if (!prev) return undefined;
-        return prev.map((c) => {
-          if (c.id !== payload.channelId) return c;
-          return {
-            ...c,
-            isUserAdmin: payload.userId === user.id ? true : c.isUserAdmin,
-          };
-        });
-      });
+      queryClient.invalidateQueries({ queryKey: ["channel"] });
     };
 
     const handleAdminRemove = (
       payload: ChannelServerEmitTypes["adminRemove"]
     ) => {
       console.log("admin remove");
-      queryClient.setQueryData<UserChannel[]>(["channels"], (prev) => {
+      queryClient.setQueryData<UserChannel[]>(["channel"], (prev) => {
         if (!prev) return undefined;
         return prev.map((c) => {
           if (c.id !== payload.channelId) return c;
@@ -125,17 +122,17 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
     chatSocket.on("adminRemove", handleAdminRemove);
 
     return () => {
-      chatSocket.off("disconnect", handleDisconnect);
-      chatSocket.off("connect_error", handleErrors);
-      chatSocket.off("connect_failed", handleErrors);
+      chatSocket.off("disconnect");
+      chatSocket.off("connect_error");
+      chatSocket.off("connect_failed");
 
-      chatSocket.off("memberJoin", handleMemberJoin);
-      chatSocket.off("memberLeave", handleMemberLeave);
-      chatSocket.off("channelDelete", handleChannelDelete);
-      chatSocket.off("newChannel", handleNewChannel);
-      chatSocket.off("newAdmin", handleNewAdmin);
-      chatSocket.off("adminRemove", handleAdminRemove);
+      chatSocket.off("memberJoin");
+      chatSocket.off("memberLeave");
+      chatSocket.off("channelDelete");
+      chatSocket.off("newChannel");
+      chatSocket.off("newAdmin");
+      chatSocket.off("adminRemove");
     };
-  }, [chatSocket]);
+  }, [chatSocket, navigate]);
   return { chatSocket };
 };

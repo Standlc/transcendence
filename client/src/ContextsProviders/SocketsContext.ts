@@ -14,6 +14,7 @@ export type SocketsContextType = {
   addUsersStatusHandler: AddUsersStatusHandlerFnType;
   removeUsersStatusHandler: RemoveUsersStatusHandlerFnType;
   chatSocket: Socket;
+  conversationSocket: Socket;
 };
 
 export const SocketsContext = createContext(

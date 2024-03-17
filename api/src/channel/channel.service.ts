@@ -100,12 +100,6 @@ export class ChannelService {
     }
 
     try {
-      await this.utilsChannelService.userIsBanned(userId, channelId);
-    } catch (error) {
-      throw error;
-    }
-
-    try {
       const messages = await db
         .selectFrom('channelMessage')
         .where('channelMessage.channelId', '=', channelId)
@@ -118,7 +112,6 @@ export class ChannelService {
           ),
         )
         .innerJoin('user', 'channelMessage.senderId', 'user.id')
-        .innerJoin('channel', 'channel.channelOwner', 'channelMessage.senderId')
         .leftJoin('blockedUser', (join) =>
           join.on((eb) =>
             eb.or([
@@ -348,6 +341,7 @@ export class ChannelService {
                 'user.avatarUrl',
                 'user.rating',
                 'channelMember.mutedEnd',
+                'channelMember.isAdmin',
                 (eb) =>
                   eb
                     .case()
@@ -732,5 +726,13 @@ export class ChannelService {
       .where('channel.channelOwner', '!=', userId)
       .executeTakeFirst();
     return !!member;
+  }
+
+  async removeMember(memberId: number, channelId: number) {
+    await db
+      .deleteFrom('channelMember')
+      .where('channelMember.userId', '=', memberId)
+      .where('channelMember.channelId', '=', channelId)
+      .execute();
   }
 }

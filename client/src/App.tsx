@@ -14,7 +14,6 @@ import { useQuery } from "@tanstack/react-query";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { LiveGamesPage } from "./pages/LiveGamesPage";
 import { Register } from "./pages/LoginRegister/Register";
-import { Friends } from "./pages/Friends/Friends";
 import { Login } from "./pages/LoginRegister/Login";
 import { Settings } from "./pages/Settings/subComponents/Settings";
 import { AppUser } from "@api/types/clientSchema";
@@ -27,6 +26,7 @@ import { BlockedUsers } from "./pages/BlockedUsersPage";
 import { FriendRequests } from "./pages/FriendRequestsPage";
 import { AddFriendsPage } from "./pages/AddFriendsPage";
 import { Channel } from "./pages/Channel/Channel";
+import { Friends } from "./pages/Friends/Friends";
 
 function App() {
   const getUser = useQuery({

@@ -10,7 +10,7 @@ export const useLeaveChannel = () => {
 
   const leaveChannel = useMutation({
     mutationFn: async (channelId: number) => {
-      await axios.delete(`/api/channels/${channelId}`);
+      await axios.delete(`/api/channels/leave/${channelId}`);
       return channelId;
     },
     onSuccess: (channelId: number) => {

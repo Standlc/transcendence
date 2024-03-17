@@ -17,6 +17,7 @@ import { RejoinGameNotification } from "./RejoinGameNotification";
 import { UserProfileContext } from "../ContextsProviders/UserProfileIdContext";
 import { useState } from "react";
 import { ProfileModal } from "./profile/ProfileModal";
+import { useConversationSocket } from "../utils/useConversationSocket";
 
 interface PrivateLayoutProps {
     user: AppUser | undefined;
@@ -34,8 +35,9 @@ export default function PrivateLayout({ user }: PrivateLayoutProps) {
     const { chatSocket } = useChatSocket(addError);
     const [gameSettings, upadteGameSetting] = useGamePreferences();
     const [userProfileId, setUserProfileId] = useState<number>();
+    const conversationSocket = useConversationSocket(addError);
 
-    if (!gameSocket || !usersStatusSocket || !chatSocket) {
+    if (!gameSocket || !usersStatusSocket || !chatSocket || !conversationSocket) {
         // todo: add a nice loader like Discord before connection is established
         return (
             <ErrorContext.Provider value={{ error, addError, removeCurrentError }}>
@@ -55,6 +57,7 @@ export default function PrivateLayout({ user }: PrivateLayoutProps) {
                     addUsersStatusHandler: addHandler,
                     removeUsersStatusHandler: removeHandler,
                     chatSocket,
+                    conversationSocket,
                 }}
             >
                 <ErrorContext.Provider value={{ error, addError, removeCurrentError }}>

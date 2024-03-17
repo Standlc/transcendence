@@ -78,7 +78,7 @@ export const FriendsAdd: React.FC<Props> = ({
     return (
         <div>
             <div
-                className="bg-discord-greyple topbar-section border-b border-b-almost-black"
+                className="bg-discord-greyple h-[60px] width-full flex border-b border-b-almost-black"
                 style={{ borderBottomWidth: "3px" }}
             >
                 <svg
@@ -144,14 +144,6 @@ export const FriendsAdd: React.FC<Props> = ({
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                     />
-                    {/* <div className="absolute inset-y-0 right-0 flex items-center px-2 ">
-                        <button
-                            onClick={findUser}
-                            className="text-white bg-blurple  p-[50px] hover:bg-blurple-hover font-bold rounded-lg text-s w-full py-2.5 text-center"
-                        >
-                            Chercher
-                        </button>
-                    </div> */}
                 </div>
             </div>
             <div className="mt-5">

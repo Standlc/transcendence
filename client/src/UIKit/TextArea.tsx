@@ -7,6 +7,7 @@ type TextAreaProps = {
     placeholder: string;
     autoFocus?: boolean;
     onKeyDown?: KeyboardEventHandler<HTMLTextAreaElement>;
+    disabled?: boolean;
 };
 
 export default function TextArea({
@@ -16,6 +17,7 @@ export default function TextArea({
     placeholder,
     autoFocus,
     onKeyDown,
+    disabled, // Ajoutez la prop disabled
 }: TextAreaProps) {
     const area = useRef<HTMLTextAreaElement>(null);
 
@@ -38,7 +40,10 @@ export default function TextArea({
             value={value}
             ref={area}
             placeholder={placeholder}
-            className="text-md w-full resize-none overflow-hidden bg-transparent leading-snug placeholder:opacity-50 focus:outline-none"
+            className={`text-md w-full resize-none overflow-hidden bg-transparent leading-snug placeholder:opacity-50 focus:outline-none ${
+                disabled ? "" : "text-white"
+            }`}
+            disabled={disabled}
         />
     );
 }
