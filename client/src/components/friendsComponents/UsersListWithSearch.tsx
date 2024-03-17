@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Spinner } from "../../UIKit/Kit";
-import { Replay, SearchRounded } from "@mui/icons-material";
 import { ReloadButton } from "../../UIKit/ReloadButton";
 import { SearchInput } from "../../UIKit/SearchInput";
 

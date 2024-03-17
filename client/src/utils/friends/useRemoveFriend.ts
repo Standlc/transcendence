@@ -4,7 +4,7 @@ import { useContext } from "react";
 import { ErrorContext } from "../../ContextsProviders/ErrorContext";
 import { UserFriend, UserProfile } from "@api/types/clientSchema";
 import { useGetUser } from "../useGetUser";
-import { AllUserDm } from "../../types/allUserDm";
+import { UserConversationType } from "@api/types/channelsSchema";
 
 export const useRemoveFriend = () => {
   const { addError } = useContext(ErrorContext);
@@ -29,11 +29,12 @@ export const useRemoveFriend = () => {
   };
 
   const removeConversation = (userId: number) => {
-    queryClient.setQueryData<AllUserDm[]>(["conversations"], (prev) => {
-      return prev?.filter(
-        (conv) => conv.user1.userId !== userId && conv.user2.userId !== userId
-      );
-    });
+    queryClient.setQueryData<UserConversationType[]>(
+      ["conversations"],
+      (prev) => {
+        return prev?.filter((conv) => conv.user.id !== userId);
+      }
+    );
   };
 
   const removeFriend = useMutation({

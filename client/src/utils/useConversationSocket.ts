@@ -1,15 +1,15 @@
 import { Socket, io } from "socket.io-client";
 import { ErrorType } from "../ContextsProviders/ErrorContext";
 import { useEffect, useState } from "react";
+import { DmGatewayEmitTypes } from "@api/types/conversations";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import { useGetUser } from "./useGetUser";
+import { useNavigate, useParams } from "react-router-dom";
 
 export const useConversationSocket = (addError: (error: ErrorType) => void) => {
   const [conversationSocket, setConversationSocket] = useState<Socket>();
-  // const queryClient = useQueryClient();
-  // const navigate = useNavigate();
-  // const user = useGetUser();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { dmId } = useParams();
 
   useEffect(() => {
     const connection = io("/dm");
@@ -25,28 +25,45 @@ export const useConversationSocket = (addError: (error: ErrorType) => void) => {
     if (!conversationSocket) return;
 
     const handleErrors = (err: Error) => {
-      // redirect to login page
       conversationSocket.disconnect();
       setConversationSocket(undefined);
       addError({ message: err.message });
     };
 
     const handleDisconnect = () => {
-      // redirect to login page
       setConversationSocket(undefined);
       console.log("disconnected by server");
+    };
+
+    const handleNewConversation = () =>
+      // conversationId: DmGatewayEmitTypes["newConversation"]
+      {
+        queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      };
+
+    const handleConversationDeleted = (
+      conversationId: DmGatewayEmitTypes["conversationDeleted"]
+    ) => {
+      if (dmId === conversationId.toString()) {
+        navigate("/home");
+      }
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
     };
 
     conversationSocket.on("disconnect", handleDisconnect);
     conversationSocket.on("connect_error", handleErrors);
     conversationSocket.on("connect_failed", handleErrors);
+    conversationSocket.on("newConversation", handleNewConversation);
+    conversationSocket.on("conversationDeleted", handleConversationDeleted);
 
     return () => {
       conversationSocket.off("disconnect");
       conversationSocket.off("connect_error");
       conversationSocket.off("connect_failed");
+      conversationSocket.off("newConversation", handleNewConversation);
+      conversationSocket.off("conversationDeleted", handleConversationDeleted);
     };
-  }, [conversationSocket]);
+  }, [conversationSocket, queryClient, navigate, dmId]);
 
   return conversationSocket;
 };

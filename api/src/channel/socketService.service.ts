@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { db } from 'src/database';
-import { MuteUser } from 'src/types/channelsSchema';
+import { MuteUser, UserChannelMessage } from 'src/types/channelsSchema';
 import { Utils } from './utilsChannel.service';
 import { sql } from 'kysely';
 
@@ -21,7 +21,7 @@ export class SocketService {
     channelId: number,
     content: string | null,
     senderId: number,
-  ) {
+  ): Promise<UserChannelMessage> {
     const isMember = await this.utilsChannelService.isChannelMember(
       senderId,
       channelId,

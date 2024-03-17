@@ -86,16 +86,7 @@ export class ChannelService {
     userId: number,
     channelId: number,
   ): Promise<MessageWithSenderInfo[]> {
-    try {
-      await this.utilsChannelService.channelExists(channelId);
-    } catch (error) {
-      throw error;
-    }
-
-    if (
-      (await this.utilsChannelService.isChannelMember(userId, channelId)) ===
-      false
-    ) {
+    if ((await this.isUserMember(userId, channelId)) === false) {
       throw new NotFoundException('User is not a member of the channel');
     }
 
@@ -114,23 +105,9 @@ export class ChannelService {
         .innerJoin('user', 'channelMessage.senderId', 'user.id')
         .leftJoin('blockedUser', (join) =>
           join.on((eb) =>
-            eb.or([
-              eb.and([
-                eb(
-                  'blockedUser.blockedById',
-                  '=',
-                  eb.ref('channelMessage.senderId'),
-                ),
-                eb('blockedUser.blockedId', '=', userId),
-              ]),
-              eb.and([
-                eb(
-                  'blockedUser.blockedId',
-                  '=',
-                  eb.ref('channelMessage.senderId'),
-                ),
-                eb('blockedUser.blockedById', '=', userId),
-              ]),
+            eb.and([
+              eb('blockedId', '=', eb.ref('channelMessage.senderId')),
+              eb('blockedById', '=', userId),
             ]),
           ),
         )
@@ -346,20 +323,6 @@ export class ChannelService {
               .selectFrom('channelMember')
               .where('channelMember.channelId', '=', channelId)
               .innerJoin('user', 'user.id', 'channelMember.userId')
-              .leftJoin('blockedUser', (join) =>
-                join.on((eb) =>
-                  eb.or([
-                    eb.and([
-                      eb('blockedById', '=', userId),
-                      eb('blockedId', '=', eb.ref('user.id')),
-                    ]),
-                    eb.and([
-                      eb('blockedId', '=', userId),
-                      eb('blockedById', '=', eb.ref('user.id')),
-                    ]),
-                  ]),
-                ),
-              )
               .select([
                 'user.id as userId',
                 'user.username',
@@ -369,11 +332,22 @@ export class ChannelService {
                 'channelMember.isAdmin',
                 (eb) =>
                   eb
-                    .case()
-                    .when('blockedById', 'is not', null)
-                    .then(true)
-                    .else(false)
-                    .end()
+                    .exists((eb) =>
+                      eb
+                        .selectFrom('blockedUser')
+                        .where((eb) =>
+                          eb.or([
+                            eb.and([
+                              eb('blockedById', '=', userId),
+                              eb('blockedId', '=', eb.ref('user.id')),
+                            ]),
+                            eb.and([
+                              eb('blockedId', '=', userId),
+                              eb('blockedById', '=', eb.ref('user.id')),
+                            ]),
+                          ]),
+                        ),
+                    )
                     .as('isBlocked'),
               ]),
           ).as('users'),
@@ -559,10 +533,10 @@ export class ChannelService {
 
   selectAdminQuery(userId: number, channelId: number) {
     return db
-      .selectFrom('channelMember')
-      .where('channelMember.userId', '=', userId)
-      .where('channelMember.channelId', '=', channelId)
-      .where('channelMember.isAdmin', 'is', true);
+      .selectFrom('channelMember as admin')
+      .where('admin.userId', '=', userId)
+      .where('admin.channelId', '=', channelId)
+      .where('admin.isAdmin', 'is', true);
   }
 
   selectAdminAndTargetMemberQuery(
@@ -571,12 +545,14 @@ export class ChannelService {
     channelId: number,
   ) {
     return this.selectAdminQuery(currentUserId, channelId)
-      .innerJoin('channel', 'channel.id', 'channelMember.channelId')
+      .innerJoin('channel', 'channel.id', 'admin.channelId')
       .innerJoin('channelMember as targetUser', (join) =>
         join
           .on('targetUser.userId', '=', userId)
           .on('targetUser.channelId', '=', channelId),
-      );
+      )
+      .whereRef('targetUser.userId', '!=', 'channel.channelOwner')
+      .whereRef('admin.userId', '!=', 'targetUser.userId');
   }
 
   async checkCanUserJoinChannel(userId: number, payload: ChannelJoinDto) {
@@ -650,7 +626,7 @@ export class ChannelService {
     channelId: number,
   ): Promise<boolean> {
     const channel = await this.selectAdminQuery(userId, channelId)
-      .innerJoin('channel', 'channel.id', 'channelMember.channelId')
+      .innerJoin('channel', 'channel.id', 'admin.channelId')
       .where('channel.channelOwner', '=', userId)
       .executeTakeFirst();
     return !!channel;
@@ -678,7 +654,6 @@ export class ChannelService {
       userId,
       channelId,
     )
-      .where('channel.channelOwner', '!=', userId)
       .where((eb) =>
         eb
           .case()
@@ -700,9 +675,7 @@ export class ChannelService {
       currentUserId,
       userId,
       channelId,
-    )
-      .where('channel.channelOwner', '!=', userId)
-      .executeTakeFirst();
+    ).executeTakeFirst();
     return !!member;
   }
 
@@ -716,7 +689,6 @@ export class ChannelService {
       userId,
       channelId,
     )
-      .where('channel.channelOwner', '!=', userId)
       .leftJoin('bannedUser', (join) =>
         join
           .on('bannedId', '=', userId)
@@ -759,5 +731,19 @@ export class ChannelService {
       .where('channelMember.userId', '=', memberId)
       .where('channelMember.channelId', '=', channelId)
       .execute();
+  }
+
+  async isUserMember(userId: number, channelId: number) {
+    const isMember = await db
+      .selectFrom('channel')
+      .where('channel.id', '=', channelId)
+      .innerJoin('channelMember as m', (join) =>
+        join
+          .onRef('m.channelId', '=', 'channel.id')
+          .on('m.userId', '=', userId),
+      )
+      .executeTakeFirst();
+
+    return !!isMember;
   }
 }

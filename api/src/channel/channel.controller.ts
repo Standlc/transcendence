@@ -117,8 +117,12 @@ export class UserController {
     @Param('channelId') channelId: number,
     @Request() req,
   ): Promise<MessageWithSenderInfo[]> {
-    console.log('GET: Recieved channelId:', channelId);
-    return await this.channelService.getChannelMessages(req.user.id, channelId);
+    const userId: number = req.user.id;
+    const isAllowed = await this.channelService.isUserMember(userId, channelId);
+    if (!isAllowed) {
+      throw new ForbiddenException();
+    }
+    return await this.channelService.getChannelMessages(userId, channelId);
   }
 
   @Get()
@@ -147,7 +151,12 @@ export class UserController {
     @Param('channelId') channelId: number,
     @Req() req,
   ): Promise<ChannelDataWithUsersWithoutPassword> {
-    return await this.channelService.getChannel(req.user.id, channelId);
+    const userId: number = req.user.id;
+    const isAllowed = await this.channelService.isUserMember(userId, channelId);
+    if (!isAllowed) {
+      throw new ForbiddenException();
+    }
+    return await this.channelService.getChannel(userId, channelId);
   }
 
   //

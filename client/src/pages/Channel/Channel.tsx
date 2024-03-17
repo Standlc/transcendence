@@ -1,6 +1,5 @@
 import { useParams } from "react-router-dom";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ChannelMessages } from "../../types/channel";
 import TextArea from "../../UIKit/TextArea";
 import { Avatar } from "../../UIKit/avatar/Avatar";
 import ModalLayout from "../../UIKit/ModalLayout";
@@ -28,7 +27,7 @@ export const Channel = () => {
     const { chatSocket } = useContext(SocketsContext);
     const leaveChannel = useLeaveChannel();
 
-    const allMessagesChan = useQuery<ChannelMessages[]>({
+    const allMessagesChan = useQuery<MessageWithSenderInfo[]>({
         queryKey: ["allMessagesChan", channelId],
         queryFn: async () => {
             if (!channelId) {

@@ -7,7 +7,7 @@ import {
   UserChannel,
 } from "@api/types/channelsSchema";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useGetUser } from "./useGetUser";
 
 export const useChatSocket = (addError: (error: ErrorType) => void) => {
@@ -15,6 +15,7 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const user = useGetUser();
+  const { channelId } = useParams();
 
   useEffect(() => {
     const connection = io("/channel");
@@ -75,11 +76,13 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
     };
 
     const handleChannelDelete = (
-      channelId: ChannelServerEmitTypes["channelDelete"]
+      deletedChannelId: ChannelServerEmitTypes["channelDelete"]
     ) => {
-      navigate("/home");
+      if (channelId === deletedChannelId.toString()) {
+        navigate("/home");
+      }
       queryClient.setQueryData<UserChannel[]>(["channels"], (prev) => {
-        return prev?.filter((c) => c.id !== channelId);
+        return prev?.filter((c) => c.id !== deletedChannelId);
       });
     };
 
@@ -141,9 +144,9 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
       chatSocket.off("newChannel", handleNewChannel);
       chatSocket.off("newAdmin", handleNewAdmin);
       chatSocket.off("adminRemove", handleAdminRemove);
-      chatSocket.on("channelUpdated", handleChannelUpdated);
+      chatSocket.off("channelUpdated", handleChannelUpdated);
     };
-  }, [chatSocket, navigate, queryClient]);
+  }, [chatSocket, navigate, queryClient, channelId, user]);
 
   return { chatSocket };
 };

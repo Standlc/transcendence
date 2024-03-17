@@ -218,7 +218,12 @@ export class DmController {
     @Param('id') id: string,
     @Request() req,
   ): Promise<UserConversation> {
-    return await this.dmService.getConversation(Number(id), req.user.id);
+    const userId: number = req.user.id;
+    const isAllowed = this.dmService.isAllowed(userId, Number(id));
+    if (!isAllowed) {
+      throw new ForbiddenException();
+    }
+    return await this.dmService.getConversation(Number(id));
   }
 
   //
@@ -269,6 +274,12 @@ export class DmController {
     @Param('id') id: string,
     @Request() req,
   ): Promise<DmWithSenderInfo[]> {
+    const userId: number = req.user.id;
+    const isAllowed = this.dmService.isAllowed(userId, Number(id));
+    if (!isAllowed) {
+      throw new ForbiddenException();
+    }
+
     return await this.dmService.getConversationMessages(
       Number(id),
       req.user.id,
@@ -288,7 +299,8 @@ export class DmController {
     @Param('conversationId') conversationId: number,
     @Request() req,
   ): Promise<void> {
-    const conversation = await this.dmService.getConversationById(conversationId);
+    const conversation =
+      await this.dmService.getConversationById(conversationId);
     if (!conversation) {
       throw new NotFoundException();
     }

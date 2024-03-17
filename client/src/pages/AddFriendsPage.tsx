@@ -1,11 +1,6 @@
 import { useContext, useMemo, useState } from "react";
 import { SearchInput } from "../UIKit/SearchInput";
-import {
-  useMutation,
-  useQueries,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { UserSearchResult } from "@api/types/clientSchema";
 import { Spinner } from "../UIKit/Kit";
