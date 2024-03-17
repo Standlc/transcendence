@@ -18,8 +18,6 @@ import {
 import { useGetChannel } from "../../utils/channels/useGetChannel";
 import { useLeaveChannel } from "../../utils/channels/useLeaveChannel";
 import { ChannelAvatar } from "../../UIKit/avatar/ChannelAvatar";
-import PersonAddAlt1RoundedIcon from "@mui/icons-material/PersonAddAlt1Rounded";
-import { DateTime } from "luxon";
 
 export const Channel = () => {
   const { channelId } = useParams();
@@ -27,13 +25,13 @@ export const Channel = () => {
   const [textAreaValue, setTextAreaValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [isMuted, setIsMuted] = useState(false);
-  const [muteEndTime, setMuteEndTime] = useState<Date | null>(null);
   const [muteCountdown, setMuteCountdown] = useState(0);
   const [isCmdOpen, setIsCmdOpen] = useState(false);
   const user = useGetUser();
   const { chatSocket } = useContext(SocketsContext);
   const leaveChannel = useLeaveChannel();
   const chanInfo = useGetChannel(Number(channelId));
+  const [blockedMessagesIds, setBlockedMessagesIds] = useState<number[]>([]);
 
   const userMutedEnd = useMemo(() => {
     if (!chanInfo.data?.users) return;
@@ -178,9 +176,22 @@ export const Channel = () => {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-
+      ``;
       sendMessage();
     }
+  };
+
+  const handleBlockMessageClick = (messageId: number) => {
+    setBlockedMessagesIds((prevIds) => {
+      if (!prevIds.includes(messageId)) {
+        return [...prevIds, messageId];
+      }
+      return prevIds;
+    });
+  };
+
+  const isMessageBlockedAndHidden = (msg: MessageWithSenderInfo) => {
+    return msg.isBlocked && !blockedMessagesIds.includes(msg.id);
   };
 
   const shouldDisplayAvatarAndTimestamp = (currentIndex: number): boolean => {
@@ -216,54 +227,7 @@ export const Channel = () => {
       return <div>Loading messages...</div>;
     }
 
-    //   return allMessagesChan.data.map((msg, index) => (
-    //     <div
-    //       key={index}
-    //       ref={index === allMessagesChan.data.length - 1 ? messagesEndRef : null}
-    //     >
-    //       <div className="mt-[20px]" key={index}>
-    //         <div className="flex">
-    //           {shouldDisplayAvatarAndTimestamp(index) && (
-    //             <div className="flex">
-    //               <Avatar
-    //                 imgUrl={msg.avatarUrl}
-    //                 userId={msg.senderId}
-    //                 size="md"
-    //                 borderRadius={0.5}
-    //               />
-    //               {shouldDisplayUsername(index) && (
-    //                 <div className="font-bold ml-[30px]">{msg.username}</div>
-    //               )}
-    //             </div>
-    //           )}
-
-    //           {shouldDisplayAvatarAndTimestamp(index) && (
-    //             <div className="ml-[10px] mt-[4px] text-[13px]">
-    //               {new Date(msg.createdAt).toLocaleString(undefined, {
-    //                 year: "numeric",
-    //                 month: "2-digit",
-    //                 day: "2-digit",
-    //                 hour: "2-digit",
-    //                 minute: "2-digit",
-    //                 second: "2-digit",
-    //               })}
-    //             </div>
-    //           )}
-    //         </div>
-    //         <div className="mt-[-15px] block text-md ml-[80px] hover:bg-discord-dark-grey">
-    //           {msg.senderIsBlocked == true
-    //             ? "This message is blocked"
-    //             : msg.messageContent}
-    //         </div>
-    //       </div>
-    //     </div>
-    //   ));
-    // };
-
     return allMessagesChan.data.map((msg, index) => {
-      // Ajout d'un console.log pour vérifier la valeur de senderIsBlocked
-      console.log(`Message ID: ${msg.id}, senderIsBlocked: ${msg.isBlocked}`);
-
       return (
         <div
           key={index}
@@ -282,13 +246,15 @@ export const Channel = () => {
                     borderRadius={0.5}
                   />
                   {shouldDisplayUsername(index) && (
-                    <div className="font-bold ml-[30px]">{msg.username}</div>
+                    <div className="font-bold ml-[30px] opacity-80">
+                      {msg.username}
+                    </div>
                   )}
                 </div>
               )}
 
               {shouldDisplayAvatarAndTimestamp(index) && (
-                <div className="ml-[10px] mt-[4px] text-[13px]">
+                <div className="ml-[10px] mt-[4px] text-[13px] opacity-40">
                   {new Date(msg.createdAt).toLocaleString(undefined, {
                     year: "numeric",
                     month: "2-digit",
@@ -300,10 +266,23 @@ export const Channel = () => {
                 </div>
               )}
             </div>
-            <div className="mt-[-15px] block text-md ml-[80px] hover:bg-discord-dark-grey">
-              {msg.isBlocked === true
-                ? "This message is blocked"
-                : msg.messageContent}
+            <div className="mt-[-15px] block text-md ml-[70px]">
+              {isMessageBlockedAndHidden(msg) ? (
+                <div
+                  onClick={() => handleBlockMessageClick(msg.id)}
+                  className="opacity-30 cursor-pointer"
+                >
+                  This message is blocked
+                </div>
+              ) : (
+                <div onClick={() => handleBlockMessageClick(msg.id)}>
+                  {msg.isBlocked ? (
+                    <div> {msg.messageContent}</div>
+                  ) : (
+                    <div>{msg.messageContent}</div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -336,22 +315,14 @@ export const Channel = () => {
             </div>
             <div className="flex">
               <button
-                className="mr-5 hover:bg-black hover:bg-opacity-30 rounded-full py-2 px-2 justify-center"
+                className="mr-5 hover:bg-black h-[40px] w-[40px] hover:bg-opacity-30 rounded-full py-2 px-2 justify-center"
                 onClick={() => setIsCmdOpen(true)}
               >
                 <PersonIcon />
               </button>
-              {/* {chanInfo.data?.channelOwner === user.id && (
-                <button
-                  className="mr-5 hover:bg-black hover:bg-opacity-30 rounded-full py-2 px-2 justify-center"
-                  onClick={() => leaveChannel.mutate(chanInfo.data?.id ?? 0)}
-                >
-                  <PersonAddAlt1RoundedIcon />
-                </button>
-              )} */}
               {chanInfo.data?.channelOwner != user.id && (
                 <button
-                  className="mr-5 hover:bg-black hover:bg-opacity-30 rounded-full py-2 px-2 justify-center"
+                  className="mr-5 hover:bg-black h-[40px] w-[40px] hover:bg-opacity-30 rounded-full py-2 px-2 justify-center"
                   onClick={() => leaveChannel.mutate(chanInfo.data?.id ?? 0)}
                 >
                   <LogoutIcon />
