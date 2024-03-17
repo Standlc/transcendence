@@ -1,6 +1,5 @@
 import { useParams } from "react-router-dom";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ChannelMessages } from "../../types/channel";
 import TextArea from "../../UIKit/TextArea";
 import { Avatar } from "../../UIKit/avatar/Avatar";
 import ModalLayout from "../../UIKit/ModalLayout";
@@ -47,7 +46,7 @@ export const Channel = () => {
     return null;
   }, [user.id, chanInfo.data?.users]);
 
-  const allMessagesChan = useQuery<ChannelMessages[]>({
+  const allMessagesChan = useQuery<MessageWithSenderInfo[]>({
     queryKey: ["allMessagesChan", channelId],
     queryFn: async () => {
       if (!channelId) {
@@ -263,9 +262,7 @@ export const Channel = () => {
 
     return allMessagesChan.data.map((msg, index) => {
       // Ajout d'un console.log pour vérifier la valeur de senderIsBlocked
-      console.log(
-        `Message ID: ${msg.messageId}, senderIsBlocked: ${msg.senderIsBlocked}`
-      );
+      console.log(`Message ID: ${msg.id}, senderIsBlocked: ${msg.isBlocked}`);
 
       return (
         <div
@@ -304,7 +301,7 @@ export const Channel = () => {
               )}
             </div>
             <div className="mt-[-15px] block text-md ml-[80px] hover:bg-discord-dark-grey">
-              {msg.senderIsBlocked === true
+              {msg.isBlocked === true
                 ? "This message is blocked"
                 : msg.messageContent}
             </div>
@@ -361,9 +358,8 @@ export const Channel = () => {
                 </button>
               )}
               {isCmdOpen && (
-                <ModalLayout>
+                <ModalLayout onClickOutside={() => setIsCmdOpen(false)}>
                   <PopUpCmd
-                    onClose={() => setIsCmdOpen(false)}
                     chanInfo={chanInfo.data}
                     chatSocket={chatSocket}
                     currentUser={user}

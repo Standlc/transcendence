@@ -18,11 +18,28 @@ import { UserProfileContext } from "../../ContextsProviders/UserProfileIdContext
 import { useBlockUser } from "../../utils/block/useBlockUser";
 import { SendGameInvitationModal } from "../../components/SendGameInvitationModal";
 import { UsersListWithSearch } from "../../components/friendsComponents/UsersListWithSearch";
+import { useHandlerUsersStatusInLive } from "../../utils/useHandleUsersStatusInLive";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const AllFriends = () => {
   const user = useGetUser();
   const friends = useGetFriends(user.id);
   const [filteredFriends, setFilteredFriends] = useState(friends.data);
+  const queryClient = useQueryClient();
+
+  useHandlerUsersStatusInLive("friends", (data) => {
+    queryClient.setQueryData<UserFriend[]>(["friends", user.id], (prev) => {
+      if (!prev) return undefined;
+      return prev.map((friend) => {
+        if (friend.id !== data.userId) return friend;
+
+        return {
+          ...friend,
+          status: data.status,
+        };
+      });
+    });
+  });
 
   useEffect(() => {
     setFilteredFriends(friends.data);

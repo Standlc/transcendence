@@ -34,23 +34,6 @@ export interface AllChannels {
     users: User[];
 }
 
-export interface ChannelMessages {
-channelId: number,
-messageContent: string | null,
-createdAt: Date,
-messageId: number,
-senderId: number,
-isOwner: boolean,
-isAdmin: boolean,
-isBanned: boolean,
-isMuted: boolean,
-mutedEnd: Date | null,
-avatarUrl: string | null,
-username: string,
-senderIsBlocked: boolean
-}
-
-
 export interface ChannelNewMessage {
     avatarUrl: string | null;
     content: string | null;

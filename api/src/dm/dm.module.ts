@@ -7,7 +7,6 @@ import { FriendsService } from 'src/friends/friends.service';
 import { ConnectedUsersService } from 'src/connectedUsers/connectedUsers.service';
 import { FriendsModule } from 'src/friends/friends.module';
 import { UsersStatusModule } from 'src/usersStatusGateway/UsersStatus.module';
-import { LiveChatSocket } from 'src/liveChatSocket/liveChatSocket.gateway';
 import { BlockedUserModule } from 'src/blocked-user/blocked-user.module';
 
 @Module({
@@ -19,7 +18,6 @@ import { BlockedUserModule } from 'src/blocked-user/blocked-user.module';
     WsAuthGuard,
     FriendsService,
     ConnectedUsersService,
-    LiveChatSocket,
   ],
 })
 export class DmModule {}

@@ -17,17 +17,12 @@ import { useRemoveAdmin } from "../../../utils/channels/useRemoveAdmin";
 import { UserProfileContext } from "../../../ContextsProviders/UserProfileIdContext";
 
 interface Props {
-  onClose: () => void;
   chanInfo: ChannelDataWithUsersWithoutPassword | undefined;
   chatSocket: Socket;
   currentUser: AppUser;
 }
 
-export const PopUpCmd: React.FC<Props> = ({
-  onClose,
-  chanInfo,
-  currentUser,
-}) => {
+export const PopUpCmd: React.FC<Props> = ({ chanInfo, currentUser }) => {
   const [nbrUsers, setNbrUsers] = useState<number>(chanInfo?.users.length || 0);
   const kickMember = useKickMemberFromChannel();
   const banMember = useBanUserFromChannel();
@@ -155,14 +150,6 @@ export const PopUpCmd: React.FC<Props> = ({
             );
           })}
         </ul>
-      </div>
-      <div className="text-right mr-2 mb-2">
-        <button
-          className="px-5 py-2 bg-indigo-500 text-white rounded-md hover:bg-blurple-hover"
-          onClick={onClose}
-        >
-          Close
-        </button>
       </div>
     </div>
   );

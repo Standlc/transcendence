@@ -1,4 +1,3 @@
-import { LiveChatSocket } from './../liveChatSocket/liveChatSocket.gateway';
 import {
   Injectable,
   InternalServerErrorException,
@@ -15,16 +14,16 @@ import {
 } from 'src/types/channelsSchema';
 import { FriendsService } from 'src/friends/friends.service';
 import { UsersStatusGateway } from 'src/usersStatusGateway/UsersStatus.gateway';
-import { DirectMessage } from 'src/types/schema';
-import { Selectable } from 'kysely';
 import { jsonBuildObject } from 'kysely/helpers/postgres';
+import { DmGateway } from './dm.gateway';
+import { channel } from 'diagnostics_channel';
 
 @Injectable()
 export class DmService {
   constructor(
     private friendsService: FriendsService,
-    private readonly liveChatSocket: LiveChatSocket,
     private readonly usersStatusGateway: UsersStatusGateway,
+    private readonly dmGateway: DmGateway,
   ) {}
 
   //
@@ -100,11 +99,8 @@ export class DmService {
       .returningAll()
       .executeTakeFirstOrThrow();
 
+    this.dmGateway.emitNewConversation([user2, userId], conversation.id);
     return conversation.id;
-
-    // !!! test of the global socket that will notify the user about the new conversation
-    // this.liveChatSocket.handleNewConversation(userId, user2);
-    // return `Conversation of user ${userId} and user ${user2} created`;
   }
 
   async getAllConversationsOfTheUser(
@@ -186,10 +182,7 @@ export class DmService {
   //
   //
   //
-  async getConversation(
-    conversationId: number,
-    userId: number,
-  ): Promise<UserConversation> {
+  async getConversation(conversationId: number): Promise<UserConversation> {
     try {
       const conversation = await db
         .selectFrom('conversation')
@@ -266,7 +259,7 @@ export class DmService {
     userId: number,
   ): Promise<DmWithSenderInfo[]> {
     try {
-      await this.getConversation(conversationId, userId);
+      await this.getConversation(conversationId);
     } catch (error) {
       throw error;
     }
@@ -277,7 +270,7 @@ export class DmService {
         .selectAll()
         .where('conversationId', '=', conversationId)
         .orderBy('directMessage.createdAt', 'asc')
-        .leftJoin('user', 'directMessage.senderId', 'user.id')
+        .innerJoin('user', 'directMessage.senderId', 'user.id')
         .leftJoin('blockedUser', (join) =>
           join
             .onRef('blockedUser.blockedId', '=', 'directMessage.senderId')
@@ -303,33 +296,12 @@ export class DmService {
         avatarUrl: message.avatarUrl,
         username: message.username,
         senderIsBlocked: Boolean(message.blockedId),
-      })) as DmWithSenderInfo[];
+      }));
     } catch (error) {
       throw new InternalServerErrorException();
     }
   }
 
-  //
-  //
-  //
-  async deleteConversation(
-    conversationId: number,
-    userId: number,
-  ): Promise<void> {
-    try {
-      await db
-        .deleteFrom('conversation')
-        .where('id', '=', conversationId)
-        .where((eb) =>
-          eb.or([eb('user1_id', '=', userId), eb('user2_id', '=', userId)]),
-        )
-        .execute();
-    } catch (error) {
-      throw new InternalServerErrorException();
-    }
-  }
-
-  //
   //
   //
   async userExists(userId: number): Promise<void> {
@@ -357,9 +329,9 @@ export class DmService {
     try {
       const conversation = await db
         .selectFrom('conversation')
-        .select('id')
         .where('id', '=', conversationId)
-        .executeTakeFirstOrThrow();
+        .select('id')
+        .executeTakeFirst();
 
       if (!conversation) {
         throw new NotFoundException('Conversation not found');
@@ -370,7 +342,32 @@ export class DmService {
     }
   }
 
-  //Socket io method :
+  async canUserSendMessage(userId: number, dmId: number) {
+    const user = await db
+      .selectFrom('user')
+      .where('user.id', '=', userId)
+      .innerJoin('conversation', (join) =>
+        join.on('conversation.id', '=', dmId),
+      )
+      .leftJoin('blockedUser', (join) =>
+        join.on((eb) =>
+          eb.or([
+            eb.and([
+              eb('blockedById', '=', eb.ref('conversation.user1_id')),
+              eb('blockedId', '=', eb.ref('conversation.user2_id')),
+            ]),
+            eb.and([
+              eb('blockedById', '=', eb.ref('conversation.user2_id')),
+              eb('blockedId', '=', eb.ref('conversation.user1_id')),
+            ]),
+          ]),
+        ),
+      )
+      .where('blockedById', 'is', null)
+      .executeTakeFirst();
+
+    return !!user;
+  }
 
   //
   //
@@ -378,24 +375,33 @@ export class DmService {
   async createDirectMessage(
     directMessage: DirectMessageContent,
     senderId: number,
-  ): Promise<Selectable<DirectMessage>> {
-    // try {
-    const message = await db
+  ): Promise<DmWithSenderInfo> {
+    const messageRecord = await db
       .insertInto('directMessage')
       .values({
         content: directMessage.content,
         conversationId: directMessage.conversationId,
         senderId: senderId,
       })
-      .returningAll()
+      .returning('directMessage.id')
       .executeTakeFirstOrThrow();
 
-    return message;
-    // console.log(`Message sent to ${directMessage.conversationId}`);
-    // console.log('Direct Message:', directMessage);
-    // } catch (error) {
-    //   throw new InternalServerErrorException('Unable to send message');
-    // }
+    const messageWithSenderInfos = await db
+      .selectFrom('directMessage')
+      .where('directMessage.id', '=', messageRecord.id)
+      .innerJoin('user', 'directMessage.senderId', 'user.id')
+      .select([
+        'directMessage.content',
+        'directMessage.createdAt',
+        'directMessage.id as messageId',
+        'directMessage.senderId',
+        'user.avatarUrl',
+        'user.username',
+        'directMessage.conversationId',
+      ])
+      .executeTakeFirstOrThrow();
+
+    return { ...messageWithSenderInfos, senderIsBlocked: false };
   }
 
   //
@@ -431,9 +437,48 @@ export class DmService {
   }
 
   async delete(conversationId: number) {
+    const members = await this.getMembers(conversationId);
+    if (!members.length) {
+      throw new NotFoundException();
+    }
+
     await db
       .deleteFrom('conversation')
       .where('id', '=', conversationId)
       .execute();
+
+    this.dmGateway.emitConversationDeleted(
+      members.map((m) => m.id),
+      conversationId,
+    );
+  }
+
+  async getMembers(channelId: number) {
+    const members = await db
+      .selectFrom('conversation as conv')
+      .where('conv.id', '=', channelId)
+      .innerJoin('user', (join) =>
+        join.on((eb) =>
+          eb.or([
+            eb('user.id', '=', eb.ref('conv.user1_id')),
+            eb('user.id', '=', eb.ref('conv.user2_id')),
+          ]),
+        ),
+      )
+      .select('user.id')
+      .execute();
+    return members;
+  }
+
+  async isAllowed(userId: number, conversationId: number) {
+    const conversation = await db
+      .selectFrom('conversation as c')
+      .where('c.id', '=', conversationId)
+      .where((eb) =>
+        eb.or([eb('c.user1_id', '=', userId), eb('c.user2_id', '=', userId)]),
+      )
+      .executeTakeFirst();
+
+    return !!conversation;
   }
 }

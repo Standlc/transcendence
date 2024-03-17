@@ -1,4 +1,4 @@
-import { Selectable, Updateable } from 'kysely';
+import { Selectable, SqlBool, Updateable } from 'kysely';
 import { Channel, ChannelMessage, DirectMessage } from './schema';
 
 export type ChannelServerEventTypes = {
@@ -59,7 +59,7 @@ export interface ChannelDataWithUsersWithoutPassword {
 
 export interface UserInfo {
   userId: number;
-  isBlocked: boolean;
+  isBlocked: SqlBool;
   username: string;
   avatarUrl: string | null;
   rating: number;
@@ -93,7 +93,7 @@ export interface MessageWithSenderInfo {
   createdAt: Date;
   id: number;
   senderId: number;
-  isBlocked: boolean;
+  isBlocked: SqlBool;
 }
 
 export interface DmWithSenderInfo {
