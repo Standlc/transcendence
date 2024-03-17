@@ -16,6 +16,7 @@ export type ChannelServerEmitTypes = {
   adminRemove: ChannelAndUserIdPayload;
   newChannel: number;
   channelDelete: number;
+  memberMuted: ChannelAndUserIdPayload;
 };
 
 export type ChannelAndUserIdPayload = {

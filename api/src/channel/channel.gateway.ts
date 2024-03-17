@@ -133,6 +133,15 @@ export class ChannelGateway
       );
   }
 
+  emitMemberMuted(payload: ChannelAndUserIdPayload) {
+    this.server
+      .to(payload.channelId.toString())
+      .emit(
+        'memberMuted',
+        payload satisfies ChannelServerEmitTypes['memberMuted'],
+      );
+  }
+
   //
   //
   //
