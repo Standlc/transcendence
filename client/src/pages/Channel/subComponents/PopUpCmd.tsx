@@ -47,10 +47,18 @@ export const PopUpCmd: React.FC<Props> = ({ chanInfo, currentUser }) => {
         <ul>
           {chanInfo?.users.map((user) => {
             let userActions: MenuActionType[] = [];
+
+            const isCurrentUserOwner =
+              chanInfo?.channelOwner === currentUser.id;
+            const isUserOwner = user.userId === chanInfo?.channelOwner;
+            const currentUserIsAdmin =
+              chanInfo?.users.find((user) => user.userId === currentUser.id)
+                ?.isAdmin && !isCurrentUserOwner;
+
             if (
-              (chanInfo?.channelOwner === currentUser.id &&
-                currentUser.id !== user.userId) ||
-              (currentUserIsAdmin && currentUser.id !== user.userId)
+              !isUserOwner &&
+              (isCurrentUserOwner || currentUserIsAdmin) &&
+              currentUser.id !== user.userId
             ) {
               const isAdmin = user.isAdmin;
               const adminAction = isAdmin
