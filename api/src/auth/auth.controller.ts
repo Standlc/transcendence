@@ -64,7 +64,11 @@ export class AuthController {
       httpOnly: true
     });
     if (process.env.FRONTEND_URL) {
-      res.redirect(process.env.FRONTEND_URL);
+      const user = await this.usersService.getUserById(req.user.id);
+      if (user.isTwoFactorAuthenticationEnabled)
+        res.redirect(process.env.FRONTEND_URL + "/login-2fa");
+      else
+        res.redirect(process.env.FRONTEND_URL);
       return undefined;
     }
     return "This server is missing a front end to redirect...";
