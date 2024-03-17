@@ -9,14 +9,11 @@ import PrivateLayout from "./components/PrivateLayout";
 import PublicLayout from "./components/PublicLayout";
 import PlayPage from "./pages/PlayPage";
 import GamePage from "./pages/GamePage";
-import axios from "axios";
-import { useQuery } from "@tanstack/react-query";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { LiveGamesPage } from "./pages/LiveGamesPage";
 import { Register } from "./pages/LoginRegister/Register";
 import { Login } from "./pages/LoginRegister/Login";
 import { Settings } from "./pages/Settings/subComponents/Settings";
-import { AppUser } from "@api/types/clientSchema";
 import { ChannelsLayout } from "./components/ChannelsLayout";
 import Chat from "./pages/Chat/Chat";
 import { ExplorePage } from "./pages/ExplorePage";
@@ -27,18 +24,13 @@ import { FriendRequests } from "./pages/FriendRequestsPage";
 import { AddFriendsPage } from "./pages/AddFriendsPage";
 import { Channel } from "./pages/Channel/Channel";
 import { Friends } from "./pages/Friends/Friends";
+import { LoginTwoFA } from "./pages/LoginRegister/LoginTwoFA";
+import { useGetAuthToken } from "./utils/auth/useGetAuthToken";
 
 function App() {
-  const getUser = useQuery({
-    queryKey: ["user"],
-    retry: false,
-    queryFn: async () => {
-      const res = await axios.get<AppUser>("/api/auth/token");
-      return res.data;
-    },
-  });
+  const user = useGetAuthToken();
 
-  if (getUser.isLoading) {
+  if (user.isLoading) {
     return null;
   }
 
@@ -48,7 +40,7 @@ function App() {
         createRoutesFromElements(
           <>
             <Route
-              element={<PrivateLayout user={getUser.data} />}
+              element={<PrivateLayout user={user.data} />}
               errorElement={<Navigate to="/home" />}
             >
               <Route path="/home" element={<ChannelsLayout />}>
@@ -74,10 +66,7 @@ function App() {
 
               <Route path="/explore" element={<ExplorePage />} />
 
-              <Route
-                path="/settings"
-                element={<Settings user={getUser.data} />}
-              />
+              <Route path="/settings" element={<Settings user={user.data} />} />
             </Route>
 
             <Route
@@ -86,6 +75,7 @@ function App() {
             >
               <Route path="/login" element={<Login />} />
               <Route path="/create-account" element={<Register />} />
+              <Route path="/login-2fa" element={<LoginTwoFA />} />
             </Route>
           </>
         )

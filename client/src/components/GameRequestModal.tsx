@@ -123,7 +123,7 @@ export const PlayerInfos = ({
       style={{ ...style }}
       className="flex font-extrabold items-start gap-3 flex-1"
     >
-      <Avatar imgUrl={undefined} size="lg" userId={player?.id ?? -1} />
+      <Avatar imgUrl={player?.avatarUrl} size="lg" userId={player?.id ?? -1} />
 
       <div className="flex gap-3 [flex-direction:inherit] items-center">
         <span

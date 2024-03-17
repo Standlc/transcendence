@@ -57,7 +57,7 @@ export const ChannelSettingsModal = ({
                 isPublic,
               })
             }
-            disabled={isDisabled && updateChannel.isPending}
+            disabled={isDisabled || updateChannel.isPending}
             className="bg-green-600 py-2 px-4 rounded-md font-semibold disabled:opacity-50"
           >
             Save changes
