@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ChannelMessages } from "../../types/channel";
 import TextArea from "../../UIKit/TextArea";
@@ -7,13 +7,11 @@ import ModalLayout from "../../UIKit/ModalLayout";
 import { SocketsContext } from "../../ContextsProviders/SocketsContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { ChannelMessage } from "@api/types/schema";
 import { useGetUser } from "../../utils/useGetUser";
 import { PopUpCmd } from "./subComponents/PopUpCmd";
 import PersonIcon from "@mui/icons-material/Person";
 import LogoutIcon from "@mui/icons-material/Logout";
-import { ChannelDataWithUsersWithoutPassword, ChannelServerEmitTypes, MessageWithSenderInfo, UserChannelMessage } from "@api/types/channelsSchema";
-import { TestComponent } from "./TestComponent";
+import { ChannelServerEmitTypes, MessageWithSenderInfo, UserChannelMessage } from "@api/types/channelsSchema";
 import { useGetChannel } from "../../utils/channels/useGetChannel";
 import { useLeaveChannel } from "../../utils/channels/useLeaveChannel";
 import { ChannelAvatar } from "../../UIKit/avatar/ChannelAvatar";
@@ -24,7 +22,6 @@ export const Channel = () => {
     const queryClient = useQueryClient();
     const [textAreaValue, setTextAreaValue] = useState("");
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
-    const navigate = useNavigate();
     const [isMuted, setIsMuted] = useState(false);
     const [isCmdOpen, setIsCmdOpen] = useState(false);
     const user = useGetUser();
@@ -239,7 +236,7 @@ export const Channel = () => {
                         >
                             <PersonIcon />
                         </button>
-                        {chanInfo.data?.channelOwner === user.userId && (
+                        {chanInfo.data?.channelOwner === user.id && (
                         <button
                             className="mr-5 hover:bg-black hover:bg-opacity-30 rounded-full py-2 px-2 justify-center"
                             onClick={() => leaveChannel.mutate(chanInfo.data?.id ?? 0)}

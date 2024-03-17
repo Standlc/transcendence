@@ -133,6 +133,6 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
       chatSocket.off("newAdmin");
       chatSocket.off("adminRemove");
     };
-  }, [chatSocket]);
+  }, [chatSocket, navigate]);
   return { chatSocket };
 };
