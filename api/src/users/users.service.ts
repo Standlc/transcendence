@@ -1,8 +1,19 @@
-import { Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  UnauthorizedException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { db } from 'src/database';
 import { CreateUsersDto } from './dto/create-users.dto';
 import * as bcrypt from 'bcrypt';
-import { AppUser, AppUserDB, ListUsers, UserSearchResult } from 'src/types/clientSchema';
+import {
+  AppUser,
+  AppUserDB,
+  ListUsers,
+  UserSearchResult,
+} from 'src/types/clientSchema';
 import { userFromIntra } from 'src/auth/oauth.strategy';
 import { randomBytes } from 'crypto';
 import { User } from 'src/types/schema';
@@ -23,34 +34,33 @@ export class UsersService {
    * @throws UnprocessableEntity
    */
   async createUser(createUsersDto: CreateUsersDto): Promise<AppUser> {
-    if (createUsersDto.username == "" || !createUsersDto.username) {
-      console.log("Tried to register without a username");
-      throw new UnprocessableEntityException("Empty username");
+    if (createUsersDto.username == '' || !createUsersDto.username) {
+      console.log('Tried to register without a username');
+      throw new UnprocessableEntityException('Empty username');
     }
     try {
       const result = await db
-      .selectFrom('user')
-      .selectAll()
-      .where('username', '=', createUsersDto.username)
-      .executeTakeFirst()
+        .selectFrom('user')
+        .selectAll()
+        .where('username', '=', createUsersDto.username)
+        .executeTakeFirst();
       if (result)
-        throw new UnprocessableEntityException("Username already taken");
+        throw new UnprocessableEntityException('Username already taken');
     } catch (error) {
-      if (error instanceof UnprocessableEntityException)
-        throw error;
+      if (error instanceof UnprocessableEntityException) throw error;
       throw new InternalServerErrorException();
     }
     try {
       const hashedPassword = await bcrypt.hash(createUsersDto.password, 10);
-       const result = await db
-      .insertInto('user')
-      .values({
-        username: createUsersDto.username,
-        password: hashedPassword,
-        firstname: createUsersDto.firstname,
-        lastname: createUsersDto.lastname
-      })
-      .executeTakeFirst();
+      const result = await db
+        .insertInto('user')
+        .values({
+          username: createUsersDto.username,
+          password: hashedPassword,
+          firstname: createUsersDto.firstname,
+          lastname: createUsersDto.lastname,
+        })
+        .executeTakeFirst();
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException();
@@ -58,17 +68,28 @@ export class UsersService {
     let userDB: AppUserDB;
     try {
       userDB = await db
-      .selectFrom('user')
-      .select(['avatarUrl', 'bio', 'createdAt', 'email', 'firstname', 'id', 'lastname', 'rating', 'username', 'isTwoFactorAuthenticationEnabled'])
-      .where('username', '=', createUsersDto.username)
-      .executeTakeFirstOrThrow()
+        .selectFrom('user')
+        .select([
+          'avatarUrl',
+          'bio',
+          'createdAt',
+          'email',
+          'firstname',
+          'id',
+          'lastname',
+          'rating',
+          'username',
+          'isTwoFactorAuthenticationEnabled',
+        ])
+        .where('username', '=', createUsersDto.username)
+        .executeTakeFirstOrThrow();
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException();
     }
     return {
       ...userDB,
-      status: this.usersStatusGateway.getUserStatus(userDB?.id)
+      status: this.usersStatusGateway.getUserStatus(userDB?.id),
     };
   }
 
@@ -84,31 +105,30 @@ export class UsersService {
   async createOauthUser(intraUser: userFromIntra) {
     try {
       const result = await db
-      .selectFrom('user')
-      .selectAll()
-      .where('username', '=', intraUser.username)
-      .executeTakeFirst()
+        .selectFrom('user')
+        .selectAll()
+        .where('username', '=', intraUser.username)
+        .executeTakeFirst();
       if (result)
-        throw new UnprocessableEntityException("Username already taken");
+        throw new UnprocessableEntityException('Username already taken');
     } catch (error) {
       console.log(error);
-      if (error instanceof UnprocessableEntityException)
-        throw error;
+      if (error instanceof UnprocessableEntityException) throw error;
       throw new InternalServerErrorException();
     }
     try {
       const hashedPassword = await bcrypt.hash(randomBytes(32), 10);
       await db
-      .insertInto('user')
-      .values({
-        email: intraUser.email,
-        username: intraUser.username,
-        avatarUrl: intraUser.avatarUrl,
-        firstname: intraUser.firstname,
-        lastname: intraUser.lastname,
-        password: hashedPassword
-      })
-      .executeTakeFirst();
+        .insertInto('user')
+        .values({
+          email: intraUser.email,
+          username: intraUser.username,
+          avatarUrl: intraUser.avatarUrl,
+          firstname: intraUser.firstname,
+          lastname: intraUser.lastname,
+          password: hashedPassword,
+        })
+        .executeTakeFirst();
     } catch (error) {
       throw new InternalServerErrorException();
     }
@@ -126,88 +146,115 @@ export class UsersService {
     try {
       //? Fetch the databse and search for a user with userId
       user = await db
-      .selectFrom('user')
-      .selectAll()
-      .where('id', '=', userId)
-      .executeTakeFirst();
+        .selectFrom('user')
+        .selectAll()
+        .where('id', '=', userId)
+        .executeTakeFirst();
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException();
     }
-    if (!user)
-      throw new NotFoundException();
+    if (!user) throw new NotFoundException();
     //? Create a AppUser containing every field, except password.
-    const {password, TwoFactorAuthenticationSecret, ...appUserDB} = user;
+    const { password, TwoFactorAuthenticationSecret, ...appUserDB } = user;
     return {
       ...appUserDB,
-      status: this.usersStatusGateway.getUserStatus(appUserDB?.id)
+      status: this.usersStatusGateway.getUserStatus(appUserDB?.id),
     };
   }
 
-  async findUsersByName(userId: number, substring: string): Promise<UserSearchResult[]> {
+  async findUsersByName(
+    userId: number,
+    substring: string,
+  ): Promise<UserSearchResult[]> {
     try {
       const users = await db
-      .selectFrom('user')
-      .where("user.id", "!=", userId)
-      .where('username', 'like', '%' + substring + '%')
-      // don't select blocked users
-      .leftJoin("blockedUser", (join) => join.on((eb) => eb.or([
-        eb.and([
-          eb("blockedById", "=", userId),
-          eb("blockedId", "=", eb.ref("user.id")),
-        ]),
-        eb.and([
-          eb("blockedId", "=", userId),
-          eb("blockedById", "=", eb.ref("user.id")),
-        ]),
-      ])))
-      .where("blockedId", "is", null)
+        .selectFrom('user')
+        .where('user.id', '!=', userId)
+        .where('username', 'like', '%' + substring + '%')
+        // don't select blocked users
+        .leftJoin('blockedUser', (join) =>
+          join.on((eb) =>
+            eb.or([
+              eb.and([
+                eb('blockedById', '=', userId),
+                eb('blockedId', '=', eb.ref('user.id')),
+              ]),
+              eb.and([
+                eb('blockedId', '=', userId),
+                eb('blockedById', '=', eb.ref('user.id')),
+              ]),
+            ]),
+          ),
+        )
+        .where('blockedId', 'is', null)
 
-      // select isFriends
-      .leftJoin("friend", (join) => join.on((eb) => eb.or([
-        eb.and([
-          eb("friend.user1_id", "=", userId),
-          eb("friend.user2_id", "=", eb.ref("user.id")),
-        ]),
-        eb.and([
-          eb("friend.user2_id", "=", userId),
-          eb("friend.user1_id", "=", eb.ref("user.id")),
-        ]),
-      ])))
-      .select((eb) => eb.case().when("friend.user1_id", "is", null).then(false).else(true).end().as("isFriends"))
+        // select isFriends
+        .leftJoin('friend', (join) =>
+          join.on((eb) =>
+            eb.or([
+              eb.and([
+                eb('friend.user1_id', '=', userId),
+                eb('friend.user2_id', '=', eb.ref('user.id')),
+              ]),
+              eb.and([
+                eb('friend.user2_id', '=', userId),
+                eb('friend.user1_id', '=', eb.ref('user.id')),
+              ]),
+            ]),
+          ),
+        )
+        .select((eb) =>
+          eb
+            .case()
+            .when('friend.user1_id', 'is', null)
+            .then(false)
+            .else(true)
+            .end()
+            .as('isFriends'),
+        )
 
-      .leftJoin("friendRequest", (join) => join.on((eb) => eb.or([
-        eb.and([
-          eb("friendRequest.sourceId", "=", userId),
-          eb("friendRequest.targetId", "=", eb.ref("user.id")),
-        ]),
-        eb.and([
-          eb("friendRequest.targetId", "=", userId),
-          eb("friendRequest.sourceId", "=", eb.ref("user.id")),
-        ]),
-      ])))
-      .select("friendRequest.sourceId as friendRequestSourceUserId")
+        .leftJoin('friendRequest', (join) =>
+          join.on((eb) =>
+            eb.or([
+              eb.and([
+                eb('friendRequest.sourceId', '=', userId),
+                eb('friendRequest.targetId', '=', eb.ref('user.id')),
+              ]),
+              eb.and([
+                eb('friendRequest.targetId', '=', userId),
+                eb('friendRequest.sourceId', '=', eb.ref('user.id')),
+              ]),
+            ]),
+          ),
+        )
+        .select('friendRequest.sourceId as friendRequestSourceUserId')
 
-      // select conversation id
-      .leftJoin("conversation", (join) => join.on((eb) => eb.or([
-          eb.and([
-            eb("conversation.user1_id", "=", userId),
-            eb("conversation.user2_id", "=", eb.ref("user.id")),
-          ]),
-          eb.and([
-            eb("conversation.user2_id", "=", userId),
-            eb("conversation.user1_id", "=", eb.ref("user.id")),
-          ]),
-        ])
-      ))
-      .select("conversation.id as conversationId")
+        // select conversation id
+        .leftJoin('conversation', (join) =>
+          join.on((eb) =>
+            eb.or([
+              eb.and([
+                eb('conversation.user1_id', '=', userId),
+                eb('conversation.user2_id', '=', eb.ref('user.id')),
+              ]),
+              eb.and([
+                eb('conversation.user2_id', '=', userId),
+                eb('conversation.user1_id', '=', eb.ref('user.id')),
+              ]),
+            ]),
+          ),
+        )
+        .select('conversation.id as conversationId')
 
-      .select(['username', 'user.avatarUrl', 'user.id', 'rating'])
-      .execute();
+        .select(['username', 'user.avatarUrl', 'user.id', 'rating'])
+        .execute();
 
-      return users.map((u) => ({...u, status: this.usersStatusGateway.getUserStatus(u.id)}))
-    }
-    catch(error) {
+      return users.map((u) => ({
+        ...u,
+        status: this.usersStatusGateway.getUserStatus(u.id),
+      }));
+    } catch (error) {
       console.log(error);
       throw new InternalServerErrorException();
     }
@@ -224,21 +271,19 @@ export class UsersService {
     let user: Selectable<User> | undefined;
     try {
       user = await db
-      .selectFrom('user')
-      .selectAll()
-      .where('username', '=', username)
-      .executeTakeFirst();
-    }
-    catch(error) {
+        .selectFrom('user')
+        .selectAll()
+        .where('username', '=', username)
+        .executeTakeFirst();
+    } catch (error) {
       console.log(error);
       throw new InternalServerErrorException();
     }
-    if (!user)
-      throw new NotFoundException();
-    const {password, TwoFactorAuthenticationSecret, ...appUserDB} = user;
+    if (!user) throw new NotFoundException();
+    const { password, TwoFactorAuthenticationSecret, ...appUserDB } = user;
     return {
       ...appUserDB,
-      status: this.usersStatusGateway.getUserStatus(appUserDB?.id)
+      status: this.usersStatusGateway.getUserStatus(appUserDB?.id),
     };
   }
 
@@ -253,19 +298,29 @@ export class UsersService {
     let user: AppUserDB | undefined;
     try {
       user = await db
-      .selectFrom('user')
-      .select(['avatarUrl', 'bio', 'createdAt', 'email', 'firstname', 'id', 'lastname', 'username', 'rating', 'isTwoFactorAuthenticationEnabled'])
-      .where('email', '=', email)
-      .executeTakeFirst();
+        .selectFrom('user')
+        .select([
+          'avatarUrl',
+          'bio',
+          'createdAt',
+          'email',
+          'firstname',
+          'id',
+          'lastname',
+          'username',
+          'rating',
+          'isTwoFactorAuthenticationEnabled',
+        ])
+        .where('email', '=', email)
+        .executeTakeFirst();
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException();
     }
-    if (!user)
-      throw new NotFoundException();
+    if (!user) throw new NotFoundException();
     return {
       ...user,
-      status: this.usersStatusGateway.getUserStatus(user?.id)
+      status: this.usersStatusGateway.getUserStatus(user?.id),
     };
   }
 
@@ -281,25 +336,26 @@ export class UsersService {
   async validateUser(name: string, pass: string): Promise<AppUser> {
     try {
       const user = await db
-      .selectFrom('user')
-      .selectAll()
-      .where('username', '=', name)
-      .executeTakeFirst();
-      if (!user)
-        throw new NotFoundException();
+        .selectFrom('user')
+        .selectAll()
+        .where('username', '=', name)
+        .executeTakeFirst();
+      if (!user) throw new NotFoundException();
 
       const result = await bcrypt.compare(pass, user.password);
-      if (!result)
-        throw new UnauthorizedException();
+      if (!result) throw new UnauthorizedException();
 
-      const {password, TwoFactorAuthenticationSecret, ...appUserDB} = user;
+      const { password, TwoFactorAuthenticationSecret, ...appUserDB } = user;
       return {
         ...appUserDB,
-        status: this.usersStatusGateway.getUserStatus(appUserDB?.id)
+        status: this.usersStatusGateway.getUserStatus(appUserDB?.id),
       };
     } catch (error) {
-      if (error instanceof UnauthorizedException || error instanceof NotFoundException)
-        throw new UnauthorizedException;
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof NotFoundException
+      )
+        throw new UnauthorizedException();
       throw new InternalServerErrorException();
     }
   }
@@ -312,9 +368,9 @@ export class UsersService {
   async getUserList(): Promise<ListUsers[]> {
     try {
       let userList: ListUsers[] = await db
-      .selectFrom('user')
-      .select(['id', 'username', 'avatarUrl'])
-      .execute();
+        .selectFrom('user')
+        .select(['id', 'username', 'avatarUrl'])
+        .execute();
       return userList;
     } catch (error) {
       throw new InternalServerErrorException();
@@ -322,29 +378,33 @@ export class UsersService {
   }
 
   async updateUser(userId: number, updateUsersDto: UpdateUsersDto) {
-    if (!updateUsersDto.bio && !updateUsersDto.username && !updateUsersDto.firstname && !updateUsersDto.lastname)
-      throw new UnprocessableEntityException("Empty value");
-    else if (updateUsersDto.username && updateUsersDto.username.length < 50)
-      throw new UnprocessableEntityException("Username is too long");
+    if (
+      !updateUsersDto.bio &&
+      !updateUsersDto.username &&
+      !updateUsersDto.firstname &&
+      !updateUsersDto.lastname
+    )
+      throw new UnprocessableEntityException('Empty value');
+    else if (updateUsersDto.username && updateUsersDto.username.length > 50)
+      throw new UnprocessableEntityException('Username is too long');
     try {
       if (updateUsersDto.username) {
         const user = await db
-        .selectFrom('user')
-        .selectAll()
-        .where('username', '=', updateUsersDto.username)
-        .executeTakeFirst();
+          .selectFrom('user')
+          .selectAll()
+          .where('username', '=', updateUsersDto.username)
+          .executeTakeFirst();
         if (user)
-          throw new UnprocessableEntityException("Username already taken");
+          throw new UnprocessableEntityException('Username already taken');
       }
       const result = await db
-      .updateTable('user')
-      .set({...updateUsersDto})
-      .where('id', '=', userId)
-      .executeTakeFirst()
+        .updateTable('user')
+        .set({ ...updateUsersDto })
+        .where('id', '=', userId)
+        .executeTakeFirst();
     } catch (error) {
       console.log(error);
-      if (error instanceof UnprocessableEntityException)
-        throw error;
+      if (error instanceof UnprocessableEntityException) throw error;
       throw new InternalServerErrorException();
     }
   }
@@ -357,12 +417,16 @@ export class UsersService {
   async setAvatar(userId: number, avatarUrl: string): Promise<AppUser> {
     try {
       const result = await db
-      .selectFrom('user')
-      .select('avatarUrl')
-      .where('id', '=', userId)
-      .executeTakeFirst();
+        .selectFrom('user')
+        .select('avatarUrl')
+        .where('id', '=', userId)
+        .executeTakeFirst();
       try {
-        if (result != undefined && result.avatarUrl != null && result.avatarUrl.includes(`/api/users`, 0)) {
+        if (
+          result != undefined &&
+          result.avatarUrl != null &&
+          result.avatarUrl.includes(`/api/users`, 0)
+        ) {
           await unlink(result.avatarUrl.replace(`/api/users/`, 'public/'));
         }
       } catch (error) {
@@ -374,19 +438,19 @@ export class UsersService {
 
     try {
       const result = await db
-      .updateTable('user')
-      .set('avatarUrl', avatarUrl.replace('public/', ''))
-      .where('user.id', '=', userId)
-      .executeTakeFirst();
+        .updateTable('user')
+        .set('avatarUrl', avatarUrl.replace('public/', ''))
+        .where('user.id', '=', userId)
+        .executeTakeFirst();
       const user = await db
-      .selectFrom('user')
-      .selectAll()
-      .where('id', '=', userId)
-      .executeTakeFirstOrThrow();
-      const {password, TwoFactorAuthenticationSecret, ...appUserDB} = user;
+        .selectFrom('user')
+        .selectAll()
+        .where('id', '=', userId)
+        .executeTakeFirstOrThrow();
+      const { password, TwoFactorAuthenticationSecret, ...appUserDB } = user;
       return {
         ...appUserDB,
-        status: this.usersStatusGateway.getUserStatus(appUserDB?.id)
+        status: this.usersStatusGateway.getUserStatus(appUserDB?.id),
       };
     } catch (error) {
       console.log(error);
@@ -402,10 +466,10 @@ export class UsersService {
   async setTwoFactorAuthenticationSecret(userId: number, secret: string) {
     try {
       await db
-      .updateTable('user')
-      .set('TwoFactorAuthenticationSecret', secret)
-      .where('id', '=', userId)
-      .executeTakeFirstOrThrow();
+        .updateTable('user')
+        .set('TwoFactorAuthenticationSecret', secret)
+        .where('id', '=', userId)
+        .executeTakeFirstOrThrow();
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException();
@@ -420,15 +484,17 @@ export class UsersService {
    * @throws InternatServerErrorException
    */
   async getTwoFactorAuthenticationSecret(userId: number): Promise<string> {
-    let res: {
-      TwoFactorAuthenticationSecret: string | null;
-  } | undefined;
+    let res:
+      | {
+          TwoFactorAuthenticationSecret: string | null;
+        }
+      | undefined;
     try {
       res = await db
-      .selectFrom('user')
-      .select('TwoFactorAuthenticationSecret')
-      .where('id', '=', userId)
-      .executeTakeFirst();
+        .selectFrom('user')
+        .select('TwoFactorAuthenticationSecret')
+        .where('id', '=', userId)
+        .executeTakeFirst();
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException();
@@ -438,7 +504,6 @@ export class UsersService {
     return res.TwoFactorAuthenticationSecret;
   }
 
-
   /**
    * Set bool to true when turning 2FA on
    * @param userId
@@ -446,10 +511,10 @@ export class UsersService {
   async turnOnTwoFactorAuthentication(userId: number) {
     try {
       await db
-      .updateTable('user')
-      .set('isTwoFactorAuthenticationEnabled', true)
-      .where('id', '=', userId)
-      .executeTakeFirstOrThrow();
+        .updateTable('user')
+        .set('isTwoFactorAuthenticationEnabled', true)
+        .where('id', '=', userId)
+        .executeTakeFirstOrThrow();
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException();
@@ -551,20 +616,24 @@ export class UsersService {
           ]),
         ),
       )
-      .select("friendRequest.sourceId as friendRequestSourceUserId")
+      .select('friendRequest.sourceId as friendRequestSourceUserId')
 
       // Select the (potential) conversation id
-      .leftJoin("conversation", (join) => join.on(eb => eb.or([
-        eb.and([
-          eb('conversation.user1_id', '=', currentUserId),
-          eb('conversation.user2_id', '=', userId),
-        ]),
-        eb.and([
-          eb('conversation.user1_id', '=', userId),
-          eb('conversation.user2_id', '=', currentUserId),
-        ]),
-      ])))
-      .select("conversation.id as conversationId")
+      .leftJoin('conversation', (join) =>
+        join.on((eb) =>
+          eb.or([
+            eb.and([
+              eb('conversation.user1_id', '=', currentUserId),
+              eb('conversation.user2_id', '=', userId),
+            ]),
+            eb.and([
+              eb('conversation.user1_id', '=', userId),
+              eb('conversation.user2_id', '=', currentUserId),
+            ]),
+          ]),
+        ),
+      )
+      .select('conversation.id as conversationId')
       .executeTakeFirst();
 
     if (user) {

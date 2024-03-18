@@ -54,7 +54,8 @@ export const ChanColumn = () => {
   });
 
   return (
-    <div className="bg-bg-1 relative min-w-64 border-r border-r-[rgba(0,0,0,0.2)] max-h-[100vh] min-h-[100vh] flex flex-col justify-between overflow-y-auto overflow-x-hidden">
+    <div className="bg-bg-1 relative min-w-64 max-w-64 border-r border-r-[rgba(0,0,0,0.2)] max-h-[100vh] min-h-[100vh] flex flex-col justify-between overflow-y-auto">
+
       <div className="">
         <div className="p-2">
           <NavLink
@@ -109,10 +110,10 @@ export const ChanColumn = () => {
         </div>
       </div>
 
-      <div className="flex -mr-0 sticky w-full bottom-0 bg-almost-black p-2 items-center justify-between">
+      <div className="flex sticky w-full max-w-full bottom-0 bg-almost-black p-2 items-center justify-between">
         <div
           onClick={() => setUserProfileId(user.id)}
-          className="flex items-center cursor-pointer"
+          className="flex items-center cursor-pointer max-w-[87%] gap-3"
         >
           <Avatar
             imgUrl={user?.avatarUrl}
@@ -121,8 +122,8 @@ export const ChanColumn = () => {
             status={user.status}
             borderRadius={0.5}
           />
-          <div className="ml-3 flex flex-col gap-1">
-            <div className="font-bold text-left leading-4">
+          <div className="flex flex-col gap-1 overflow-hidden max-w-full">
+            <div className="font-bold text-left leading-4 whitespace-nowrap overflow-hidden text-ellipsis">
               {user?.username}
             </div>
             <span className="text-left text-xs leading-4 opacity-75">
