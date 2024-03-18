@@ -38,7 +38,6 @@ export const Register = () => {
         firstname: "",
         lastname: "",
       });
-      console.log(response.data);
       return response.data;
     },
     onSuccess: () => {

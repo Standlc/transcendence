@@ -20,21 +20,40 @@ export const Settings = () => {
   const [lastname, setLastname] = useState(user?.lastname);
   const [show2FASetupModal, setShow2FASetupModal] = useState(false);
   const [username, setUsername] = useState(user?.username);
+  const [isModified, setIsModified] = useState(false);
 
   const handleUsernameChange = (e) => {
     setValueNoSpace(e.target.value, setUsername);
+    checkModification();
   };
 
   const handleFirstnameChange = (e) => {
     setValueNoSpace(e.target.value, setFirstname);
+    checkModification();
   };
 
   const handleLastnameChange = (e) => {
     setValueNoSpace(e.target.value, setLastname);
+    checkModification();
   };
 
   const handleClickChangeAvatar = () => {
     setShowConfirmAvatarPopup(true);
+  };
+
+  const handleBioChange = (e) => {
+    checkModification();
+    setBio(e.target.value);
+  };
+
+  const checkModification = () => {
+    const hasModified =
+      username !== user?.username ||
+      firstname !== user?.firstname ||
+      lastname !== user?.lastname ||
+      bio !== user?.bio;
+    setIsModified(hasModified);
+    console.log("hasModified, ", hasModified);
   };
 
   const handleFileChange = (file) => {
@@ -85,15 +104,26 @@ export const Settings = () => {
 
   const updateUserProfile = async () => {
     try {
-      const body = {
-        bio,
-        firstname,
-        lastname,
-        username,
+      // Define the body with all possible properties, marking username as optional
+      const body: {
+        bio: string | null;
+        firstname: string | null;
+        lastname: string | null;
+        username?: string;
+      } = {
+        bio: bio,
+        firstname: firstname,
+        lastname: lastname,
       };
-      await axios.patch("/api/users/update", body, {});
+
+      if (username !== user?.username && username !== undefined) {
+        body.username = username;
+      }
+
+      await axios.patch("/api/users/update", body);
 
       alert("Profile updated successfully");
+
       queryClient.setQueryData<AppUser | undefined>(["user"], (oldData) => {
         if (oldData && typeof oldData === "object") {
           return { ...oldData, ...body };
@@ -194,7 +224,7 @@ export const Settings = () => {
                 type="text"
                 id="bio"
                 value={bio ?? ""}
-                onChange={(e) => setBio(e.target.value)}
+                onChange={handleBioChange}
                 className="bg-discord-light-black text-white rounded-l w-full h-10 px-2.5"
                 placeholder="Bio"
                 maxLength={100}
@@ -214,7 +244,12 @@ export const Settings = () => {
         <div className="mt-10 flex flex-col items-start gap-4">
           <button
             onClick={updateUserProfile}
-            className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
+            disabled={!isModified}
+            className={`${
+              isModified
+                ? "bg-green-500 hover:bg-green-600"
+                : "bg-white  bg-opacity-30"
+            } text-white font-bold py-2 px-4 rounded`}
           >
             Save Changes
           </button>

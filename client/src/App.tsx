@@ -66,7 +66,7 @@ function App() {
 
               <Route path="/explore" element={<ExplorePage />} />
 
-              <Route path="/settings" element={<Settings user={user.data} />} />
+              <Route path="/settings" element={<Settings />} />
             </Route>
 
             <Route
