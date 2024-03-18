@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { db } from 'src/database';
 import {
+  ChannelBannedUser,
   ChannelCreationData,
   ChannelDataWithUsersWithoutPassword,
   ChannelJoinDto,
@@ -370,6 +371,19 @@ export class ChannelService {
     };
   }
 
+  async getBannedUsersFromChannel(
+    channelId: number,
+  ): Promise<ChannelBannedUser[]> {
+    const bannedUsers = await db
+      .selectFrom('bannedUser')
+      .where('channelId', '=', channelId)
+      .innerJoin('user', 'user.id', 'bannedId')
+      .select(['user.id', 'user.username', 'user.rating', 'user.avatarUrl'])
+      .execute();
+
+    return bannedUsers;
+  }
+
   async getAllChannelsOfTheUser(userId: number): Promise<UserChannel[]> {
     const channels = await db
       .selectFrom('channelMember')
@@ -472,6 +486,8 @@ export class ChannelService {
         channelId: channelId,
       })
       .execute();
+
+    this.channelsGateway.emitUserBanned({ userId, channelId });
   }
 
   async unbanUser(userId: number, channelId: number) {
@@ -480,6 +496,8 @@ export class ChannelService {
       .where('bannedUser.bannedId', '=', userId)
       .where('channelId', '=', channelId)
       .execute();
+
+    this.channelsGateway.emitUserUnbanned({ userId, channelId });
   }
 
   async muteMember(userId: number, channelId: number) {

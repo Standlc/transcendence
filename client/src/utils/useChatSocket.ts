@@ -47,7 +47,6 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
       payload: ChannelServerEmitTypes["memberJoin"]
     ) => {
       // invalidate channel info
-      console.log("new member");
       queryClient.invalidateQueries({
         queryKey: ["channel", payload.channelId],
       });
@@ -56,23 +55,28 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
     const handleMemberLeave = (
       payload: ChannelServerEmitTypes["memberLeave"]
     ) => {
-      if (payload.userId === user.id) {
+      if (
+        channelId === payload.channelId.toString() &&
+        payload.userId === user.id
+      ) {
         navigate("/home");
-        queryClient.invalidateQueries({ queryKey: ["channels"] });
       }
-      queryClient.invalidateQueries({ queryKey: ["channel"] });
+      if (payload.userId === user.id) {
+        queryClient.invalidateQueries({ queryKey: ["channels"] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["channel"] });
 
-      console.log(payload.userId, " left the channel");
-      queryClient.setQueryData<ChannelDataWithUsersWithoutPassword>(
-        ["channel", payload.channelId],
-        (prev) => {
-          if (!prev) return undefined;
-          return {
-            ...prev,
-            users: prev.users.filter((u) => u.userId !== payload.userId),
-          };
-        }
-      );
+        queryClient.setQueryData<ChannelDataWithUsersWithoutPassword>(
+          ["channel", payload.channelId],
+          (prev) => {
+            if (!prev) return undefined;
+            return {
+              ...prev,
+              users: prev.users.filter((u) => u.userId !== payload.userId),
+            };
+          }
+        );
+      }
     };
 
     const handleMemberMuted = (
@@ -95,14 +99,12 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
     };
 
     const handleNewAdmin = (payload: ChannelServerEmitTypes["newAdmin"]) => {
-      console.log("new admin");
       queryClient.invalidateQueries({ queryKey: ["channel"] });
     };
 
     const handleAdminRemove = (
       payload: ChannelServerEmitTypes["adminRemove"]
     ) => {
-      console.log("admin remove");
       queryClient.invalidateQueries({ queryKey: ["channel"] });
     };
 
@@ -121,6 +123,22 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
       });
     };
 
+    const handleUserBanned = (
+      payload: ChannelServerEmitTypes["userBanned"]
+    ) => {
+      // queryClient.invalidateQueries({
+      //   queryKey: ["channelBannedUsers", payload.channelId],
+      // });
+    };
+
+    const handleUserUnbanned = (
+      payload: ChannelServerEmitTypes["userBanned"]
+    ) => {
+      queryClient.invalidateQueries({
+        queryKey: ["channelBannedUsers", payload.channelId],
+      });
+    };
+
     chatSocket.on("disconnect", handleDisconnect);
     chatSocket.on("connect_error", handleErrors);
     chatSocket.on("connect_failed", handleErrors);
@@ -130,6 +148,8 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
     chatSocket.on("memberMuted", handleMemberMuted);
     chatSocket.on("newChannel", handleNewChannel);
     chatSocket.on("channelDelete", handleChannelDelete);
+    chatSocket.on("userBanned", handleUserBanned);
+    chatSocket.on("userUnbanned", handleUserUnbanned);
     chatSocket.on("newAdmin", handleNewAdmin);
     chatSocket.on("adminRemove", handleAdminRemove);
     chatSocket.on("channelUpdated", handleChannelUpdated);
@@ -143,6 +163,8 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
       chatSocket.off("channelDelete", handleChannelDelete);
       chatSocket.off("newChannel", handleNewChannel);
       chatSocket.off("newAdmin", handleNewAdmin);
+      chatSocket.off("userBanned", handleUserBanned);
+      chatSocket.off("userUnbanned", handleUserUnbanned);
       chatSocket.off("adminRemove", handleAdminRemove);
       chatSocket.off("memberMuted", handleMemberMuted);
       chatSocket.off("channelUpdated", handleChannelUpdated);

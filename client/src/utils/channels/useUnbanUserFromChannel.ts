@@ -1,11 +1,12 @@
 import { ChannelAndUserIdPayload } from "@api/types/channelsSchema";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { useContext } from "react";
 import { ErrorContext } from "../../ContextsProviders/ErrorContext";
 
-export const useUnbanUserFromChannel = () => {
-  const queryClient = useQueryClient();
+export const useUnbanUserFromChannel = (props?: {
+  onSuccess: (userId: ChannelAndUserIdPayload) => void;
+}) => {
   const { addError } = useContext(ErrorContext);
 
   const unbanMember = useMutation({
@@ -14,7 +15,8 @@ export const useUnbanUserFromChannel = () => {
       return payload;
     },
     onSuccess: (payload: ChannelAndUserIdPayload) => {
-      // to do: invalidate channel query
+      props && props.onSuccess(payload);
+      addError({ message: "User was banned from channel", isSuccess: true });
     },
     onError: () => {
       addError({ message: "Error while unbanning user from channel" });

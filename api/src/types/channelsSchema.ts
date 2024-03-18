@@ -1,4 +1,4 @@
-import { Selectable, SqlBool, Updateable } from 'kysely';
+import { Selectable, SqlBool } from 'kysely';
 import { Channel, ChannelMessage, DirectMessage } from './schema';
 
 export type ChannelServerEventTypes = {
@@ -18,6 +18,8 @@ export type ChannelServerEmitTypes = {
   channelDelete: number;
   memberMuted: ChannelAndUserIdPayload;
   channelUpdated: number;
+  userBanned: ChannelAndUserIdPayload;
+  userUnbanned: ChannelAndUserIdPayload;
 };
 
 export type ChannelAndUserIdPayload = {
@@ -170,3 +172,10 @@ export type ChannelJoinDto = {
 };
 
 export type UserChannelMessage = Selectable<ChannelMessage>;
+
+export type ChannelBannedUser = {
+  username: string;
+  avatarUrl: string | null;
+  rating: number;
+  id: number;
+};

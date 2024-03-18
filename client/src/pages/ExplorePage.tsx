@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PublicChannel } from "@api/types/channelsSchema";
 import { Spinner } from "../UIKit/Kit";
 import { Link } from "react-router-dom";
