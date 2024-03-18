@@ -40,6 +40,9 @@ import {
   UserChannel,
 } from 'src/types/channelsSchema';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { ZodValidationPipe } from 'src/ZodValidatePipe';
+import { z } from 'zod';
+import { ZodChannelAndUserIdPayload } from 'src/types/zodChannelsSchema';
 
 const isWhitespaceString = (str: string) => !str.replace(/\s/g, '').length;
 
@@ -409,7 +412,7 @@ export class UserController {
 
   @Get('/banned/:channelId')
   async getBannedUsersFromChannel(
-    @Param('channelId') channelId: string,
+    @Param('channelId', new ZodValidationPipe(z.number())) channelId: string,
     @Req() req,
   ): Promise<ChannelBannedUser[]> {
     const userId: number = req.user.id;
@@ -426,7 +429,11 @@ export class UserController {
   }
 
   @Post('/add-member')
-  async addUserToChannel(@Body() payload: ChannelAndUserIdPayload, @Req() req) {
+  async addUserToChannel(
+    @Body(new ZodValidationPipe(ZodChannelAndUserIdPayload))
+    payload: ChannelAndUserIdPayload,
+    @Req() req,
+  ) {
     const userId: number = req.user.id;
     const isAllowed = await this.channelService.canUserAddMember(
       userId,
