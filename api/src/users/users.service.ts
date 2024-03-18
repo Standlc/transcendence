@@ -385,7 +385,7 @@ export class UsersService {
       !updateUsersDto.lastname
     )
       return;
-    if (updateUsersDto.username && updateUsersDto.username == undefined)
+    if (!updateUsersDto.username)
       throw new UnprocessableEntityException('Username is empty');
     try {
       if (updateUsersDto.username) {
