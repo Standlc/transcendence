@@ -6,6 +6,7 @@ import { Avatar } from "../UIKit/avatar/Avatar";
 import { UserProfileContext } from "../ContextsProviders/UserProfileIdContext";
 import { useUnblockUser } from "../utils/block/useUnblockUser";
 import { UsersListWithSearch } from "../components/friendsComponents/UsersListWithSearch";
+import { OutlinedIconLayout } from "../UIKit/OutlinedIconLayout";
 
 export const BlockedUsers = () => {
   const blockedUsers = useGetBlockedUsers();
@@ -59,15 +60,14 @@ const BlockedUserItem = ({ user }: { user: BlockedUser }) => {
         <span className="font-bold">{user.username}</span>
       </div>
 
-      <div
+      <OutlinedIconLayout
         onClick={(e) => {
           e.stopPropagation();
           unblockUser.mutate(user.id);
         }}
-        className="h-[40px] aspect-square rounded-full flex items-center justify-center bg-black bg-opacity-30 opacity-75 hover:opacity-100"
       >
         <Close />
-      </div>
+      </OutlinedIconLayout>
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import { MoreVert } from "@mui/icons-material";
 import { useEffect, useRef, useState } from "react";
+import { OutlinedIconLayout } from "./OutlinedIconLayout";
 
 export type MenuActionType = {
   label: string;
@@ -45,15 +46,15 @@ export const ActionsMenu = ({ actions }: { actions: MenuActionType[] }) => {
 
   return (
     <div className="relative">
-      <div
-        ref={menuButtonRef}
-        onClick={(e) => {
-          e.stopPropagation();
-          setShow(!show);
-        }}
-        className="cursor-pointer opacity-70 hover:bg-opacity-40 bg-opacity-30 hover:opacity-100 w-[40px] aspect-square rounded-full bg-black flex items-center justify-center"
-      >
-        <MoreVert />
+      <div ref={menuButtonRef}>
+        <OutlinedIconLayout
+          onClick={(e) => {
+            e.stopPropagation();
+            setShow(!show);
+          }}
+        >
+          <MoreVert />
+        </OutlinedIconLayout>
       </div>
 
       {show && (

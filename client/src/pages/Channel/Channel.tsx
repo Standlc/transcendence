@@ -1,14 +1,12 @@
 import { useParams } from "react-router-dom";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import TextArea from "../../UIKit/TextArea";
-import { Avatar } from "../../UIKit/avatar/Avatar";
 import ModalLayout from "../../UIKit/ModalLayout";
 import { SocketsContext } from "../../ContextsProviders/SocketsContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { useGetUser } from "../../utils/useGetUser";
 import { PopUpCmd } from "./subComponents/PopUpCmd";
-import PersonIcon from "@mui/icons-material/Person";
 import LogoutIcon from "@mui/icons-material/Logout";
 import {
   ChannelServerEmitTypes,
@@ -18,12 +16,15 @@ import {
 import { useGetChannel } from "../../utils/channels/useGetChannel";
 import { useLeaveChannel } from "../../utils/channels/useLeaveChannel";
 import { ChannelAvatar } from "../../UIKit/avatar/ChannelAvatar";
+import { People } from "@mui/icons-material";
+import { ChatMessage } from "../../UIKit/ChatMessage";
+import { Spinner } from "../../UIKit/Kit";
 
 export const Channel = () => {
   const { channelId } = useParams();
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const [textAreaValue, setTextAreaValue] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [muteCountdown, setMuteCountdown] = useState(0);
   const [isCmdOpen, setIsCmdOpen] = useState(false);
@@ -31,7 +32,6 @@ export const Channel = () => {
   const { chatSocket } = useContext(SocketsContext);
   const leaveChannel = useLeaveChannel();
   const chanInfo = useGetChannel(Number(channelId));
-  const [blockedMessagesIds, setBlockedMessagesIds] = useState<number[]>([]);
 
   const userMutedEnd = useMemo(() => {
     if (!chanInfo.data?.users) return;
@@ -71,7 +71,7 @@ export const Channel = () => {
       const muteEndTime = new Date(userMutedEnd).getTime();
       const now = Date.now();
       const muteDuration = muteEndTime - now;
-      //   DateTime
+
       if (muteDuration > 0) {
         setIsMuted(true);
         setMuteCountdown(Math.round(muteDuration / 1000));
@@ -102,13 +102,12 @@ export const Channel = () => {
       return `${seconds}`;
     }
   };
+
   useEffect(() => {
-    if (
-      messagesEndRef.current &&
-      allMessagesChan.data &&
-      allMessagesChan.data.length > 0
-    ) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current?.scrollTo({
+        top: messagesContainerRef.current?.scrollHeight,
+      });
     }
   }, [allMessagesChan.data]);
 
@@ -168,28 +167,14 @@ export const Channel = () => {
   const handleTextAreaChange = (
     event: React.ChangeEvent<HTMLTextAreaElement>
   ) => {
-    setTextAreaValue(event.target.value);
+    if (!isMuted) setTextAreaValue(event.target.value);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      ``;
       sendMessage();
     }
-  };
-
-  const handleBlockMessageClick = (messageId: number) => {
-    setBlockedMessagesIds((prevIds) => {
-      if (!prevIds.includes(messageId)) {
-        return [...prevIds, messageId];
-      }
-      return prevIds;
-    });
-  };
-
-  const isMessageBlockedAndHidden = (msg: MessageWithSenderInfo) => {
-    return msg.isBlocked && !blockedMessagesIds.includes(msg.id);
   };
 
   const shouldDisplayAvatarAndTimestamp = (currentIndex: number): boolean => {
@@ -203,134 +188,41 @@ export const Channel = () => {
     return previousMessage.senderId !== currentMessage.senderId;
   };
 
-  const shouldDisplayUsername = (currentIndex: number): boolean => {
-    if (currentIndex === 0 || !allMessagesChan.data) {
-      return true;
-    }
-
-    const previousMessage = allMessagesChan.data[currentIndex - 1];
-    const currentMessage = allMessagesChan.data[currentIndex];
-
-    return previousMessage.senderId !== currentMessage.senderId;
-  };
-
-  const renderMessages = () => {
-    if (
-      allMessagesChan.isLoading ||
-      allMessagesChan.isError ||
-      !allMessagesChan.data
-    ) {
-      return <div>Loading messages...</div>;
-    }
-
-    return allMessagesChan.data.map((msg, index) => {
-      return (
-        <div
-          key={index}
-          ref={
-            index === allMessagesChan.data.length - 1 ? messagesEndRef : null
-          }
-        >
-          <div className="mt-[20px]" key={index}>
-            <div className="flex">
-              {shouldDisplayAvatarAndTimestamp(index) && (
-                <div className="flex">
-                  <Avatar
-                    imgUrl={msg.avatarUrl}
-                    userId={msg.senderId}
-                    size="md"
-                    borderRadius={0.5}
-                  />
-                  {shouldDisplayUsername(index) && (
-                    <div className="font-bold ml-[30px] opacity-80">
-                      {msg.username}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {shouldDisplayAvatarAndTimestamp(index) && (
-                <div className="ml-[10px] mt-[4px] text-[13px] opacity-40">
-                  {new Date(msg.createdAt).toLocaleString(undefined, {
-                    year: "numeric",
-                    month: "2-digit",
-                    day: "2-digit",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                  })}
-                </div>
-              )}
-            </div>
-            <div className="mt-[-15px] block text-md ml-[70px]">
-              {isMessageBlockedAndHidden(msg) ? (
-                <div
-                  onClick={() => handleBlockMessageClick(msg.id)}
-                  className="opacity-30 cursor-pointer"
-                >
-                  This message is blocked
-                </div>
-              ) : (
-                <div onClick={() => handleBlockMessageClick(msg.id)}>
-                  {msg.isBlocked ? (
-                    <div> {msg.messageContent}</div>
-                  ) : (
-                    <div>{msg.messageContent}</div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      );
-    });
-  };
   return (
     <div
       className="w-full bg-discord-light-grey flex flex-col"
       style={{ height: "100vh" }}
     >
-      <div
-        className="bg-discord-greyple h-[60px] width-full flex  border-b border-b-almost-black"
-        style={{ borderBottomWidth: "3px" }}
-      >
+      <div className="bg-discord-greyple h-[60px] width-full flex border-b-[1px] border-b-[rgba(0,0,0,0.3)]">
         {chanInfo.data && (
-          <div className="w-full flex justify-between items-center ">
-            <div className="w-full flex ">
-              <div className="flex item-center  ml-[20px]">
-                <ChannelAvatar
-                  imgUrl={chanInfo.data?.photoUrl}
-                  size="md"
-                  id={chanInfo.data?.id ?? 0}
-                  borderRadius={0.5}
-                />
-              </div>
-              <div className="ml-2 mt-2 font-bold text-xl">
-                <button>{chanInfo.data?.name}</button>
-              </div>
+          <div className="w-full flex justify-between items-center py-2 px-4">
+            <div className="w-full flex items-center gap-2 font-bold">
+              <ChannelAvatar
+                imgUrl={chanInfo.data?.photoUrl}
+                size="sm"
+                id={chanInfo.data.id}
+                borderRadius={1}
+              />
+              {chanInfo.data?.name}
             </div>
-            <div className="flex">
+            <div className="flex items-center gap-5">
               <button
-                className="mr-5 hover:bg-black h-[40px] w-[40px] hover:bg-opacity-30 rounded-full py-2 px-2 justify-center"
+                className="opacity-80 hover:opacity-100"
                 onClick={() => setIsCmdOpen(true)}
               >
-                <PersonIcon />
+                <People />
               </button>
               {chanInfo.data?.channelOwner != user.id && (
                 <button
-                  className="mr-5 hover:bg-black h-[40px] w-[40px] hover:bg-opacity-30 rounded-full py-2 px-2 justify-center"
+                  className="opacity-80 hover:opacity-100"
                   onClick={() => leaveChannel.mutate(chanInfo.data?.id ?? 0)}
                 >
-                  <LogoutIcon />
+                  <LogoutIcon fontSize="small" />
                 </button>
               )}
-              {isCmdOpen && (
+              {isCmdOpen && chanInfo.data && (
                 <ModalLayout onClickOutside={() => setIsCmdOpen(false)}>
-                  <PopUpCmd
-                    chanInfo={chanInfo.data}
-                    chatSocket={chatSocket}
-                    currentUser={user}
-                  />
+                  <PopUpCmd chanInfo={chanInfo.data} chatSocket={chatSocket} />
                 </ModalLayout>
               )}
             </div>
@@ -338,23 +230,51 @@ export const Channel = () => {
         )}
       </div>
 
-      <div className="text-white text-left h-full w-full p-5 overflow-y-auto break-all">
-        {renderMessages()}
+      <div
+        ref={messagesContainerRef}
+        className="text-white text-left h-full w-full p-4 overflow-y-auto break-all flex flex-col gap-3"
+      >
+        {allMessagesChan.isPending ? (
+          <Spinner isLoading />
+        ) : allMessagesChan.isError ? (
+          <span className="opacity-50 text-lg text-center h-full flex items-center justify-center">
+            Oops, we could not find this chat
+          </span>
+        ) : (
+          allMessagesChan.data?.map((msg, index) => {
+            return (
+              <ChatMessage
+                key={index}
+                showAvatar={shouldDisplayAvatarAndTimestamp(index)}
+                message={{
+                  ...msg,
+                  content: msg.messageContent,
+                  senderAvatar: msg.avatarUrl,
+                  senderUsername: msg.username,
+                }}
+              />
+            );
+          })
+        )}
       </div>
-      <div className="bg-discord-dark-grey mt-auto p-2 rounded-lg ml-5 mr-5 mb-5">
+      <label
+        htmlFor="chat-input"
+        className="bg-black bg-opacity-20 cursor-text mt-auto py-[10px] px-3 flex items-center rounded-lg ml-5 mr-5 mb-5"
+      >
         <TextArea
+          id="chat-input"
           value={textAreaValue}
           onChange={handleTextAreaChange}
           onKeyDown={handleKeyDown}
           disabled={isMuted}
           placeholder={
             isMuted
-              ? `You are muted for ${formatCountdown(muteCountdown)}s 🔇`
+              ? `You are muted for ${formatCountdown(muteCountdown)} 🔇`
               : "Type something..."
           }
           autoFocus={true}
         />
-      </div>
+      </label>
     </div>
   );
 };

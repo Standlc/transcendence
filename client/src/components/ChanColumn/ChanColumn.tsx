@@ -55,6 +55,7 @@ export const ChanColumn = () => {
 
   return (
     <div className="bg-bg-1 relative min-w-64 max-w-64 border-r border-r-[rgba(0,0,0,0.2)] max-h-[100vh] min-h-[100vh] flex flex-col justify-between overflow-y-auto">
+
       <div className="">
         <div className="p-2">
           <NavLink
