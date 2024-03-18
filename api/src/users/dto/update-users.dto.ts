@@ -6,7 +6,7 @@ export const ZodUpdateUsersDto = z.object({
   bio: z.string().or(z.null()).optional(),
   firstname: z.string().or(z.null()).optional(),
   lastname: z.string().or(z.null()).optional(),
-  username: z.string().optional(),
+  username: z.string().max(50).optional(),
 });
 
 export class UpdateUsersDto {

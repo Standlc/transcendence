@@ -384,9 +384,7 @@ export class UsersService {
       !updateUsersDto.firstname &&
       !updateUsersDto.lastname
     )
-      throw new UnprocessableEntityException('Empty value');
-    else if (updateUsersDto.username && updateUsersDto.username.length > 50)
-      throw new UnprocessableEntityException('Username is too long');
+      return;
     try {
       if (updateUsersDto.username) {
         const user = await db
