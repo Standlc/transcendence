@@ -167,21 +167,20 @@ export const Settings = () => {
   };
 
   return (
-    <div className="flex w-full h-full justify-center items-center">
+    <div className="flex w-full h-full justify-center items-center p-5">
       {show2FASetupModal && (
         <TwoFactorAuthentificationSetupModal
           hide={() => setShow2FASetupModal(false)}
         />
       )}
-      <div className="flex flex-col w-full max-w-4xl mx-auto mt-20 p-10 bg-discord-dark-grey rounded-lg shadow-lg">
+      <div className="flex flex-col w-full max-w-4xl mx-auto p-5 bg-discord-dark-grey rounded-lg shadow-lg">
         <div className="text-4xl font-bold text-left">Settings</div>
         <div className="text-xl text-white  text-left text-opacity-60 mb-20">
-          {" "}
-          Profil{" "}
+          Profil
         </div>
         <div className="flex justify-between items-start gap-10">
           <div className="flex flex-col flex-1 gap-6">
-            <div className="mb-3 w-2/3 w-2/3">
+            <div className="mb-3 w-2/3">
               <label
                 htmlFor="username"
                 className="font-bold block mb-2 text-sm text-white"
@@ -197,7 +196,7 @@ export const Settings = () => {
                 placeholder="Username"
               />
             </div>
-            <div className="mb-3 w-2/3 w-2/3">
+            <div className="mb-3 w-2/3">
               <label
                 htmlFor="firstname"
                 className="font-bold block mb-2 text-sm text-white"

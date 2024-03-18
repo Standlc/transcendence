@@ -19,6 +19,7 @@ import { ChannelAvatar } from "../../UIKit/avatar/ChannelAvatar";
 import { People } from "@mui/icons-material";
 import { ChatMessage } from "../../UIKit/ChatMessage";
 import { Spinner } from "../../UIKit/Kit";
+import { NoResult } from "../../UIKit/NoResult";
 
 export const Channel = () => {
   const { channelId } = useParams();
@@ -237,9 +238,7 @@ export const Channel = () => {
         {allMessagesChan.isPending ? (
           <Spinner isLoading />
         ) : allMessagesChan.isError ? (
-          <span className="opacity-50 text-lg text-center h-full flex items-center justify-center">
-            Oops, we could not find this chat
-          </span>
+          <NoResult description="Oops, we could not find this chat" />
         ) : (
           allMessagesChan.data?.map((msg, index) => {
             return (

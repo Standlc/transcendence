@@ -22,10 +22,14 @@ export class PlayersController {
 
   @Get('/leaderboard')
   async getLeaderboard(
-    @Query('limit', new ParseIntPipe()) limit: number,
+    @Query('limit', new ZodValidationPipe(z.string().optional()))
+    limit?: string,
   ): Promise<LeaderbordPlayer[]> {
     try {
-      const leaderboard = await this.players.getLeaderboard(limit);
+      const limitToNumber = Number(limit);
+      const leaderboard = await this.players.getLeaderboard(
+        isNaN(limitToNumber) ? undefined : limitToNumber,
+      );
       return leaderboard;
     } catch (error) {
       console.log(error);

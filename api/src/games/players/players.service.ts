@@ -54,10 +54,10 @@ export class PlayersService {
     };
   }
 
-  async getLeaderboard(limit: number): Promise<LeaderbordPlayer[]> {
+  async getLeaderboard(limit?: number): Promise<LeaderbordPlayer[]> {
     const leaderboard = await this.selectPlayerInfos()
       .orderBy('rating desc')
-      .limit(limit)
+      .$if(limit !== undefined, (eb) => eb.limit(limit ?? 0))
       .execute();
 
     const leaderboardWithStatus = leaderboard.map((player) => {
