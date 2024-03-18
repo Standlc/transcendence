@@ -23,15 +23,6 @@ export default function TextArea({
 }: TextAreaProps) {
   const area = useRef<HTMLTextAreaElement>(null);
 
-  // useEffect(() => {
-  //   if (!area.current) return;
-
-  //   area.current.style.height = "0px";
-  //   const height = `${area.current.scrollHeight}px`;
-  //   area.current.style.height = height;
-  //   area.current.setAttribute("rows", "");
-  // }, [value]);
-
   useEffect(() => {
     if (!area.current) return;
 

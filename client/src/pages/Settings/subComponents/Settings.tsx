@@ -20,21 +20,39 @@ export const Settings = () => {
   const [lastname, setLastname] = useState(user?.lastname);
   const [show2FASetupModal, setShow2FASetupModal] = useState(false);
   const [username, setUsername] = useState(user?.username);
+  const [isModified, setIsModified] = useState(false);
 
   const handleUsernameChange = (e) => {
     setValueNoSpace(e.target.value, setUsername);
+    checkModification();
   };
 
   const handleFirstnameChange = (e) => {
     setValueNoSpace(e.target.value, setFirstname);
+    checkModification();
   };
 
   const handleLastnameChange = (e) => {
     setValueNoSpace(e.target.value, setLastname);
+    checkModification();
   };
 
   const handleClickChangeAvatar = () => {
     setShowConfirmAvatarPopup(true);
+  };
+
+  const handleBioChange = (e) => {
+    setBio(e.target.value);
+    checkModification();
+  };
+
+  const checkModification = () => {
+    const hasModified =
+      username !== user?.username ||
+      firstname !== user?.firstname ||
+      lastname !== user?.lastname ||
+      bio !== user?.bio;
+    setIsModified(hasModified);
   };
 
   const handleFileChange = (file) => {
@@ -194,7 +212,7 @@ export const Settings = () => {
                 type="text"
                 id="bio"
                 value={bio ?? ""}
-                onChange={(e) => setBio(e.target.value)}
+                onChange={handleBioChange}
                 className="bg-discord-light-black text-white rounded-l w-full h-10 px-2.5"
                 placeholder="Bio"
                 maxLength={100}
@@ -214,7 +232,12 @@ export const Settings = () => {
         <div className="mt-10 flex flex-col items-start gap-4">
           <button
             onClick={updateUserProfile}
-            className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
+            disabled={!isModified}
+            className={`${
+              isModified
+                ? "bg-green-500 hover:bg-green-600"
+                : "bg-white  bg-opacity-30"
+            } text-white font-bold py-2 px-4 rounded`}
           >
             Save Changes
           </button>
