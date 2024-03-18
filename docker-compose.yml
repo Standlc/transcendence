@@ -9,7 +9,7 @@ services:
       - POSTGRES_PASSWORD=$DB_PASSWORD
       - POSTGRES_DB=$DB_NAME
     ports:
-      - 5432:5432
+      - ${DB_PORT}:${DB_PORT}
     volumes:
       - postgres:/var/lib/postgresql/data
     restart: always
@@ -23,6 +23,10 @@ services:
       - PGPASSWORD=$DB_PASSWORD
       - PGDATABASE=$DB_NAME
       - DATABASE_URL=$DATABASE_URL
+      - FRONTEND_URL=$FRONTEND_URL
+      - JWT_SECRET=$JWT_SECRET
+      - CLIENT_ID=$CLIENT_ID
+      - API_KEY=$API_KEY
     depends_on:
       - db
     build: ./api
@@ -41,8 +45,8 @@ services:
       - api
     build: ./client
     environment:
-      - REACT_APP_API_HOST
-      - GAME_SOCKET_SERVER_HOST=http://backend:5050
+      - REACT_APP_API_HOST=$REACT_APP_API_HOST
+      - GAME_SOCKET_SERVER_HOST=$GAME_SOCKET_SERVER_HOST
     volumes:
       - ./client/:/app
       - /app/node_modules
