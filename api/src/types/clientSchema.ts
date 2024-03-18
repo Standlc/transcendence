@@ -66,3 +66,10 @@ export type ListUsers = Omit<
   | 'isTwoFactorAuthenticationEnabled'
   | 'TwoFactorAuthenticationSecret'
 >;
+
+export type UserUpdated = {
+  username: string;
+  firstname: string | null;
+  lastname: string | null;
+  bio: string | null;
+};

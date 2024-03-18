@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -13,6 +14,7 @@ import {
   AppUserDB,
   ListUsers,
   UserSearchResult,
+  UserUpdated,
 } from 'src/types/clientSchema';
 import { userFromIntra } from 'src/auth/oauth.strategy';
 import { randomBytes } from 'crypto';
@@ -21,6 +23,7 @@ import { Selectable } from 'kysely';
 import { UsersStatusGateway } from 'src/usersStatusGateway/UsersStatus.gateway';
 import { unlink } from 'fs/promises';
 import { UpdateUsersDto } from './dto/update-users.dto';
+import { read } from 'fs';
 
 @Injectable()
 export class UsersService {
@@ -377,16 +380,19 @@ export class UsersService {
     }
   }
 
-  async updateUser(userId: number, updateUsersDto: UpdateUsersDto) {
-    if (
-      !updateUsersDto.bio &&
-      !updateUsersDto.username &&
-      !updateUsersDto.firstname &&
-      !updateUsersDto.lastname
-    )
-      return;
-    if (!updateUsersDto.username)
-      throw new UnprocessableEntityException('Username is empty');
+  async updateUser(
+    userId: number,
+    updateUsersDto: UpdateUsersDto,
+  ): Promise<UserUpdated> {
+    // if (
+    //   !updateUsersDto.bio &&
+    //   !updateUsersDto.username &&
+    //   !updateUsersDto.firstname &&
+    //   !updateUsersDto.lastname
+    // )
+    //   return
+    if (updateUsersDto.username === '')
+      throw new BadRequestException('Username is empty');
     try {
       if (updateUsersDto.username) {
         const user = await db
@@ -402,11 +408,24 @@ export class UsersService {
         if (user)
           throw new UnprocessableEntityException('Username already taken');
       }
+      console.log(updateUsersDto);
       const result = await db
         .updateTable('user')
-        .set({ ...updateUsersDto })
+        .set({
+          firstname: updateUsersDto.firstname,
+          bio: updateUsersDto.bio,
+          lastname: updateUsersDto.lastname,
+          username: updateUsersDto.username,
+        })
         .where('id', '=', userId)
-        .executeTakeFirst();
+        .returningAll()
+        .executeTakeFirstOrThrow();
+      return {
+        firstname: result.firstname,
+        bio: result.bio,
+        lastname: result.lastname,
+        username: result.username,
+      };
     } catch (error) {
       console.log(error);
       if (error instanceof UnprocessableEntityException) throw error;
