@@ -53,7 +53,6 @@ export const Settings = () => {
       lastname !== user?.lastname ||
       bio !== user?.bio;
     setIsModified(hasModified);
-    console.log("hasModified, ", hasModified);
   };
 
   const handleFileChange = (file) => {
