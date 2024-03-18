@@ -386,31 +386,32 @@ export class UsersService {
     )
       return;
     if (updateUsersDto.username && updateUsersDto.username == undefined)
-      try {
-        if (updateUsersDto.username) {
-          const user = await db
-            .selectFrom('user')
-            .selectAll()
-            .where(({ eb, and }) =>
-              and([
-                eb('username', '=', updateUsersDto.username as string),
-                eb('id', '!=', userId),
-              ]),
-            )
-            .executeTakeFirst();
-          if (user)
-            throw new UnprocessableEntityException('Username already taken');
-        }
-        const result = await db
-          .updateTable('user')
-          .set({ ...updateUsersDto })
-          .where('id', '=', userId)
+      throw new UnprocessableEntityException('Username is empty');
+    try {
+      if (updateUsersDto.username) {
+        const user = await db
+          .selectFrom('user')
+          .selectAll()
+          .where(({ eb, and }) =>
+            and([
+              eb('username', '=', updateUsersDto.username as string),
+              eb('id', '!=', userId),
+            ]),
+          )
           .executeTakeFirst();
-      } catch (error) {
-        console.log(error);
-        if (error instanceof UnprocessableEntityException) throw error;
-        throw new InternalServerErrorException();
+        if (user)
+          throw new UnprocessableEntityException('Username already taken');
       }
+      const result = await db
+        .updateTable('user')
+        .set({ ...updateUsersDto })
+        .where('id', '=', userId)
+        .executeTakeFirst();
+    } catch (error) {
+      console.log(error);
+      if (error instanceof UnprocessableEntityException) throw error;
+      throw new InternalServerErrorException();
+    }
   }
 
   /**
