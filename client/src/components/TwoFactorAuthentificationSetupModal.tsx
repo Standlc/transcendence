@@ -19,7 +19,6 @@ export const TwoFactorAuthentificationSetupModal = ({
   const TwoFAQrCode = useQuery({
     queryKey: ["2FAQrCode"],
     queryFn: async () => {
-      console.log("fetching");
       const res = await axios.get<string>("/api/auth/2fa/activate");
       return res.data;
     },
