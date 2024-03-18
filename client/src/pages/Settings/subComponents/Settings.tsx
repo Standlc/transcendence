@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useContext, useState } from "react";
 import { ConfirmAvatarPopUp } from "./ConfirmAvatarPopUp";
-import { AppUser } from "@api/types/clientSchema";
+import { AppUser, UserUpdated } from "@api/types/clientSchema";
 import { useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { TwoFactorAuthentificationSetupModal } from "../../../components/TwoFactorAuthentificationSetupModal";
@@ -20,7 +20,7 @@ export const Settings = () => {
   const [firstname, setFirstname] = useState(user?.firstname);
   const [lastname, setLastname] = useState(user?.lastname);
   const [show2FASetupModal, setShow2FASetupModal] = useState(false);
-  const [username, setUsername] = useState(user?.username);
+  const [username, setUsername] = useState("");
   const [isModified, setIsModified] = useState(false);
   const { addError } = useContext(ErrorContext);
 
@@ -65,13 +65,14 @@ export const Settings = () => {
     lastname: string | null,
     bio: string | null
   ) => {
-    const hasModified =
-      (username !== user?.username && username.trim().length > 0) ||
-      firstname !== user?.firstname ||
-      lastname !== user?.lastname ||
-      bio !== user?.bio;
     setIsModified(hasModified);
   };
+
+  const hasModified =
+    (username !== user?.username && username !== "") ||
+    firstname !== user?.firstname ||
+    lastname !== user?.lastname ||
+    bio !== user?.bio;
 
   const handleFileChange = (file) => {
     setSelectedFile(file);
@@ -122,27 +123,28 @@ export const Settings = () => {
   const updateUserProfile = async () => {
     try {
       const body: {
-        bio: string | null;
-        firstname: string | null;
-        lastname: string | null;
+        bio: string | undefined;
+        firstname: string | undefined;
+        lastname: string | undefined;
         username?: string;
       } = {
-        bio: bio,
-        firstname: firstname,
-        lastname: lastname,
+        username: username === "" ? undefined : username,
+        bio: bio ?? undefined,
+        firstname: firstname ?? undefined,
+        lastname: lastname ?? undefined,
       };
 
-      if (username !== user?.username && username !== undefined) {
-        body.username = username;
-      }
+      // if (username !== user?.username && username !== undefined) {
+      //   body.username = username;
+      // }
 
-      await axios.patch("/api/users/update", body);
+      const res = await axios.patch<UserUpdated>("/api/users/update", body);
 
       addError({ message: "updated successfully", isSuccess: true });
 
-      queryClient.setQueryData<AppUser | undefined>(["user"], (oldData) => {
+      queryClient.setQueryData<AppUser>(["user"], (oldData) => {
         if (oldData && typeof oldData === "object") {
-          return { ...oldData, ...body };
+          return { ...oldData, ...res.data };
         } else {
           return undefined;
         }
@@ -193,7 +195,7 @@ export const Settings = () => {
                 value={username ?? ""}
                 onChange={handleUsernameChange}
                 className="bg-discord-light-black text-white rounded-l w-full h-10 px-2.5"
-                placeholder="Username"
+                placeholder={user.username}
               />
             </div>
             <div className="mb-3 w-2/3">
@@ -259,12 +261,8 @@ export const Settings = () => {
         <div className="mt-10 flex flex-col items-start gap-4">
           <button
             onClick={updateUserProfile}
-            disabled={!isModified || username.trim().length === 0}
-            className={`${
-              isModified
-                ? "bg-green-500 hover:bg-green-600"
-                : "bg-white  bg-opacity-30"
-            } text-white font-bold py-2 px-4 rounded`}
+            disabled={!hasModified}
+            className={`bg-green-500 hover:bg-green-600 disabled:bg-white disabled:bg-opacity-30 text-white font-bold py-2 px-4 rounded`}
           >
             Save Changes
           </button>

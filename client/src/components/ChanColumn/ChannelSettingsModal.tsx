@@ -73,7 +73,7 @@ export const ChannelSettingsModal = ({
                     }
                   }}
                   id="avatar-input"
-                  accept=".png,.jpeg,.jpg"
+                  accept=".png,.jpeg,.jpg,.gif"
                 />
               </label>
             )}

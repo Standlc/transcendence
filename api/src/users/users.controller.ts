@@ -38,6 +38,7 @@ import {
   ListUsers,
   UserProfile,
   UserSearchResult,
+  UserUpdated,
 } from 'src/types/clientSchema';
 import { UpdateUsersDto, ZodUpdateUsersDto } from './dto/update-users.dto';
 import { isStrongPassword } from 'class-validator';
@@ -226,8 +227,8 @@ export class UsersController {
   async updateUserProfile(
     @Request() req,
     @Body(new ZodValidationPipe(ZodUpdateUsersDto)) body: UpdateUsersDto,
-  ) {
-    await this.usersService.updateUser(req.user.id, body);
+  ): Promise<UserUpdated> {
+    return await this.usersService.updateUser(req.user.id, body);
   }
 
   //#endregion
@@ -283,7 +284,8 @@ export class UsersController {
       await fs.access('./public/avatar/' + fileId, fs.constants.R_OK);
       res.sendFile(fileId, { root: './public/avatar' });
     } catch (error) {
-      throw new BadRequestException('Avatar not found');
+      console.log(error);
+      throw new NotFoundException('Avatar not found');
     }
   }
 

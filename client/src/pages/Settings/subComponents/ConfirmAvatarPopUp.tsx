@@ -24,7 +24,11 @@ export const ConfirmAvatarPopUp: React.FC<Props> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
       <div className="flex flex-col items-center p-4 bg-discord-light-grey rounded shadow-lg">
-        <input type="file" onChange={handleFileSelected} />
+        <input
+          type="file"
+          accept=".png,.jpeg,.jpg,.gif"
+          onChange={handleFileSelected}
+        />
         {preview && (
           <img
             src={preview}
