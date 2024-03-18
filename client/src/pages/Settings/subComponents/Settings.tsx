@@ -7,6 +7,7 @@ import axios from "axios";
 import { TwoFactorAuthentificationSetupModal } from "../../../components/TwoFactorAuthentificationSetupModal";
 import { Avatar } from "../../../UIKit/avatar/Avatar";
 import { useGetUser } from "../../../utils/useGetUser";
+import { setValueNoSpace } from "../../../utils/setValueNoSpace";
 
 export const Settings = () => {
   const user = useGetUser();
@@ -19,6 +20,22 @@ export const Settings = () => {
   const [lastname, setLastname] = useState(user?.lastname);
   const [show2FASetupModal, setShow2FASetupModal] = useState(false);
   const [username, setUsername] = useState(user?.username);
+
+  const handleUsernameChange = (e) => {
+    setValueNoSpace(e.target.value, setUsername);
+  };
+
+  const handleFirstnameChange = (e) => {
+    setValueNoSpace(e.target.value, setFirstname);
+  };
+
+  const handleLastnameChange = (e) => {
+    setValueNoSpace(e.target.value, setLastname);
+  };
+
+  const handleBioChange = (e) => {
+    setValueNoSpace(e.target.value, setBio);
+  };
 
   const handleClickChangeAvatar = () => {
     setShowConfirmAvatarPopup(true);
@@ -56,7 +73,6 @@ export const Settings = () => {
         });
 
         alert("Avatar updated successfully");
-        console.log("Avatar updated successfully", response.data.avatarUrl);
       } catch (error) {
         console.error("Failed to upload avatar", error);
         alert("Failed to upload avatar");
@@ -72,7 +88,6 @@ export const Settings = () => {
   const queryClient = useQueryClient();
 
   const updateUserProfile = async () => {
-    console.log("username", username);
     try {
       const body = {
         bio,
@@ -135,7 +150,7 @@ export const Settings = () => {
                 type="text"
                 id="username"
                 value={username ?? ""}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={handleUsernameChange}
                 className="bg-discord-light-black text-white rounded-l w-full h-10 px-2.5"
                 placeholder="Username"
               />
@@ -151,7 +166,7 @@ export const Settings = () => {
                 type="text"
                 id="firstname"
                 value={firstname ?? ""}
-                onChange={(e) => setFirstname(e.target.value)}
+                onChange={handleFirstnameChange}
                 className="bg-discord-light-black text-white rounded-l w-full h-10 px-2.5"
                 placeholder="Firstname"
               />
@@ -167,7 +182,7 @@ export const Settings = () => {
                 type="text"
                 id="lastname"
                 value={lastname ?? ""}
-                onChange={(e) => setLastname(e.target.value)}
+                onChange={handleLastnameChange}
                 className="bg-discord-light-black text-white rounded-l w-full h-10 px-2.5"
                 placeholder="Lastname"
               />
