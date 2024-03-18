@@ -155,6 +155,10 @@ export class UserController {
     ) {
       throw new BadRequestException();
     }
+    if (channel.password && !channel.password.length) {
+      throw new BadRequestException();
+    }
+
     return await this.channelService.createChannel(channel, req.user.id);
   }
 
