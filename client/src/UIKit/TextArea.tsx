@@ -8,6 +8,7 @@ type TextAreaProps = {
   autoFocus?: boolean;
   onKeyDown?: KeyboardEventHandler<HTMLTextAreaElement>;
   disabled?: boolean;
+  id?: string;
 };
 
 export default function TextArea({
@@ -18,11 +19,12 @@ export default function TextArea({
   autoFocus,
   onKeyDown,
   disabled,
+  id,
 }: TextAreaProps) {
   const area = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (!area.current || value === "") return;
+    if (!area.current) return;
 
     area.current.style.height = "0px";
     const height = `${area.current.scrollHeight}px`;
@@ -39,6 +41,7 @@ export default function TextArea({
       onKeyDown={onKeyDown}
       value={value}
       ref={area}
+      id={id}
       placeholder={placeholder}
       className={`text-md w-full resize-none overflow-hidden bg-transparent leading-snug placeholder:opacity-50 focus:outline-none ${
         disabled ? "" : "text-white"

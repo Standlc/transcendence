@@ -142,6 +142,24 @@ export class ChannelGateway
       );
   }
 
+  emitUserBanned(payload: ChannelAndUserIdPayload) {
+    this.server
+      .to(payload.channelId.toString())
+      .emit(
+        'userBanned',
+        payload satisfies ChannelServerEmitTypes['userBanned'],
+      );
+  }
+
+  emitUserUnbanned(payload: ChannelAndUserIdPayload) {
+    this.server
+      .to(payload.channelId.toString())
+      .emit(
+        'userUnbanned',
+        payload satisfies ChannelServerEmitTypes['userUnbanned'],
+      );
+  }
+
   emitChannelUpdated(channelId: number, membersId: number[]) {
     membersId.forEach((id) => {
       this.server

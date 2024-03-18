@@ -54,7 +54,7 @@ export const ChanColumn = () => {
   });
 
   return (
-    <div className="bg-bg-1 relative min-w-64 border-r border-r-[rgba(0,0,0,0.2)] max-h-[100vh] min-h-[100vh] flex flex-col justify-between overflow-y-auto">
+    <div className="bg-bg-1 relative min-w-64 border-r border-r-[rgba(0,0,0,0.2)] max-h-[100vh] min-h-[100vh] flex flex-col justify-between overflow-y-auto overflow-x-hidden">
       <div className="">
         <div className="p-2">
           <NavLink
@@ -109,7 +109,7 @@ export const ChanColumn = () => {
         </div>
       </div>
 
-      <div className="flex sticky w-full bottom-0 bg-almost-black p-2 items-center justify-between">
+      <div className="flex -mr-0 sticky w-full bottom-0 bg-almost-black p-2 items-center justify-between">
         <div
           onClick={() => setUserProfileId(user.id)}
           className="flex items-center cursor-pointer"

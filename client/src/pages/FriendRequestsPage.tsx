@@ -10,6 +10,7 @@ import { Check, Close, DoNotDisturbOn } from "@mui/icons-material";
 import { ActionsMenu } from "../UIKit/ActionsMenu";
 import { useAcceptFriend } from "../utils/friends/useAcceptFriend";
 import { useDeclineFriendRequest } from "../utils/friends/useDeclineFriendRequest";
+import { OutlinedIconLayout } from "../UIKit/OutlinedIconLayout";
 
 export const FriendRequests = () => {
   const friendRequestUsers = useGetFriendRequests();
@@ -68,25 +69,24 @@ const FriendRequestUserComponent = ({ user }: { user: FriendRequestUser }) => {
       </div>
 
       <div className="flex items-center gap-2">
-        <button
+        <OutlinedIconLayout
+          theme="red"
           onClick={(e) => {
             e.stopPropagation();
             declineFriendRequest.mutate(user.id);
           }}
-          className="cursor-pointer opacity-70 hover:bg-opacity-40 bg-opacity-30 hover:opacity-100 w-[40px] aspect-square rounded-full bg-black text-red-600 flex items-center justify-center"
         >
           <Close />
-        </button>
+        </OutlinedIconLayout>
 
-        <button
+        <OutlinedIconLayout
           onClick={(e) => {
             e.stopPropagation();
             acceptFriendRequest.mutate(user.id);
           }}
-          className="cursor-pointer opacity-70 hover:bg-opacity-40 bg-opacity-30 hover:opacity-100 w-[40px] aspect-square rounded-full bg-black flex items-center justify-center"
         >
           <Check />
-        </button>
+        </OutlinedIconLayout>
 
         <ActionsMenu
           actions={[

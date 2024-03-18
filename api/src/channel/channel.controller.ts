@@ -29,6 +29,7 @@ import {
 import { ChannelService } from './channel.service';
 import {
   ChannelAndUserIdPayload,
+  ChannelBannedUser,
   ChannelCreationData,
   ChannelDataWithUsersWithoutPassword,
   ChannelJoinDto,
@@ -403,5 +404,23 @@ export class UserController {
       throw new ForbiddenException();
     }
     await this.channelService.unbanUser(payload.userId, payload.channelId);
+  }
+
+  @Get('/banned/:channelId')
+  async getBannedUsersFromChannel(
+    @Param('channelId') channelId: string,
+    @Req() req,
+  ): Promise<ChannelBannedUser[]> {
+    const userId: number = req.user.id;
+    const isAllowed = await this.channelService.isUserMember(
+      userId,
+      Number(channelId),
+    );
+    if (!isAllowed) {
+      throw new ForbiddenException();
+    }
+    return await this.channelService.getBannedUsersFromChannel(
+      Number(channelId),
+    );
   }
 }

@@ -247,7 +247,7 @@ const ProfileDirectActionButton = ({ profile }: { profile: UserProfile }) => {
             onClick={() => {
               if (action.onClick) action.onClick();
             }}
-            className={`active:translate-y-0 hover:translate-y-[-1px] flex items-center gap-2 px-4 py-2 text-base font-bold rounded-md ${
+            className={`active:translate-y-0 flex items-center gap-2 px-4 py-2 text-base font-bold rounded-md ${
               colorVariants[action.color ?? "blue"]
             }`}
           >
