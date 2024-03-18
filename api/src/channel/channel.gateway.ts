@@ -61,7 +61,6 @@ export class ChannelGateway
   handleConnection(socket: Socket) {
     const userId = this.extractUserId(socket);
     socket.join(btoa(userId.toString()));
-    console.log(`Client connected: ${socket.id}`);
   }
 
   handleDisconnect(@ConnectedSocket() socket: Socket) {
@@ -85,8 +84,11 @@ export class ChannelGateway
   }
 
   emitUserJoined(payload: ChannelAndUserIdPayload) {
+    const userRoom = btoa(payload.userId.toString());
+
     this.server
       .to(payload.channelId.toString())
+      .to(userRoom)
       .emit(
         'memberJoin',
         payload satisfies ChannelServerEmitTypes['memberJoin'],
@@ -94,16 +96,17 @@ export class ChannelGateway
   }
 
   emitUserLeave(payload: ChannelAndUserIdPayload) {
+    const userRoom = btoa(payload.userId.toString());
+
     this.server
       .to(payload.channelId.toString())
+      .to(userRoom)
       .emit(
         'memberLeave',
         payload satisfies ChannelServerEmitTypes['memberLeave'],
       );
 
-    this.server
-      .in(btoa(String(payload.userId)))
-      .socketsLeave(String(payload.channelId));
+    this.server.in(userRoom).socketsLeave(payload.channelId.toString());
   }
 
   emitChannelDelete(channelId: number, membersId: number[]) {
@@ -115,6 +118,7 @@ export class ChannelGateway
           channelId satisfies ChannelServerEmitTypes['channelDelete'],
         );
     });
+
     this.server.socketsLeave(String(channelId));
   }
 
@@ -143,12 +147,17 @@ export class ChannelGateway
   }
 
   emitUserBanned(payload: ChannelAndUserIdPayload) {
+    const userRoom = btoa(payload.userId.toString());
+
     this.server
       .to(payload.channelId.toString())
+      .to(userRoom)
       .emit(
         'userBanned',
         payload satisfies ChannelServerEmitTypes['userBanned'],
       );
+
+    this.server.in(userRoom).socketsLeave(payload.channelId.toString());
   }
 
   emitUserUnbanned(payload: ChannelAndUserIdPayload) {

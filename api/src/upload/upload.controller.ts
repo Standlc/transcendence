@@ -1,4 +1,4 @@
-import { Controller, HttpStatus, ParseFilePipeBuilder, Post, Query, Request, UnprocessableEntityException, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Controller, ForbiddenException, HttpStatus, ParseFilePipeBuilder, Post, Query, Request, UnprocessableEntityException, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { UploadService } from './upload.service';
 import { ApiBody, ApiCookieAuth, ApiCreatedResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
@@ -9,11 +9,13 @@ import { AppUser } from 'src/types/clientSchema';
 import { ChannelWithoutPsw } from 'src/types/channelsSchema';
 import * as sharp from 'sharp';
 import { unlink } from 'fs/promises';
+import { db } from 'src/database';
+import { ChannelService } from 'src/channel/channel.service';
 
 @ApiTags('upload')
 @Controller('upload')
 export class UploadController {
-  constructor(private readonly uploadService: UploadService) {}
+  constructor(private readonly uploadService: UploadService, private readonly channelsService: ChannelService) {}
 
   private static diskStorageAvatar = diskStorage({
     destination: './public/avatar',
@@ -130,9 +132,17 @@ export class UploadController {
       @Request() req,
       @UploadedFile() file: Express.Multer.File,
       @Query('channelId') channelId: number
-    ): Promise<ChannelWithoutPsw> {
+    ): Promise<string> {
       if (!file)
         throw new UnprocessableEntityException('Invalid file format');
+
+      const isAllowed = this.channelsService.canUserUpdateChannel(req.user.id, channelId);
+      if (!isAllowed) {
+        throw new ForbiddenException();
+      }
+
+      const replacedExtension = file.path.replace(extname(file.filename), '.webp');
+
       try {
         const isAnimated = file.mimetype.match(/\/(gif)$/) ? true : false;
         await sharp(file.path, {
@@ -142,16 +152,15 @@ export class UploadController {
           fit: 'cover'
         })
         .webp()
-        .toFile(file.path.replace(extname(file.filename), '.webp'))
+        .toFile(replacedExtension)
         .then(() => {
             unlink(file.path);
-            console.log("Resizing finished");
         });
       } catch (error) {
         await unlink(file.path);
         throw new UnprocessableEntityException('File is not an image, nor a supported format');
       }
-      return await this.uploadService.setChannelPhoto(req.user.id, channelId, `/api/channels/${file.path}`);
+      return await this.uploadService.setChannelPhoto(req.user.id, channelId, `/api/channels/${replacedExtension}`);
     }
 
 }

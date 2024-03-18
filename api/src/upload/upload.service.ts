@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { ChannelService } from 'src/channel/channel.service';
-import { ChannelWithoutPsw } from 'src/types/channelsSchema';
 import { AppUser } from 'src/types/clientSchema';
 import { UsersService } from 'src/users/users.service';
 
@@ -15,7 +14,7 @@ export class UploadService {
     return await this.usersService.setAvatar(userId, path);
   }
 
-  async setChannelPhoto(userId: number, channelId: number, path: string): Promise<ChannelWithoutPsw> {
+  async setChannelPhoto(userId: number, channelId: number, path: string): Promise<string> {
     return await this.channelsService.setPhoto(userId, channelId, path);
   }
 }

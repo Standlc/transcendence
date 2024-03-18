@@ -61,7 +61,7 @@ export default function TextArea({
       ref={area}
       id={id}
       placeholder={placeholder}
-      className={`text-md w-full resize-none overflow-hidden bg-transparent leading-snug placeholder:opacity-50 focus:outline-none ${
+      className={`text-md w-full max-h-96 resize-none overflow-hidden bg-transparent leading-snug placeholder:opacity-50 focus:outline-none ${
         disabled ? "" : "text-white"
       }`}
       disabled={disabled}

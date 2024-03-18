@@ -28,7 +28,7 @@ export const ChannelAvatar = ({
       className="h-full w-full overflow-hidden"
     >
       {imgUrl ? (
-        <img src={imgUrl} className="h-full w-full objvect-coer" />
+        <img src={imgUrl} className="h-full w-full object-cover" />
       ) : (
         <div
           style={{

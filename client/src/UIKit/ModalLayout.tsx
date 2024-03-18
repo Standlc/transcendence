@@ -28,6 +28,7 @@ const ModalLayout = memo(
     useEffect(() => {
       if (onClickOutside) {
         const handleClick = (e: MouseEvent) => {
+          e.stopPropagation();
           if (
             modalRef.current &&
             !modalRef.current.contains(e.target as Node)
