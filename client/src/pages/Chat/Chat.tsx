@@ -4,10 +4,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useGetUser } from "../../utils/useGetUser";
 import axios from "axios";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { DmWithSenderInfo, UserConversation } from "@api/types/channelsSchema";
+import {
+  ConversationUser,
+  DmWithSenderInfo,
+  UserConversation,
+} from "@api/types/channelsSchema";
 import { MessageDm } from "../../types/messageDm";
 import TextArea from "../../UIKit/TextArea";
-import { UserDirectMessage } from "@api/types/clientSchema";
 import { SocketsContext } from "../../ContextsProviders/SocketsContext";
 import { UserProfileContext } from "../../ContextsProviders/UserProfileIdContext";
 import { SendGameInvitationModal } from "../../components/SendGameInvitationModal";
@@ -22,9 +25,10 @@ const Chat = () => {
   const { conversationSocket } = useContext(SocketsContext);
   const { setUserProfileId } = useContext(UserProfileContext);
   const [showGameInvitationModal, setShowGameInvitationModal] = useState(false);
+  const [otherUser, setOtherUser] = useState<ConversationUser | null>(null);
 
   const conversation = useQuery({
-    queryKey: ["conversationAllUser"],
+    queryKey: ["conversationAllUser", dmId],
     queryFn: async () => {
       const res = await axios.get<UserConversation>(`/api/dm/${dmId}`);
       return res.data;
@@ -42,11 +46,15 @@ const Chat = () => {
     },
   });
 
-  const otherUser = conversation.data
-    ? conversation.data.user1.userId === user?.id
-      ? conversation.data.user2
-      : conversation.data.user1
-    : null;
+  useEffect(() => {
+    if (conversation.data) {
+      const currentOtherUser =
+        conversation.data.user1.userId === user?.id
+          ? conversation.data.user2
+          : conversation.data.user1;
+      setOtherUser(currentOtherUser);
+    }
+  }, [dmId, conversation.data, user?.id]);
 
   useEffect(() => {
     if (!dmId) return;
@@ -172,10 +180,6 @@ const Chat = () => {
 
   const openPopup = () => {
     setIsPopupOpen(true);
-  };
-
-  const handleClickPlay = () => {
-    navigate("/play");
   };
 
   if (!dmId) {

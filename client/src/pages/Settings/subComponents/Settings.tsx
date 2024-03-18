@@ -104,7 +104,6 @@ export const Settings = () => {
 
   const updateUserProfile = async () => {
     try {
-      // Define the body with all possible properties, marking username as optional
       const body: {
         bio: string | null;
         firstname: string | null;
