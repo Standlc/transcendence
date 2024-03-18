@@ -2,17 +2,13 @@ import {
   Controller,
   Get,
   Param,
-  Req,
+  ParseIntPipe,
   Request,
   UseGuards,
 } from '@nestjs/common';
 import { GamesService } from './games.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { UserGame } from 'src/types/games';
-
-export class GameIdDto {
-  gameId: number;
-}
 
 @UseGuards(JwtAuthGuard)
 @Controller('games')
@@ -34,16 +30,18 @@ export class GamesController {
 
   @Get('/:gameId')
   async getGameInfo(
-    @Param() params: GameIdDto,
+    @Param('gameId', new ParseIntPipe()) gameId: number,
     @Request() req,
   ): Promise<UserGame> {
     const userId: number = req.user.id;
-    const game = await this.games.getByGameId(params.gameId, userId);
+    const game = await this.games.getByGameId(Number(gameId), userId);
     return game;
   }
 
   @Get('/history/:userId')
-  async getUserGames(@Param('userId') userId: number): Promise<UserGame[]> {
+  async getUserGames(
+    @Param('userId', new ParseIntPipe()) userId: number,
+  ): Promise<UserGame[]> {
     const games = await this.games.getUserGameHistory(userId);
     return games;
   }

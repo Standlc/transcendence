@@ -1,6 +1,5 @@
 import { Selectable, SqlBool } from 'kysely';
 import { Channel, ChannelMessage, DirectMessage } from './schema';
-import { z } from 'zod';
 
 export type ChannelServerEventTypes = {
   joinChannel: ConnectToChannel;
@@ -44,10 +43,10 @@ export type DirectMessageContent = Omit<
   'createdAt' | 'id' | 'senderId'
 >;
 
-export type ChannelMessageContent = Omit<
-  ChannelMessage,
-  'createdAt' | 'id' | 'senderId'
->;
+export type ChannelMessageContent = {
+  content: string;
+  channelId: number;
+};
 
 export interface ChannelDataWithUsersWithoutPassword {
   channelOwner: number;

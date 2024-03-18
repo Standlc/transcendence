@@ -25,6 +25,7 @@ import {
   ForbiddenException,
   BadRequestException,
   Req,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ChannelService } from './channel.service';
 import {
@@ -42,7 +43,12 @@ import {
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { ZodValidationPipe } from 'src/ZodValidatePipe';
 import { z } from 'zod';
-import { ZodChannelAndUserIdPayload } from 'src/types/zodChannelsSchema';
+import {
+  ZodChannelAndUserIdPayload,
+  ZodChannelCreationData,
+  ZodChannelJoinDto,
+  ZodChannelUpdate,
+} from 'src/types/zodChannelsSchema';
 
 const isWhitespaceString = (str: string) => !str.replace(/\s/g, '').length;
 
@@ -119,7 +125,7 @@ export class UserController {
   @ApiUnauthorizedResponse({ description: 'User is banned' })
   @Get(':channelId/messages')
   async getMessages(
-    @Param('channelId') channelId: number,
+    @Param('channelId', new ParseIntPipe()) channelId: number,
     @Request() req,
   ): Promise<MessageWithSenderInfo[]> {
     const userId: number = req.user.id;
@@ -137,7 +143,8 @@ export class UserController {
 
   @Post()
   async createChannel(
-    @Body() channel: ChannelCreationData,
+    @Body(new ZodValidationPipe(ZodChannelCreationData))
+    channel: ChannelCreationData,
     @Request() req,
   ): Promise<number> {
     if (
@@ -153,7 +160,7 @@ export class UserController {
 
   @Get(':channelId/channel')
   async getChannel(
-    @Param('channelId') channelId: number,
+    @Param('channelId', new ParseIntPipe()) channelId: number,
     @Req() req,
   ): Promise<ChannelDataWithUsersWithoutPassword> {
     const userId: number = req.user.id;
@@ -213,8 +220,8 @@ export class UserController {
   })
   @Put(':channelId')
   async updateChannel(
-    @Param('channelId') channelId: number,
-    @Body() channel: ChannelUpdate,
+    @Param('channelId', new ParseIntPipe()) channelId: number,
+    @Body(new ZodValidationPipe(ZodChannelUpdate)) channel: ChannelUpdate,
     @Request() req,
   ) {
     const userId: number = req.user.id;
@@ -253,12 +260,18 @@ export class UserController {
   @ApiNotFoundResponse({ description: 'No such file exist' })
   @UseGuards(JwtAuthGuard)
   @Get('photo/:fileId')
-  async getPhoto(@Param('fileId') fileId, @Res() res) {
+  async getPhoto(
+    @Param('fileId', new ZodValidationPipe(z.string())) fileId,
+    @Res() res,
+  ) {
     res.sendFile(fileId, { root: './public/channels' });
   }
 
   @Post('/join')
-  async joinUserToChannel(@Request() req, @Body() payload: ChannelJoinDto) {
+  async joinUserToChannel(
+    @Request() req,
+    @Body(new ZodValidationPipe(ZodChannelJoinDto)) payload: ChannelJoinDto,
+  ) {
     const userId: number = req.user.id;
     const isAllowed = await this.channelService.checkCanUserJoinChannel(
       userId,
@@ -275,7 +288,10 @@ export class UserController {
   }
 
   @Delete('/delete/:channelId')
-  async deleteChannel(@Req() req, @Param('channelId') channelId: number) {
+  async deleteChannel(
+    @Req() req,
+    @Param('channelId', new ParseIntPipe()) channelId: number,
+  ) {
     const userId: number = req.user.id;
     const canUserDeleteChannel = await this.channelService.canUserDeleteChannel(
       userId,
@@ -289,7 +305,11 @@ export class UserController {
   }
 
   @Post('/add-admin')
-  async addAdmin(@Req() req, @Body() payload: ChannelAndUserIdPayload) {
+  async addAdmin(
+    @Req() req,
+    @Body(new ZodValidationPipe(ZodChannelAndUserIdPayload))
+    payload: ChannelAndUserIdPayload,
+  ) {
     const userId: number = req.user.id;
     const canUserBeAdmin = await this.channelService.canUserBeAdmin(
       userId,
@@ -307,7 +327,11 @@ export class UserController {
   }
 
   @Post('/remove-admin')
-  async removeAdmin(@Req() req, @Body() payload: ChannelAndUserIdPayload) {
+  async removeAdmin(
+    @Req() req,
+    @Body(new ZodValidationPipe(ZodChannelAndUserIdPayload))
+    payload: ChannelAndUserIdPayload,
+  ) {
     const userId: number = req.user.id;
     const canUserBeNotAdmin = await this.channelService.canUserBeNotAdmin(
       userId,
@@ -325,7 +349,11 @@ export class UserController {
   }
 
   @Post('/mute')
-  async muteMember(@Req() req, @Body() payload: ChannelAndUserIdPayload) {
+  async muteMember(
+    @Req() req,
+    @Body(new ZodValidationPipe(ZodChannelAndUserIdPayload))
+    payload: ChannelAndUserIdPayload,
+  ) {
     const userId: number = req.user.id;
     const canUserBeMuted = await this.channelService.canUserBeMuted(
       userId,
@@ -341,7 +369,8 @@ export class UserController {
   @Post('/kick')
   async kickUserFromChannel(
     @Req() req,
-    @Body() payload: ChannelAndUserIdPayload,
+    @Body(new ZodValidationPipe(ZodChannelAndUserIdPayload))
+    payload: ChannelAndUserIdPayload,
   ) {
     const userId: number = req.user.id;
     const canUserBeKicked = await this.channelService.canUserBeKicked(
@@ -359,7 +388,10 @@ export class UserController {
   }
 
   @Delete('/leave/:channelId')
-  async leaveChannel(@Req() req, @Param('channelId') channelId: number) {
+  async leaveChannel(
+    @Req() req,
+    @Param('channelId', new ParseIntPipe()) channelId: number,
+  ) {
     const userId: number = req.user.id;
     const canLeaveChannel = await this.channelService.canUserLeaveChannel(
       userId,
@@ -375,7 +407,8 @@ export class UserController {
   @Post('/ban')
   async banUserFromChannel(
     @Req() req,
-    @Body() payload: ChannelAndUserIdPayload,
+    @Body(new ZodValidationPipe(ZodChannelAndUserIdPayload))
+    payload: ChannelAndUserIdPayload,
   ) {
     const userId: number = req.user.id;
     const canUserBeBanned = await this.channelService.canUserBanUser(
@@ -396,7 +429,8 @@ export class UserController {
   @Post('/unban')
   async unbanUserFromChannel(
     @Req() req,
-    @Body() payload: ChannelAndUserIdPayload,
+    @Body(new ZodValidationPipe(ZodChannelAndUserIdPayload))
+    payload: ChannelAndUserIdPayload,
   ) {
     const userId: number = req.user.id;
     const canUserBeUnbanned = await this.channelService.canUserBeUnbanned(
@@ -412,20 +446,15 @@ export class UserController {
 
   @Get('/banned/:channelId')
   async getBannedUsersFromChannel(
-    @Param('channelId', new ZodValidationPipe(z.string())) channelId: string,
+    @Param('channelId', new ParseIntPipe()) channelId: number,
     @Req() req,
   ): Promise<ChannelBannedUser[]> {
     const userId: number = req.user.id;
-    const isAllowed = await this.channelService.isUserMember(
-      userId,
-      Number(channelId),
-    );
+    const isAllowed = await this.channelService.isUserMember(userId, channelId);
     if (!isAllowed) {
       throw new ForbiddenException();
     }
-    return await this.channelService.getBannedUsersFromChannel(
-      Number(channelId),
-    );
+    return await this.channelService.getBannedUsersFromChannel(channelId);
   }
 
   @Post('/add-member')
@@ -451,7 +480,7 @@ export class UserController {
 
   @Get('/eligible-users/:channelId')
   async getEligibleUsersForChannel(
-    @Param('channelId') channelId: number,
+    @Param('channelId', new ParseIntPipe()) channelId: number,
     @Req() req,
   ): Promise<EligibleUserForChannel[]> {
     const userId: number = req.user.id;

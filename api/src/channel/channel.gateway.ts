@@ -1,5 +1,4 @@
 import { SocketService } from './socketService.service';
-import { ConnectedUsersService } from './../connectedUsers/connectedUsers.service';
 import {
   ConnectedSocket,
   MessageBody,
@@ -8,16 +7,13 @@ import {
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
-  WsException,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import {
-  ActionOnUser,
   ChannelAndUserIdPayload,
   ChannelServerEmitTypes,
   ChannelServerEventTypes,
   ConnectToChannel,
-  MuteUser,
 } from 'src/types/channelsSchema';
 import { Injectable, UseGuards } from '@nestjs/common';
 import { WsAuthGuard } from 'src/auth/ws-auth.guard';
@@ -36,7 +32,6 @@ export class ChannelGateway
 {
   constructor(
     private readonly wsGuard: WsAuthGuard,
-    private readonly connectedUsersService: ConnectedUsersService,
     private readonly utilsChannelService: Utils,
     private readonly socketService: SocketService,
   ) {}
@@ -180,9 +175,6 @@ export class ChannelGateway
     });
   }
 
-  //
-  //
-  //
   @SubscribeMessage('joinChannel')
   async handleJoinChannel(
     @ConnectedSocket() socket: Socket,
@@ -223,204 +215,6 @@ export class ChannelGateway
         .to(String(payload.channelId))
         .emit('createChannelMessage', message);
     } catch (error) {}
-  }
-
-  @SubscribeMessage('banUser')
-  async handleBanUser(
-    @ConnectedSocket() socket: Socket,
-    @MessageBody() payload: ActionOnUser,
-  ) {
-    const userId = this.extractUserId(socket);
-
-    try {
-      await this.socketService.banUser(
-        userId,
-        payload.channelId,
-        payload.targetUserId,
-      );
-    } catch (error) {}
-
-    try {
-      const emitPayload: ChannelServerEmitTypes['memberBanned'] = {
-        userId,
-        channelId: payload.channelId,
-      };
-      this.server
-        .to(payload.channelId.toString())
-        .emit('memberBanned', emitPayload);
-
-      const bannedUserSockets = await this.server.sockets
-        .in(btoa(String(userId)))
-        .fetchSockets();
-
-      bannedUserSockets.forEach((s) => s.leave(payload.channelId.toString()));
-    } catch (error) {}
-  }
-
-  @SubscribeMessage('kickUser')
-  async handleKickUser(
-    @ConnectedSocket() socket: Socket,
-    @MessageBody() payload: ActionOnUser,
-  ) {
-    // try {
-    //   this.connectedUsersService.verifyConnection(socket);
-    // } catch (error) {
-    //   console.error(error);
-    //   throw new WsException('User did not join channel room');
-    // }
-
-    const userId = socket.data.id;
-
-    try {
-      await this.socketService.kickUser(
-        userId,
-        payload.channelId,
-        payload.targetUserId,
-      );
-    } catch (error) {
-      console.error(error);
-      throw new WsException('Could not kick user');
-    }
-
-    try {
-      const kickedSocketId = this.connectedUsersService.getSocket(
-        payload.targetUserId,
-      );
-
-      this.sendConfirmation(
-        socket,
-        payload.channelId,
-        `User ${payload.targetUserId} has been kicked`,
-      );
-
-      if (kickedSocketId) {
-        kickedSocketId.leave(payload.channelId.toString());
-        this.connectedUsersService.removeUserWithSocketId(
-          kickedSocketId.id as string,
-        );
-      }
-    } catch (error) {
-      console.error(error);
-      throw new WsException('Could not leave channel');
-    }
-  }
-
-  //
-  //
-  //
-  @SubscribeMessage('muteUser')
-  async handleMuteUser(
-    @ConnectedSocket() socket: Socket,
-    @MessageBody() payload: MuteUser,
-  ) {
-    try {
-      this.connectedUsersService.verifyConnection(socket);
-    } catch (error) {
-      console.error(error);
-      throw new WsException('User did not join channel room');
-    }
-
-    const userId = socket.data.id;
-
-    try {
-      await this.socketService.muteUser(userId, payload);
-
-      if (payload.muteEnd == null)
-        this.sendConfirmation(
-          socket,
-          payload.channelId,
-          `User ${payload.targetUserId} has been muted for 5 minutes`,
-        );
-      else {
-        this.sendConfirmation(
-          socket,
-          payload.channelId,
-          `User ${payload.targetUserId} has been muted until ${payload.muteEnd}`,
-        );
-      }
-    } catch (error) {
-      console.error(error);
-      throw new WsException('Could not mute user');
-    }
-  }
-
-  //
-  //
-  //
-  @SubscribeMessage('addChannelAdmin')
-  async handleAddChannelAdmin(
-    @ConnectedSocket() socket: Socket,
-    @MessageBody() payload: ActionOnUser,
-  ) {
-    try {
-      this.connectedUsersService.verifyConnection(socket);
-    } catch (error) {
-      console.error(error);
-      throw new WsException('User did not join channel room');
-    }
-
-    const userId = socket.data.id;
-
-    try {
-      await this.socketService.addAdministrator(
-        userId,
-        payload.channelId,
-        payload.targetUserId,
-      );
-
-      this.sendConfirmation(
-        socket,
-        payload.channelId,
-        `User ${payload.targetUserId} has been promoted to admin`,
-      );
-    } catch (error) {
-      console.error(error);
-      throw new WsException('Could not add admin');
-    }
-  }
-
-  //
-  //
-  //
-  @SubscribeMessage('removeChannelAdmin')
-  async handleRemoveChannelAdmin(
-    @ConnectedSocket() socket: Socket,
-    @MessageBody() payload: ActionOnUser,
-  ) {
-    try {
-      this.connectedUsersService.verifyConnection(socket);
-    } catch (error) {
-      console.error(error);
-      throw new WsException('User did not join channel room');
-    }
-
-    const userId = socket.data.id;
-
-    try {
-      await this.socketService.removeAdministrator(
-        userId,
-        payload.channelId,
-        payload.targetUserId,
-      );
-
-      this.sendConfirmation(
-        socket,
-        payload.channelId,
-        `User ${payload.targetUserId} has been demoted from admin`,
-      );
-    } catch (error) {
-      console.error(error);
-      throw new WsException('Could not remove admin');
-    }
-  }
-
-  //
-  //
-  //
-  sendConfirmation(socket: Socket, channelId: number, message: string) {
-    if (socket.rooms.has(channelId.toString())) {
-      this.server.to(channelId.toString()).emit('message', message);
-    }
   }
 
   extractUserId(socket: Socket) {
