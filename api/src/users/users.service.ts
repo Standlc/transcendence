@@ -385,26 +385,32 @@ export class UsersService {
       !updateUsersDto.lastname
     )
       return;
-    try {
-      if (updateUsersDto.username) {
-        const user = await db
-          .selectFrom('user')
-          .selectAll()
-          .where('username', '=', updateUsersDto.username)
+    if (updateUsersDto.username && updateUsersDto.username == undefined)
+      try {
+        if (updateUsersDto.username) {
+          const user = await db
+            .selectFrom('user')
+            .selectAll()
+            .where(({ eb, and }) =>
+              and([
+                eb('username', '=', updateUsersDto.username as string),
+                eb('id', '!=', userId),
+              ]),
+            )
+            .executeTakeFirst();
+          if (user)
+            throw new UnprocessableEntityException('Username already taken');
+        }
+        const result = await db
+          .updateTable('user')
+          .set({ ...updateUsersDto })
+          .where('id', '=', userId)
           .executeTakeFirst();
-        if (user)
-          throw new UnprocessableEntityException('Username already taken');
+      } catch (error) {
+        console.log(error);
+        if (error instanceof UnprocessableEntityException) throw error;
+        throw new InternalServerErrorException();
       }
-      const result = await db
-        .updateTable('user')
-        .set({ ...updateUsersDto })
-        .where('id', '=', userId)
-        .executeTakeFirst();
-    } catch (error) {
-      console.log(error);
-      if (error instanceof UnprocessableEntityException) throw error;
-      throw new InternalServerErrorException();
-    }
   }
 
   /**
