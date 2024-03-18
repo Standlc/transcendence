@@ -50,6 +50,7 @@
     "cookie-parser": "^1.4.6",
     "dotenv": "^16.4.3",
     "express": "^4.18.2",
+    "fs": "^0.0.1-security",
     "kysely": "^0.27.2",
     "multer": "^1.4.5-lts.1",
     "nestjs": "0.0.1",
