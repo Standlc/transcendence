@@ -412,7 +412,7 @@ export class UserController {
 
   @Get('/banned/:channelId')
   async getBannedUsersFromChannel(
-    @Param('channelId', new ZodValidationPipe(z.number())) channelId: string,
+    @Param('channelId', new ZodValidationPipe(z.string())) channelId: string,
     @Req() req,
   ): Promise<ChannelBannedUser[]> {
     const userId: number = req.user.id;
