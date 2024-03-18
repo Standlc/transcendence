@@ -42,8 +42,8 @@ export const Settings = () => {
   };
 
   const handleBioChange = (e) => {
-    setBio(e.target.value);
     checkModification();
+    setBio(e.target.value);
   };
 
   const checkModification = () => {
@@ -53,6 +53,7 @@ export const Settings = () => {
       lastname !== user?.lastname ||
       bio !== user?.bio;
     setIsModified(hasModified);
+    console.log("hasModified, ", hasModified);
   };
 
   const handleFileChange = (file) => {
@@ -103,15 +104,26 @@ export const Settings = () => {
 
   const updateUserProfile = async () => {
     try {
-      const body = {
-        bio,
-        firstname,
-        lastname,
-        username,
+      // Define the body with all possible properties, marking username as optional
+      const body: {
+        bio: string | null;
+        firstname: string | null;
+        lastname: string | null;
+        username?: string;
+      } = {
+        bio: bio,
+        firstname: firstname,
+        lastname: lastname,
       };
-      await axios.patch("/api/users/update", body, {});
+
+      if (username !== user?.username && username !== undefined) {
+        body.username = username;
+      }
+
+      await axios.patch("/api/users/update", body);
 
       alert("Profile updated successfully");
+
       queryClient.setQueryData<AppUser | undefined>(["user"], (oldData) => {
         if (oldData && typeof oldData === "object") {
           return { ...oldData, ...body };
