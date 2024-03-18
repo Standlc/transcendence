@@ -41,7 +41,7 @@ export class UsersController {
       }
     }
   })
-  @ApiUnprocessableEntityResponse({description: "Username already taken | Username was empty"})
+  @ApiUnprocessableEntityResponse({description: "Username already taken | Username was empty | Password is not strong enough | Username is too long"})
   @ApiBody({
     description: "User credential",
     required: true,
@@ -59,6 +59,8 @@ export class UsersController {
   async createUser(@Body() body: CreateUsersDto): Promise<AppUser> {
     if (!isStrongPassword(body.password))
       throw new UnprocessableEntityException("Password is not strong enough");
+    if (body.username.length > 50)
+      throw new UnprocessableEntityException("Username is too long");
     return await this.usersService.createUser(body);
   }
 
@@ -141,7 +143,7 @@ export class UsersController {
   @ApiOperation({summary: "Update user profile"})
   @ApiCookieAuth()
   @ApiOkResponse({description: "Profile updated"})
-  @ApiUnprocessableEntityResponse({description: "Invalid field or empty field"})
+  @ApiUnprocessableEntityResponse({description: "Invalid field | empty field | username too long | Username already taken"})
   @ApiBody({
     description: "UpdateUserDto",
     schema: {
