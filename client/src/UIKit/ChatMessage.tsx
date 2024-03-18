@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useLayoutEffect, useState } from "react";
 import { Avatar } from "./avatar/Avatar";
 import { DateTime } from "luxon";
 import { UserProfileContext } from "../ContextsProviders/UserProfileIdContext";
@@ -19,6 +19,10 @@ export const ChatMessage = ({
 }) => {
   const [displayMessage, setDisplayMessage] = useState(!message.isBlocked);
   const { setUserProfileId } = useContext(UserProfileContext);
+
+  useLayoutEffect(() => {
+    setDisplayMessage(!message.isBlocked);
+  }, [message.isBlocked]);
 
   return (
     <div className={`flex gap-4 ${!showAvatar ? "-mt-3" : ""}`}>

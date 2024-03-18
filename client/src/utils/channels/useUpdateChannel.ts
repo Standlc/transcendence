@@ -40,8 +40,18 @@ export const useUpdateChannel = (props?: { onSuccess: () => void }) => {
   // };
 
   const updateChannel = useMutation({
-    mutationFn: async (payload: ChannelUpdate & { channelId: number }) => {
-      const { channelId, ...other } = payload;
+    mutationFn: async (
+      payload: ChannelUpdate & { channelId: number; avatarFile?: File }
+    ) => {
+      const { channelId, avatarFile, ...other } = payload;
+      if (avatarFile) {
+        const avatarFormData = new FormData();
+        avatarFormData.append("file", avatarFile);
+        await axios.post(
+          `/api/upload/channel-photo?channelId=${channelId}`,
+          avatarFormData
+        );
+      }
       await axios.put(`/api/channels/${payload.channelId}`, other);
       return channelId;
     },

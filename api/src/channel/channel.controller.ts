@@ -34,6 +34,7 @@ import {
   ChannelDataWithUsersWithoutPassword,
   ChannelJoinDto,
   ChannelUpdate,
+  EligibleUserForChannel,
   MessageWithSenderInfo,
   PublicChannel,
   UserChannel,
@@ -422,5 +423,36 @@ export class UserController {
     return await this.channelService.getBannedUsersFromChannel(
       Number(channelId),
     );
+  }
+
+  @Post('/add-member')
+  async addUserToChannel(@Body() payload: ChannelAndUserIdPayload, @Req() req) {
+    const userId: number = req.user.id;
+    const isAllowed = await this.channelService.canUserAddMember(
+      userId,
+      payload.userId,
+      payload.channelId,
+    );
+    if (!isAllowed) {
+      throw new ForbiddenException();
+    }
+    await this.channelService.joinUserToChannel(
+      payload.userId,
+      payload.channelId,
+    );
+  }
+
+  @Get('/eligible-users/:channelId')
+  async getEligibleUsersForChannel(
+    @Param('channelId') channelId: number,
+    @Req() req,
+  ): Promise<EligibleUserForChannel[]> {
+    const userId: number = req.user.id;
+
+    const eligibleUsers = await this.channelService.getEligibleUsersForChannel(
+      userId,
+      channelId,
+    );
+    return eligibleUsers;
   }
 }

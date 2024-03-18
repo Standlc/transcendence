@@ -12,7 +12,7 @@ import {
   ChannelDataWithUsersWithoutPassword,
   ChannelJoinDto,
   ChannelUpdate,
-  ChannelWithoutPsw,
+  EligibleUserForChannel,
   MessageWithSenderInfo,
   PublicChannel,
   UserChannel,
@@ -37,7 +37,7 @@ export class ChannelService {
     userId: number,
     channelId: number,
     path: string,
-  ): Promise<ChannelWithoutPsw> {
+  ): Promise<string> {
     const isUserAdmin = await this.canUserUpdateChannel(userId, channelId);
     if (!isUserAdmin) throw new ForbiddenException();
 
@@ -65,18 +65,15 @@ export class ChannelService {
     }
 
     try {
-      const result = await db
+      await db
         .updateTable('channel')
         .set('photoUrl', path.replace('public/channels/', 'photo/'))
         .where('channel.id', '=', channelId)
         .executeTakeFirst();
-      const channel = await db
-        .selectFrom('channel')
-        .selectAll()
-        .where('id', '=', channelId)
-        .executeTakeFirstOrThrow();
-      const { password, ...channelWithoutPsw } = channel;
-      return channelWithoutPsw;
+
+      const channelMembers = await this.getChannelMembers(channelId);
+      this.channelsGateway.emitChannelUpdated(channelId, channelMembers);
+      return path;
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException();
@@ -369,6 +366,53 @@ export class ChannelService {
         };
       }),
     };
+  }
+
+  async getEligibleUsersForChannel(
+    adminId: number,
+    channelId: number,
+  ): Promise<EligibleUserForChannel[]> {
+    const users = await db
+      .selectFrom('user')
+      .innerJoin('channelMember as admin', (join) =>
+        join
+          .on('admin.channelId', '=', channelId)
+          .on('admin.userId', '=', adminId)
+          .on('admin.isAdmin', 'is', true),
+      )
+      // select only friends
+      .innerJoin('friend', (join) =>
+        join.on((eb) =>
+          eb.or([
+            eb.and([
+              eb('friend.user1_id', '=', adminId),
+              eb('friend.user2_id', '=', eb.ref('user.id')),
+            ]),
+            eb.and([
+              eb('friend.user2_id', '=', adminId),
+              eb('friend.user1_id', '=', eb.ref('user.id')),
+            ]),
+          ]),
+        ),
+      )
+      // don't select current members
+      .leftJoin('channelMember', (join) =>
+        join
+          .onRef('channelMember.userId', '=', 'user.id')
+          .on('channelMember.channelId', '=', channelId),
+      )
+      .where('channelMember.userId', 'is', null)
+      // don't select banned users
+      .leftJoin('bannedUser', (join) =>
+        join
+          .onRef('bannedUser.bannedId', '=', 'user.id')
+          .on('bannedUser.channelId', '=', channelId),
+      )
+      .where('bannedUser.bannedId', 'is', null)
+      .select(['user.username', 'user.rating', 'user.id', 'user.avatarUrl'])
+      .execute();
+
+    return users;
   }
 
   async getBannedUsersFromChannel(
@@ -744,6 +788,31 @@ export class ChannelService {
       .where('channel.channelOwner', '!=', userId)
       .executeTakeFirst();
     return !!member;
+  }
+
+  async canUserAddMember(
+    currentUserId: number,
+    userId: number,
+    channelId: number,
+  ) {
+    const isAllowed = await this.selectAdminQuery(currentUserId, channelId)
+      // select where the user is not a member of the channel
+      .leftJoin('channelMember', (join) =>
+        join
+          .on('channelMember.userId', '=', userId)
+          .on('channelMember.channelId', '=', channelId),
+      )
+      .where('channelMember.userId', 'is', null)
+      // select where the user is not banned from the channel
+      .leftJoin('bannedUser', (join) =>
+        join
+          .on('bannedUser.bannedId', '=', userId)
+          .on('bannedUser.channelId', '=', channelId),
+      )
+      .where('bannedUser.bannedById', 'is', null)
+      .executeTakeFirst();
+
+    return !!isAllowed;
   }
 
   async removeMember(memberId: number, channelId: number) {

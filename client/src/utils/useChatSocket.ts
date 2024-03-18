@@ -31,22 +31,22 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
     if (!chatSocket) return;
 
     const handleErrors = (err: Error) => {
-      // redirect to login page
       chatSocket.disconnect();
       setChatSocket(undefined);
       addError({ message: err.message });
     };
 
     const handleDisconnect = () => {
-      // redirect to login page
       setChatSocket(undefined);
-      console.log("disconnected by server");
     };
 
     const handleMemberJoin = (
       payload: ChannelServerEmitTypes["memberJoin"]
     ) => {
-      // invalidate channel info
+      if (payload.userId === user.id) {
+        queryClient.invalidateQueries({ queryKey: ["channels"] });
+      }
+
       queryClient.invalidateQueries({
         queryKey: ["channel", payload.channelId],
       });
@@ -61,6 +61,7 @@ export const useChatSocket = (addError: (error: ErrorType) => void) => {
       ) {
         navigate("/home");
       }
+
       if (payload.userId === user.id) {
         queryClient.invalidateQueries({ queryKey: ["channels"] });
       } else {

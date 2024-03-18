@@ -180,3 +180,10 @@ export type ChannelBannedUser = {
   rating: number;
   id: number;
 };
+
+export type EligibleUserForChannel = {
+  username: string;
+  id: number;
+  avatarUrl: string | null;
+  rating: number;
+};

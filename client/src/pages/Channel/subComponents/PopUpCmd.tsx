@@ -1,12 +1,18 @@
 import { Socket } from "socket.io-client";
 import { Avatar } from "../../../UIKit/avatar/Avatar";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
-import { Close, DoNotDisturbOn, PersonRemove } from "@mui/icons-material";
+import {
+  Close,
+  DoNotDisturbOn,
+  PersonAdd,
+  PersonRemove,
+} from "@mui/icons-material";
 import { ActionsMenu, MenuActionType } from "../../../UIKit/ActionsMenu";
 import { useContext, useEffect, useMemo, useState } from "react";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import {
   ChannelDataWithUsersWithoutPassword,
+  EligibleUserForChannel,
   UserInfo,
 } from "@api/types/channelsSchema";
 import { useKickMemberFromChannel } from "../../../utils/channels/useKickMemberFromChannel";
@@ -25,6 +31,12 @@ import { Spinner } from "../../../UIKit/Kit";
 import { ChannelAvatar } from "../../../UIKit/avatar/ChannelAvatar";
 import { useUnbanUserFromChannel } from "../../../utils/channels/useUnbanUserFromChannel";
 import { OutlinedIconLayout } from "../../../UIKit/OutlinedIconLayout";
+import { PlayerRating } from "../../../UIKit/PlayerRating";
+import { useGetEligibleUsersForChannel } from "../../../utils/channels/useGetEligibleUsersForChannel";
+import ModalLayout from "../../../UIKit/ModalLayout";
+import { NoResult } from "../../../UIKit/NoResult";
+import { useAddUserToChannel } from "../../../utils/channels/useAddUserToChannel";
+import { SearchInput } from "../../../UIKit/SearchInput";
 
 interface Props {
   chanInfo: ChannelDataWithUsersWithoutPassword;
@@ -39,6 +51,11 @@ export const PopUpCmd: React.FC<Props> = ({ chanInfo }) => {
   const queryClient = useQueryClient();
   const user = useGetUser();
   const [currentTab, setCurrentTab] = useState<TabsType>("All");
+  const [showAddMembers, setShowAddMembers] = useState(false);
+  const isCurrentUserAdmin = useMemo(
+    () => chanInfo.users.some((u) => u.isAdmin && u.userId === user.id),
+    [chanInfo.users, user.id]
+  );
 
   useEffect(() => {
     queryClient.setQueryData<ChannelDataWithUsersWithoutPassword>(
@@ -65,6 +82,13 @@ export const PopUpCmd: React.FC<Props> = ({ chanInfo }) => {
 
   return (
     <div className="p-4 gap-5 w-[500px] flex flex-col">
+      {showAddMembers && (
+        <AddUsersToChannel
+          channelId={chanInfo.id}
+          hide={() => setShowAddMembers(false)}
+        />
+      )}
+
       <div className="text-2xl text-left font-bold flex items-center gap-5">
         <ChannelAvatar
           imgUrl={chanInfo.photoUrl}
@@ -76,23 +100,34 @@ export const PopUpCmd: React.FC<Props> = ({ chanInfo }) => {
       </div>
 
       <div className="flex flex-col gap-4 h-full">
-        <div className="flex gap-2">
-          {TABS.map((tab, i) => {
-            const isSelected = tab === currentTab;
-            return (
-              <button
-                key={i}
-                onClick={() => setCurrentTab(tab)}
-                className={`bg-black text-sm rounded-full px-3 py-1 text-white ${
-                  !isSelected
-                    ? "bg-opacity-15 hover:bg-opacity-40 text-opacity-50 hover:text-opacity-100"
-                    : "bg-opacity-40 text-opacity-100"
-                }`}
-              >
-                {tab}
-              </button>
-            );
-          })}
+        <div className="flex gap-2 justify-between items-center">
+          <div className="flex gap-2">
+            {TABS.map((tab, i) => {
+              const isSelected = tab === currentTab;
+              return (
+                <button
+                  key={i}
+                  onClick={() => setCurrentTab(tab)}
+                  className={`bg-black text-sm rounded-full px-3 py-1 text-white ${
+                    !isSelected
+                      ? "bg-opacity-15 hover:bg-opacity-40 text-opacity-50 hover:text-opacity-100"
+                      : "bg-opacity-40 text-opacity-100"
+                  }`}
+                >
+                  {tab}
+                </button>
+              );
+            })}
+          </div>
+
+          {isCurrentUserAdmin && (
+            <button
+              onClick={() => setShowAddMembers(true)}
+              className="bg-green-600 font-semibold text-sm px-2 flex items-center py-1 rounded-sm gap-2"
+            >
+              Add Members <PersonAdd style={{ fontSize: 18 }} />
+            </button>
+          )}
         </div>
 
         {currentTab === "All" ? (
@@ -108,9 +143,7 @@ export const PopUpCmd: React.FC<Props> = ({ chanInfo }) => {
                     member={member}
                     ownerId={chanInfo.channelOwner}
                     channelId={chanInfo.id}
-                    isCurrentUserAdmin={chanInfo.users.some(
-                      (u) => u.isAdmin && u.userId === user.id
-                    )}
+                    isCurrentUserAdmin={isCurrentUserAdmin}
                   />
                 );
               })}
@@ -119,18 +152,14 @@ export const PopUpCmd: React.FC<Props> = ({ chanInfo }) => {
         ) : currentTab === "Banned" ? (
           <BannedUsers
             channelId={chanInfo.id}
-            isCurrentUserAdmin={chanInfo.users.some(
-              (u) => u.isAdmin && u.userId === user.id
-            )}
+            isCurrentUserAdmin={isCurrentUserAdmin}
           />
         ) : (
           <AdminsMembers
             ownerId={chanInfo.channelOwner}
             members={chanInfo.users}
             channelId={chanInfo.id}
-            isCurrentUserAdmin={chanInfo.users.some(
-              (u) => u.isAdmin && u.userId === user.id
-            )}
+            isCurrentUserAdmin={isCurrentUserAdmin}
           />
         )}
       </div>
@@ -344,6 +373,7 @@ const ChannelMember = ({
         />
         <div className="font-bold gap-2 flex">
           {member.username}
+          <PlayerRating rating={member.rating} />
           {member.userId === ownerId && (
             <span className="text-indigo-500 ">
               <VerifiedRoundedIcon sx={{ fontSize: "medium" }} />
@@ -363,6 +393,98 @@ const ChannelMember = ({
       </div>
 
       <ActionsMenu actions={actions} />
+    </div>
+  );
+};
+
+const AddUsersToChannel = ({
+  channelId,
+  hide,
+}: {
+  channelId: number;
+  hide: () => void;
+}) => {
+  const users = useGetEligibleUsersForChannel(channelId);
+  const [filteredUsers, setFilteredUsers] = useState(users.data);
+  const [filter, setFilter] = useState("");
+
+  useEffect(() => {
+    setFilteredUsers(users.data);
+  }, [users.data]);
+
+  return (
+    <ModalLayout onClickOutside={hide}>
+      <div className="flex flex-col gap-4 p-4 min-w-96">
+        <div className="flex flex-col">
+          <span className="text-left font-extrabold text-2xl">
+            Select Friends
+          </span>
+        </div>
+
+        <SearchInput
+          size="sm"
+          autoFocus
+          input={filter}
+          placeHolder="Search friends"
+          onSearch={(value) => {
+            setFilter(value);
+            setFilteredUsers(() => {
+              if (!users.data) return undefined;
+              if (value === "") return users.data;
+              return users.data.filter((c) =>
+                c.username.toLowerCase().match(value.toLowerCase())
+              );
+            });
+          }}
+        />
+
+        <div className="flex flex-col gap-[2px] h-96 overflow-y-auto">
+          {!users.data ? (
+            <Spinner isLoading />
+          ) : users.isError ? (
+            <span>Error</span>
+          ) : !filteredUsers?.length ? (
+            <NoResult description={"No results"} />
+          ) : (
+            filteredUsers.map((user, i) => {
+              return <UserToAdd user={user} key={i} channelId={channelId} />;
+            })
+          )}
+        </div>
+      </div>
+    </ModalLayout>
+  );
+};
+
+const UserToAdd = ({
+  user,
+  channelId,
+}: {
+  user: EligibleUserForChannel;
+  channelId: number;
+}) => {
+  const [isAdded, setIsAdded] = useState(false);
+  const addUser = useAddUserToChannel({ onSuccess: () => setIsAdded(true) });
+
+  return (
+    <div className="flex items-center justify-between px-2 py-1 bg-white bg-opacity-0 hover:bg-opacity-5 rounded-sm">
+      <div className="flex items-center gap-2 font-bold">
+        <Avatar
+          imgUrl={user.avatarUrl}
+          userId={user.id}
+          size="sm"
+          borderRadius={1}
+        />
+        {user.username}
+      </div>
+
+      <button
+        disabled={addUser.isPending || isAdded}
+        onClick={() => addUser.mutate({ channelId, userId: user.id })}
+        className="bg-green-600 text-sm font-semibold rounded-sm py-1 px-2 disabled:opacity-50"
+      >
+        Add +
+      </button>
     </div>
   );
 };

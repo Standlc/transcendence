@@ -98,7 +98,11 @@ export const Profile = ({
                   )}
                 </span>
               </div>
-              <span className="opacity-70">{profile.data.bio}</span>
+              {profile.data.bio && (
+                <span className="opacity-70 text-left whitespace-pre-wrap [word-break:break-word] text-ellipsis overflow-hidden [display:-webkit-box] [-webkit-line-clamp:3] [-webkit-box-orient:vertical]">
+                  {profile.data.bio}
+                </span>
+              )}
             </div>
 
             <div
