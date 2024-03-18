@@ -33,10 +33,6 @@ export const Settings = () => {
     setValueNoSpace(e.target.value, setLastname);
   };
 
-  const handleBioChange = (e) => {
-    setValueNoSpace(e.target.value, setBio);
-  };
-
   const handleClickChangeAvatar = () => {
     setShowConfirmAvatarPopup(true);
   };
@@ -201,6 +197,7 @@ export const Settings = () => {
                 onChange={(e) => setBio(e.target.value)}
                 className="bg-discord-light-black text-white rounded-l w-full h-10 px-2.5"
                 placeholder="Bio"
+                maxLength={100}
               />
             </div>
           </div>
