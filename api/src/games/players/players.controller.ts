@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   InternalServerErrorException,
+  ParseIntPipe,
   Post,
   Query,
   UseGuards,
@@ -11,6 +12,8 @@ import {
 import { PlayersService } from './players.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { LeaderbordPlayer } from 'src/types/games';
+import { ZodValidationPipe } from 'src/ZodValidatePipe';
+import { z } from 'zod';
 
 @UseGuards(JwtAuthGuard)
 @Controller('players')
@@ -19,10 +22,14 @@ export class PlayersController {
 
   @Get('/leaderboard')
   async getLeaderboard(
-    @Query('limit') limit: number,
+    @Query('limit', new ZodValidationPipe(z.string().optional()))
+    limit?: string,
   ): Promise<LeaderbordPlayer[]> {
     try {
-      const leaderboard = await this.players.getLeaderboard(limit);
+      const limitToNumber = Number(limit);
+      const leaderboard = await this.players.getLeaderboard(
+        isNaN(limitToNumber) ? undefined : limitToNumber,
+      );
       return leaderboard;
     } catch (error) {
       console.log(error);
@@ -32,7 +39,7 @@ export class PlayersController {
 
   @Post('leaderboard')
   async getLeaderboardPlayer(
-    @Body() body: number[],
+    @Body(new ZodValidationPipe(z.array(z.number()))) body: number[],
   ): Promise<LeaderbordPlayer[]> {
     try {
       if (body.length === 0) {

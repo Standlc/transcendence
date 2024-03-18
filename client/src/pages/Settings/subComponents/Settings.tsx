@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { ConfirmAvatarPopUp } from "./ConfirmAvatarPopUp";
 import { AppUser } from "@api/types/clientSchema";
 import { useQueryClient } from "@tanstack/react-query";
@@ -8,6 +8,7 @@ import { TwoFactorAuthentificationSetupModal } from "../../../components/TwoFact
 import { Avatar } from "../../../UIKit/avatar/Avatar";
 import { useGetUser } from "../../../utils/useGetUser";
 import { setValueNoSpace } from "../../../utils/setValueNoSpace";
+import { ErrorContext } from "../../../ContextsProviders/ErrorContext";
 
 export const Settings = () => {
   const user = useGetUser();
@@ -21,20 +22,31 @@ export const Settings = () => {
   const [show2FASetupModal, setShow2FASetupModal] = useState(false);
   const [username, setUsername] = useState(user?.username);
   const [isModified, setIsModified] = useState(false);
+  const { addError } = useContext(ErrorContext);
 
   const handleUsernameChange = (e) => {
-    setValueNoSpace(e.target.value, setUsername);
-    checkModification();
+    const newValue = e.target.value;
+
+    setValueNoSpace(newValue, (updatedValue) => {
+      setUsername(updatedValue);
+      checkModification(updatedValue, firstname, lastname, bio);
+    });
   };
 
   const handleFirstnameChange = (e) => {
-    setValueNoSpace(e.target.value, setFirstname);
-    checkModification();
+    const newValue = e.target.value;
+    setValueNoSpace(newValue, (updatedValue) => {
+      setFirstname(updatedValue);
+      checkModification(username, updatedValue, lastname, bio);
+    });
   };
 
   const handleLastnameChange = (e) => {
-    setValueNoSpace(e.target.value, setLastname);
-    checkModification();
+    const newValue = e.target.value;
+    setValueNoSpace(newValue, (updatedValue) => {
+      setLastname(updatedValue);
+      checkModification(username, firstname, updatedValue, bio);
+    });
   };
 
   const handleClickChangeAvatar = () => {
@@ -42,18 +54,23 @@ export const Settings = () => {
   };
 
   const handleBioChange = (e) => {
-    checkModification();
-    setBio(e.target.value);
+    const newValue = e.target.value;
+    setBio(newValue);
+    checkModification(username, firstname, lastname, newValue);
   };
 
-  const checkModification = () => {
+  const checkModification = (
+    username: string,
+    firstname: string | null,
+    lastname: string | null,
+    bio: string | null
+  ) => {
     const hasModified =
-      username !== user?.username ||
+      (username !== user?.username && username.trim().length > 0) ||
       firstname !== user?.firstname ||
       lastname !== user?.lastname ||
       bio !== user?.bio;
     setIsModified(hasModified);
-    console.log("hasModified, ", hasModified);
   };
 
   const handleFileChange = (file) => {
@@ -87,10 +104,10 @@ export const Settings = () => {
           }
         });
 
-        alert("Avatar updated successfully");
+        addError({ message: "Avatar successfully", isSuccess: true });
       } catch (error) {
         console.error("Failed to upload avatar", error);
-        alert("Failed to upload avatar");
+        addError({ message: "Failed to update" });
       }
     }
     setShowConfirmAvatarPopup(false);
@@ -104,7 +121,6 @@ export const Settings = () => {
 
   const updateUserProfile = async () => {
     try {
-      // Define the body with all possible properties, marking username as optional
       const body: {
         bio: string | null;
         firstname: string | null;
@@ -122,7 +138,7 @@ export const Settings = () => {
 
       await axios.patch("/api/users/update", body);
 
-      alert("Profile updated successfully");
+      addError({ message: "updated successfully", isSuccess: true });
 
       queryClient.setQueryData<AppUser | undefined>(["user"], (oldData) => {
         if (oldData && typeof oldData === "object") {
@@ -151,21 +167,20 @@ export const Settings = () => {
   };
 
   return (
-    <div className="flex w-full h-full justify-center items-center">
+    <div className="flex w-full h-full justify-center items-center p-5">
       {show2FASetupModal && (
         <TwoFactorAuthentificationSetupModal
           hide={() => setShow2FASetupModal(false)}
         />
       )}
-      <div className="flex flex-col w-full max-w-4xl mx-auto mt-20 p-10 bg-discord-dark-grey rounded-lg shadow-lg">
+      <div className="flex flex-col w-full max-w-4xl mx-auto p-5 bg-discord-dark-grey rounded-lg shadow-lg">
         <div className="text-4xl font-bold text-left">Settings</div>
         <div className="text-xl text-white  text-left text-opacity-60 mb-20">
-          {" "}
-          Profil{" "}
+          Profil
         </div>
         <div className="flex justify-between items-start gap-10">
           <div className="flex flex-col flex-1 gap-6">
-            <div className="mb-3 w-2/3 w-2/3">
+            <div className="mb-3 w-2/3">
               <label
                 htmlFor="username"
                 className="font-bold block mb-2 text-sm text-white"
@@ -181,7 +196,7 @@ export const Settings = () => {
                 placeholder="Username"
               />
             </div>
-            <div className="mb-3 w-2/3 w-2/3">
+            <div className="mb-3 w-2/3">
               <label
                 htmlFor="firstname"
                 className="font-bold block mb-2 text-sm text-white"
@@ -244,7 +259,7 @@ export const Settings = () => {
         <div className="mt-10 flex flex-col items-start gap-4">
           <button
             onClick={updateUserProfile}
-            disabled={!isModified}
+            disabled={!isModified || username.trim().length === 0}
             className={`${
               isModified
                 ? "bg-green-500 hover:bg-green-600"

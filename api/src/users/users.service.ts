@@ -384,15 +384,20 @@ export class UsersService {
       !updateUsersDto.firstname &&
       !updateUsersDto.lastname
     )
-      throw new UnprocessableEntityException('Empty value');
-    else if (updateUsersDto.username && updateUsersDto.username.length > 50)
-      throw new UnprocessableEntityException('Username is too long');
+      return;
+    if (!updateUsersDto.username)
+      throw new UnprocessableEntityException('Username is empty');
     try {
       if (updateUsersDto.username) {
         const user = await db
           .selectFrom('user')
           .selectAll()
-          .where('username', '=', updateUsersDto.username)
+          .where(({ eb, and }) =>
+            and([
+              eb('username', '=', updateUsersDto.username as string),
+              eb('id', '!=', userId),
+            ]),
+          )
           .executeTakeFirst();
         if (user)
           throw new UnprocessableEntityException('Username already taken');

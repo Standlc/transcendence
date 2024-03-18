@@ -1,4 +1,10 @@
-import { Body, Controller, Get, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { AchievementsService } from './Achievements.service';
 import { Achievement } from 'src/types/schema';
 import { Selectable } from 'kysely';
@@ -15,7 +21,7 @@ export class AchievementsController {
 
   @Get('/:userId')
   async getUserAchievements(
-    @Param('userId') userId: number,
+    @Param('userId', new ParseIntPipe()) userId: number,
   ): Promise<Selectable<Achievement>[]> {
     await this.usersService.getUserById(userId);
 

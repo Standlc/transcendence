@@ -13,7 +13,6 @@ import {
 import { Server, Socket } from 'socket.io';
 import { DirectMessageContent } from 'src/types/channelsSchema';
 import { WsAuthGuard } from 'src/auth/ws-auth.guard';
-import { ConnectedUsersService } from 'src/connectedUsers/connectedUsers.service';
 import { DmGatewayEmitTypes } from 'src/types/conversations';
 
 @WebSocketGateway(5050, {
@@ -28,7 +27,6 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @Inject(forwardRef(() => DmService))
     private dmService: DmService,
     private readonly wsGuard: WsAuthGuard,
-    private readonly connectedUsersService: ConnectedUsersService,
   ) {}
 
   @WebSocketServer() server: Server;
@@ -147,34 +145,6 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
           conversationId satisfies DmGatewayEmitTypes['conversationDeleted'],
         );
     });
-  }
-
-  //
-  //
-  //
-  @SubscribeMessage('getDirectMessages')
-  async getDirectMessages(
-    @ConnectedSocket() socket: Socket,
-    @MessageBody() payload: { conversationId: number },
-  ) {
-    try {
-      this.connectedUsersService.verifyConnection(socket);
-    } catch (error) {
-      console.error(error);
-      throw new WsException('User did not join channel room');
-    }
-
-    try {
-      const userId = socket.data.id;
-      const messages = await this.dmService.getConversationMessages(
-        payload.conversationId,
-        userId,
-      );
-      socket.emit('getDirectMessages', messages);
-    } catch (error) {
-      console.error(error);
-      throw new WsException('Cannot get messages');
-    }
   }
 
   extractUserId(socket: Socket) {

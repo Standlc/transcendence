@@ -6,6 +6,7 @@ import {
   ForbiddenException,
   Get,
   Param,
+  ParseIntPipe,
   Post,
   Request,
   UseGuards,
@@ -20,6 +21,11 @@ import {
   UserGameInvitation,
 } from 'src/types/gameRequests';
 import { FriendsService } from 'src/friends/friends.service';
+import { ZodValidationPipe } from 'src/ZodValidatePipe';
+import {
+  ZodPrivateGameRequestDto,
+  ZodPublicGameRequestDto,
+} from 'src/types/zodGameRequestsSchema';
 
 @UseGuards(JwtAuthGuard)
 @Controller('game-requests')
@@ -31,8 +37,9 @@ export class GameRequestsController {
 
   @Post('/')
   async findGameMatch(
-    @Body() body: PublicGameRequestDto,
-    @Request() req: Request & { user: { id: number } },
+    @Body(new ZodValidationPipe(ZodPublicGameRequestDto))
+    body: PublicGameRequestDto,
+    @Request() req,
   ): Promise<UserGameRequest | undefined> {
     this.gameRequests.verifyGamePointsOrThrow(body.points);
     const userId: number = req.user.id;
@@ -42,8 +49,9 @@ export class GameRequestsController {
 
   @Post('/invitation')
   async handleGameInvitation(
-    @Body() body: PrivateGameRequestDto,
-    @Request() req: Request & { user: { id: number } },
+    @Body(new ZodValidationPipe(ZodPrivateGameRequestDto))
+    body: PrivateGameRequestDto,
+    @Request() req,
   ): Promise<UserGameInvitation> {
     this.gameRequests.verifyGamePointsOrThrow(body.points);
 
@@ -67,7 +75,7 @@ export class GameRequestsController {
 
   @Post('/accept/:inviterId')
   async acceptGameInvitation(
-    @Param('inviterId') inviterId: number,
+    @Param('inviterId', new ParseIntPipe()) inviterId: number,
     @Request() req,
   ) {
     const userId: number = req.user.id;
@@ -76,7 +84,7 @@ export class GameRequestsController {
 
   @Delete('/decline/:inviterId')
   async declineGameInvite(
-    @Param('inviterId') inviterId: number,
+    @Param('inviterId', new ParseIntPipe()) inviterId: number,
     @Request() req,
   ) {
     const userId: number = req.user.id;

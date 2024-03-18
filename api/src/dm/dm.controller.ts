@@ -31,6 +31,8 @@ import {
   ApiConflictResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { number, z } from 'zod';
+import { ZodValidationPipe } from 'src/ZodValidatePipe';
 
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
@@ -62,8 +64,16 @@ export class DmController {
   @ApiUnauthorizedResponse({ description: 'User 1 blocked user 2' })
   @Post()
   async createConveration(
-    @Body() userId: UserId,
-    @Request() req,
+    @Body(
+      new ZodValidationPipe(
+        z.object({
+          userId: number(),
+        }),
+      ),
+    )
+    userId: UserId,
+    @Request()
+    req,
   ): Promise<number> {
     return await this.dmService.createConversation(userId.userId, req.user.id);
   }
@@ -147,10 +157,10 @@ export class DmController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @Get('findDmId/:userId')
   async findDmId(
-    @Param('userId') userId: number,
+    @Param('userId', new ZodValidationPipe(z.string())) userId: string,
     @Request() req,
   ): Promise<number> {
-    return await this.dmService.findDmId(userId, req.user.id);
+    return await this.dmService.findDmId(Number(userId), req.user.id);
   }
 
   //
@@ -215,7 +225,7 @@ export class DmController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @Get(':id')
   async getConversation(
-    @Param('id') id: string,
+    @Param('id', new ZodValidationPipe(z.string())) id: string,
     @Request() req,
   ): Promise<UserConversation> {
     const userId: number = req.user.id;
@@ -271,7 +281,7 @@ export class DmController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @Get(':id/messages')
   async getConversationMessages(
-    @Param('id') id: string,
+    @Param('id', new ZodValidationPipe(z.string())) id: string,
     @Request() req,
   ): Promise<DmWithSenderInfo[]> {
     const userId: number = req.user.id;
@@ -296,11 +306,13 @@ export class DmController {
   @ApiNotFoundResponse({ description: 'Conversation not found' })
   @Delete(':conversationId')
   async deleteConversation(
-    @Param('conversationId') conversationId: number,
+    @Param('conversationId', new ZodValidationPipe(z.string()))
+    conversationId: string,
     @Request() req,
   ): Promise<void> {
-    const conversation =
-      await this.dmService.getConversationById(conversationId);
+    const conversation = await this.dmService.getConversationById(
+      Number(conversationId),
+    );
     if (!conversation) {
       throw new NotFoundException();
     }
@@ -308,6 +320,6 @@ export class DmController {
     if (conversation.user1_id !== userId && conversation.user2_id !== userId) {
       throw new ForbiddenException();
     }
-    await this.dmService.delete(conversationId);
+    await this.dmService.delete(Number(conversationId));
   }
 }

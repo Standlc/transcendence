@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { DmGatewayEmitTypes } from "@api/types/conversations";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
+import { z } from "zod";
 
 export const useConversationSocket = (addError: (error: ErrorType) => void) => {
   const [conversationSocket, setConversationSocket] = useState<Socket>();
@@ -35,11 +36,9 @@ export const useConversationSocket = (addError: (error: ErrorType) => void) => {
       console.log("disconnected by server");
     };
 
-    const handleNewConversation = () =>
-      // conversationId: DmGatewayEmitTypes["newConversation"]
-      {
-        queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      };
+    const handleNewConversation = () => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    };
 
     const handleConversationDeleted = (
       conversationId: DmGatewayEmitTypes["conversationDeleted"]

@@ -43,10 +43,10 @@ export type DirectMessageContent = Omit<
   'createdAt' | 'id' | 'senderId'
 >;
 
-export type ChannelMessageContent = Omit<
-  ChannelMessage,
-  'createdAt' | 'id' | 'senderId'
->;
+export type ChannelMessageContent = {
+  content: string;
+  channelId: number;
+};
 
 export interface ChannelDataWithUsersWithoutPassword {
   channelOwner: number;
