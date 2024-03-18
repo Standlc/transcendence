@@ -64,7 +64,8 @@
     "rxjs": "^7.8.1",
     "sharp": "^0.33.2",
     "socket.io": "^4.7.3",
-    "swagger": "^0.0.1"
+    "swagger": "^0.0.1",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.3.0",

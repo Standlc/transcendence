@@ -1,5 +1,6 @@
 import { Selectable, SqlBool } from 'kysely';
 import { Channel, ChannelMessage, DirectMessage } from './schema';
+import { z } from 'zod';
 
 export type ChannelServerEventTypes = {
   joinChannel: ConnectToChannel;

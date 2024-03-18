@@ -31,6 +31,7 @@ import {
   ApiConflictResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { z } from 'zod';
 
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
@@ -63,7 +64,9 @@ export class DmController {
   @Post()
   async createConveration(
     @Body() userId: UserId,
-    @Request() req,
+    // @Body(new )
+    @Request()
+    req,
   ): Promise<number> {
     return await this.dmService.createConversation(userId.userId, req.user.id);
   }
