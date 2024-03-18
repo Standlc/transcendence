@@ -17,6 +17,7 @@ import { ProfileActionsMenu } from "./ProfileActionsMenu";
 import { useNavigate } from "react-router-dom";
 import { DateTime } from "luxon";
 import { useStartConversation } from "../../utils/conversations/useStartConversation";
+import { PlayerRating } from "../../UIKit/PlayerRating";
 
 type TabsType = "Game History" | "Achievements" | "Friends";
 
@@ -88,8 +89,9 @@ export const Profile = ({
           <div className="flex flex-col gap-5 bg-black bg-opacity-50 p-5 rounded-md">
             <div className="flex flex-col items-start">
               <div className="flex justify-between items-start w-full">
-                <span className="font-bold text-2xl">
+                <span className="font-bold text-2xl flex gap-3 items-center">
                   {profile.data.username}
+                  <PlayerRating rating={profile.data.rating} />
                 </span>
                 <span className="opacity-50 text-sm">
                   Member since{" "}
